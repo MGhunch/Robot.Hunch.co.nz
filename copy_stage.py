@@ -92,6 +92,19 @@ insisting, do what they asked.
 Return ONLY this JSON, nothing else, no code fences:
 {"message":"one short line to them","proposal":"the new text, or null if you're pushing back","pushback":true|false}"""
 
+EXTRACT = """You read a promo brief written by a human and pull out the hard
+facts so a form can be pre-filled. Extract ONLY what is actually stated or
+unmistakable — never guess, never invent. Missing means null.
+
+prize_type: exactly one of "movie", "gig", "sport", "other", or null.
+prize_name: the show, film, artist or event name as a human would write it, or null.
+venue: the venue name only (no city unless part of the name), or null.
+event_date: the event date in YYYY-MM-DD only if a full, unambiguous date is
+stated (assume the next future occurrence if the year is missing), else null.
+
+Return ONLY this JSON, nothing else, no code fences:
+{"prize_type":null,"prize_name":null,"venue":null,"event_date":null}"""
+
 
 # ---------------------------------------------------------------------------
 # THE FEEDBACK LOOP
@@ -211,12 +224,22 @@ def generate():
     except TermsError as e:
         return jsonify({"error": str(e)}), 400
 
+    story = data.get("story") or {}
+    s_prize = (story.get("prize") or "").strip()[:600]
+    s_care = (story.get("care") or "").strip()[:600]
+
     brief = f"""PRIZE: {facts['prize_name']}
 TYPE: {facts['prize_type']}
 WINNERS: {facts['winners']} ({'plural' if facts['plural'] else 'singular'})
 ENTRIES CLOSE: {facts['closes_long']}"""
     if facts.get("venue"):
         brief += f"\nVENUE: {facts['venue']} on {facts.get('event_long', '')}"
+    if s_prize or s_care:
+        brief += "\n\nTHE STORY (a human answered these — this is your fuel, lead from here):"
+        if s_prize:
+            brief += f"\nWhat's the prize? {s_prize}"
+        if s_care:
+            brief += f"\nWhy will anyone care? {s_care}"
     brief += f"""
 
 WHAT THEY SENT US (the promoter's writing, not ours — mine it for a hook,
@@ -240,6 +263,44 @@ don't echo it):
 
     return jsonify({"success": True, "copy": result, "facts": facts,
                     "context": copy_context(facts), "flags": flags})
+
+
+@copy_bp.route("/api/extract", methods=["POST"])
+@require_auth
+def extract():
+    """Story -> facts. Reads the human's answers and pre-fills the Detail page.
+    Extraction only ever suggests: blanks stay blank, and every value lands in
+    an editable field the human confirms. Never guesses, never invents."""
+    data = request.get_json() or {}
+    if not ANTHROPIC_API_KEY:
+        return jsonify({"error": "No API key configured on the server."}), 500
+
+    def _sect(head, body, cap):
+        body = (body or "").strip()
+        return (head + "\n" + body)[:cap] if body else None
+
+    text = "\n\n".join(filter(None, [
+        _sect("WHAT'S THE PRIZE?", data.get("prize"), 800),
+        _sect("WHY WILL ANYONE CARE?", data.get("care"), 800),
+        _sect("WHAT THE ROBOT WAS GIVEN:", data.get("source"), 3000),
+    ])).strip()
+    if not text:
+        return jsonify({"success": True, "found": {}})
+
+    try:
+        result = _json_from(_call(EXTRACT, text, 300)) or {}
+    except Exception as e:
+        print(f"[robot/extract] failed: {e}")
+        return jsonify({"success": True, "found": {}})  # extraction is a favour, not a gate
+
+    found = {}
+    if result.get("prize_type") in ("movie", "gig", "sport", "other"):
+        found["prize_type"] = result["prize_type"]
+    for k in ("prize_name", "venue", "event_date"):
+        v = result.get(k)
+        if isinstance(v, str) and v.strip():
+            found[k] = v.strip()[:120]
+    return jsonify({"success": True, "found": found})
 
 
 @copy_bp.route("/api/tweak", methods=["POST"])

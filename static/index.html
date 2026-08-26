@@ -331,6 +331,44 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
   .join{font-size:19px}
   .dates{gap:22px}
 }
+
+/* ---------------- the red brief ---------------- */
+/* Red is the tool's talking voice: the Brief is a conversation, so it happens
+   on red with white cards. The working rooms (copy, review) stay on paper. */
+.redpane{background:var(--red);border-radius:18px;padding:28px 20px 32px;text-align:center}
+.rhed{color:#fff;font-size:clamp(30px,5vw,38px);line-height:.95}
+.rlede{font-size:12.5px;color:var(--white-hi);margin:8px 0 22px}
+.qcard{background:#fff;border-radius:var(--r-lg);padding:18px 20px;text-align:left;
+  margin:0 auto 10px;max-width:520px}
+.qhead{font-family:var(--display);font-size:22px;color:var(--ink);line-height:1;margin-bottom:4px}
+.qhead .redword{color:var(--red)}
+.qta{background:var(--paper);border:1px solid var(--border);border-radius:10px;
+  padding:11px 14px;font-size:13px;min-height:58px;margin-top:9px;resize:vertical}
+.qta:focus{border-color:var(--red)}
+.btnw{background:transparent;color:#fff;border:2px solid #fff;border-radius:var(--pill);
+  padding:12px 34px;font-family:var(--display);font-size:17px;letter-spacing:1.5px;
+  transition:background .2s,color .2s}
+.btnw:hover{background:#fff;color:var(--red)}
+.btnw:disabled{opacity:.55}
+.frow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:9px 0;border-bottom:1px solid #F0EDE8}
+.frow:last-child{border-bottom:none}
+.flab{font-size:10px;letter-spacing:1.5px;color:var(--mid);font-weight:600;flex-shrink:0}
+.fval{font-family:var(--display);font-size:19px;color:var(--ink);
+  background:rgba(237,28,36,.08);border:none;border-bottom:2px solid var(--red);
+  padding:0 8px;border-radius:5px 5px 0 0;text-align:right;width:auto;outline:none}
+.fval::placeholder{color:var(--mid)}
+select.fval{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:right}
+.fquiet{font-size:10px;color:var(--mid)}
+.fquiet input{width:64px;background:none;border:none;border-bottom:1px dashed var(--border);
+  font-size:10px;color:var(--mid);text-align:center;padding:1px 0;border-radius:0}
+.fdate{position:relative;display:inline-flex;align-items:baseline;cursor:pointer}
+.fdate input[type=date]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drawn{font-family:var(--display);font-size:19px;color:var(--mid);padding:0 8px}
+.leglink{color:var(--red);text-decoration:underline;cursor:pointer}
+.legline{font-size:11.5px;color:#5F5E5A;margin-bottom:6px;line-height:1.5}
+.legwait{font-size:11.5px;color:var(--mid);padding:6px 0}
+.subhide{display:none}
 </style>
 </head>
 <body>
@@ -390,110 +428,99 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
   <div class="rail">
     <button class="step on"     data-s="0" onclick="go(0)"><i>1</i>Brief</button>
     <button class="step locked" data-s="1" onclick="go(1)"><i>2</i>Copy</button>
-    <button class="step locked" data-s="2" onclick="go(2)"><i>3</i>Legals</button>
-    <button class="step locked" data-s="3" onclick="go(3)"><i>4</i>Review</button>
+    <button class="step locked" data-s="2" onclick="go(2)"><i>3</i>Review</button>
   </div>
 
-  <!-- 1 BRIEF — fill in the blanks -->
+  <!-- 1 BRIEF — the story, then the detail -->
   <div class="pane on" data-p="0">
-    <h2 class="hed beb">WHAT'S THE <span class="redword">PROMO?</span></h2>
-    <p class="lede">Fill in the blanks. The robot does the rest.</p>
 
-    <div class="shead">WHAT'S THE PRIZE?</div>
-    <p class="slede">What are we giving away and when?</p>
+    <!-- page one: the story. Feels first. -->
+    <div class="redpane" id="storyView">
+      <h2 class="rhed beb">WHAT'S THE <span style="color:#fff">STORY?</span></h2>
+      <p class="rlede">Fill in the blanks. The robot does the rest.</p>
 
-    <div class="ladder">
-      <div class="rung">
-        <span class="blank" id="numBlank"><span id="numVal">5</span><span class="caret">&#9662;</span>
-          <span class="pop" id="numPop">
-            <span class="chip" data-v="1">1</span>
-            <span class="chip" data-v="2">2</span>
-            <span class="chip" data-v="3">3</span>
-            <span class="chip sel" data-v="5">5</span>
-            <span class="chip" data-v="10">10</span>
-            <span class="chip plus" data-plus="1">+</span>
-          </span>
-        </span>
-        <input class="ladderInput" id="numInput" type="number" min="1" placeholder="?"
-          style="display:none;width:110px" onkeydown="if(event.key==='Enter')this.blur()">
-        <input type="hidden" id="winners" value="5">
-        <span class="join" id="lotsWord">LOTS OF</span>
+      <div class="qcard">
+        <div class="qhead beb">WHAT'S THE <span class="redword">PRIZE?</span></div>
+        <textarea class="qta" id="storyPrize" rows="2" oninput="dirty()"
+          placeholder="Tickets to Fleetwood Mac's last-ever NZ show. Name it like you'd tell a mate."></textarea>
       </div>
 
-      <div class="rung">
-        <span class="selwrap">
-          <select id="ptype" onchange="typeChanged();dirty()">
-            <option value="movie">MOVIE PASSES</option>
-            <option value="gig">GIG TICKETS</option>
-            <option value="sport">SPORTS TICKETS</option>
-            <option value="other">OTHER&#8230;</option>
-          </select>
-          <span class="caret">&#9662;</span>
-        </span>
-        <input class="ladderInput" id="ptypeOther" type="text" placeholder="WHAT IS IT?"
-          style="display:none" spellcheck="false" oninput="fitInput(this);dirty()"
-          onkeydown="if(event.key==='Enter')this.blur()">
+      <div class="qcard">
+        <div class="qhead beb">WHY WILL ANYONE <span class="redword">CARE?</span></div>
+        <textarea class="qta" id="storyCare" rows="2" oninput="dirty()"
+          placeholder="First show here in twelve years. One night. That's it."></textarea>
       </div>
 
-      <div class="rung">
-        <span class="join">TO</span>
-        <input class="ladderInput" id="pname" type="text" placeholder="WHAT'S THE SHOW?"
-          spellcheck="false" oninput="fitInput(this);dirty()">
+      <div class="qcard">
+        <div class="qhead beb">WHAT DOES THE ROBOT NEED TO <span class="redword">KNOW?</span></div>
+        <textarea class="qta" id="blurb" rows="4" oninput="dirty()"
+          placeholder="Cut and paste anything you know about the prize."></textarea>
       </div>
 
-      <div class="rung" id="gigRung" style="display:none">
-        <span class="join">AT</span>
-        <input class="ladderInput" id="venue" type="text" placeholder="WHERE?"
-          spellcheck="false" oninput="fitInput(this);dirty()">
-        <span class="join">ON</span>
-        <label class="dchip small">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="5" width="18" height="16" rx="4"/>
-            <path d="M3 10h18M8 3v4M16 3v4"/>
-            <circle cx="12" cy="15" r="2.4" fill="#ED1C24" stroke="none"/>
-          </svg>
-          <span id="edateVal">WHEN?</span>
-          <input type="date" id="edate" onchange="dateChip(this,'edateVal');dirty()">
-        </label>
-      </div>
+      <button class="btnw" id="toDetailBtn" onclick="toDetail()">NOW THE DETAIL</button>
     </div>
 
-    <div class="dates">
-      <div>
-        <div class="dlabel">STARTS</div>
-        <label class="dchip">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="5" width="18" height="16" rx="4"/>
-            <path d="M3 10h18M8 3v4M16 3v4"/>
-            <circle cx="12" cy="15" r="2.4" fill="#ED1C24" stroke="none"/>
-          </svg>
-          <span id="opensVal">24 AUG</span>
-          <input type="date" id="opens" value="2026-08-24" onchange="dateChip(this,'opensVal');dirty()">
-        </label>
-        <div class="tquiet"><input id="opensTime" value="12:00am" oninput="dirty()" aria-label="Opens at"></div>
+    <!-- page two: the detail. Facts second, in a list, not too cute. -->
+    <div class="redpane subhide" id="detailView">
+      <h2 class="rhed beb">NOW THE DETAIL</h2>
+      <p class="rlede">The robot filled in what it heard. Fix anything it got wrong.</p>
+
+      <div class="qcard">
+        <div class="qhead beb">WHAT'S THE ACTUAL <span class="redword">PRIZE?</span></div>
+        <div class="frow"><span class="flab">PRIZE</span>
+          <span style="display:flex;gap:6px;align-items:baseline">
+            <select id="ptype" class="fval" onchange="typeChanged();dirty()">
+              <option value="movie">MOVIE PASSES</option>
+              <option value="gig">GIG TICKETS</option>
+              <option value="sport">SPORTS TICKETS</option>
+              <option value="other">OTHER&#8230;</option>
+            </select>
+            <input class="fval" id="ptypeOther" type="text" placeholder="WHAT IS IT?"
+              style="display:none;width:130px" spellcheck="false" oninput="dirty()">
+          </span></div>
+        <div class="frow"><span class="flab" id="showLab">SHOW</span>
+          <input class="fval" id="pname" type="text" placeholder="WHAT'S THE SHOW?"
+            style="width:200px" spellcheck="false" oninput="dirty()"></div>
+        <div class="frow" id="venueRow" style="display:none"><span class="flab">VENUE</span>
+          <input class="fval" id="venue" type="text" placeholder="WHERE?"
+            style="width:180px" spellcheck="false" oninput="dirty()"></div>
+        <div class="frow" id="edateRow" style="display:none"><span class="flab">EVENT DATE</span>
+          <label class="fdate"><span class="fval" id="edateVal" style="min-width:84px;display:inline-block">WHEN?</span>
+            <input type="date" id="edate" onchange="dateChip(this,'edateVal');dirty()"></label></div>
+        <div class="frow"><span class="flab">PRIZES</span>
+          <input class="fval" id="winners" type="number" min="1" placeholder="?"
+            style="width:64px" oninput="dirty()"></div>
       </div>
-      <div>
-        <div class="dlabel">ENDS</div>
-        <label class="dchip">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="5" width="18" height="16" rx="4"/>
-            <path d="M3 10h18M8 3v4M16 3v4"/>
-            <circle cx="12" cy="15" r="2.4" fill="#ED1C24" stroke="none"/>
-          </svg>
-          <span id="closesVal">6 SEP</span>
-          <input type="date" id="closes" value="2026-09-06" onchange="dateChip(this,'closesVal');dirty()">
-        </label>
-        <div class="tquiet"><input id="closesTime" value="11:59pm" oninput="dirty()" aria-label="Closes at"></div>
+
+      <div class="qcard">
+        <div class="qhead beb">WHAT'S THE KEY <span class="redword">DATES?</span></div>
+        <div class="frow"><span class="flab">DRAW OPENS</span>
+          <span style="display:flex;gap:10px;align-items:baseline">
+            <span class="fquiet"><input id="opensTime" value="12:00am" oninput="dirty()" aria-label="Opens at"></span>
+            <label class="fdate"><span class="fval" id="opensVal" style="min-width:84px;display:inline-block">24 AUG</span>
+              <input type="date" id="opens" value="2026-08-24" onchange="dateChip(this,'opensVal');dirty()"></label>
+          </span></div>
+        <div class="frow"><span class="flab">DRAW CLOSES</span>
+          <span style="display:flex;gap:10px;align-items:baseline">
+            <span class="fquiet"><input id="closesTime" value="11:59pm" oninput="dirty()" aria-label="Closes at"></span>
+            <label class="fdate"><span class="fval" id="closesVal" style="min-width:84px;display:inline-block">6 SEP</span>
+              <input type="date" id="closes" value="2026-09-06" onchange="dateChip(this,'closesVal');dirty()"></label>
+          </span></div>
+        <div class="frow"><span class="flab">WINNERS DRAWN</span>
+          <span class="drawn" id="drawnVal">&mdash;</span></div>
+      </div>
+
+      <div class="qcard">
+        <div class="qhead beb">WHAT'S THE <span class="redword">LEGALS?</span></div>
+        <div class="legline"><span class="leglink" onclick="toggleFixed()">Standard legals</span> are the same. What extras do we need?</div>
+        <div id="legalsInline" class="legwait">Finish the facts above and the legals sort themselves.</div>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btnw" style="opacity:.85" onclick="backToStory()">THE STORY</button>
+        <button class="btnw" onclick="toCopy()">WRITE THE WORDS</button>
       </div>
     </div>
-
-    <div class="paste">
-      <div class="shead">WHAT DO WE KNOW?</div>
-      <p class="slede">Cut and paste what we know about the prize.</p>
-      <textarea id="blurb" placeholder="Paste the distributor blurb, press release, whatever landed in your inbox. The robot reads it so you don't have to." oninput="dirty()"></textarea>
-    </div>
-
-    <div class="bar"><button class="btn" onclick="toCopy()">WRITE THE WORDS</button></div>
   </div>
 
   <!-- 2 COPY -->
@@ -503,29 +530,18 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
     <div id="copyOut"></div>
     <div class="bar" id="copyBar" style="display:none">
       <button class="btn ghost" onclick="genCopy()">START AGAIN</button>
-      <button class="btn" onclick="toLegals()">NOW THE LEGALS</button>
-    </div>
-  </div>
-
-  <!-- 3 LEGALS -->
-  <div class="pane" data-p="2">
-    <h2 class="hed beb">TICK THE LEGALS</h2>
-    <p class="lede">Most of it publishes every time and doesn't need you. These are the ones that depend on the prize.</p>
-    <div id="legalsOut"></div>
-    <div class="bar">
-      <button class="btn ghost" onclick="go(1)">BACK TO THE WORDS</button>
       <button class="btn" onclick="toReview()">PACKAGE IT UP</button>
     </div>
   </div>
 
-  <!-- 4 REVIEW -->
-  <div class="pane" data-p="3">
+  <!-- 3 REVIEW -->
+  <div class="pane" data-p="2">
     <h2 class="hed beb">HERE'S THE EMAIL</h2>
     <p class="lede">What the customer sees, and what the specialist gets. Anything wrong, go back and fix it — nothing's gone anywhere yet.</p>
     <div id="reviewOut"></div>
     <div class="bar">
       <button class="btn ghost" onclick="go(1)">CHANGE THE WORDS</button>
-      <button class="btn ghost" onclick="go(2)">CHANGE THE LEGALS</button>
+      <button class="btn ghost" onclick="go(0)">CHANGE THE FACTS</button>
       <button class="btn" onclick="location.reload()">DO ANOTHER ONE</button>
     </div>
   </div>
@@ -606,76 +622,23 @@ const formData = () => ({
   venue:val('venue'), event_date:val('edate')
 });
 
-function enterRoom(){ $('door').style.display='none'; $('room').classList.add('on'); fitAll(); }
+function enterRoom(){ $('door').style.display='none'; $('room').classList.add('on'); drawDrawn(); typeChanged(); }
 
-/* ---------------- the ladder ---------------- */
+/* ---------------- the detail rows ---------------- */
 const PLACEHOLDERS = {movie:"WHAT'S THE SHOW?", gig:"WHO'S PLAYING?",
                       sport:"WHAT'S THE MATCH?", other:"WHAT'S IT CALLED?"};
+const SHOWLABS = {movie:'FILM', gig:'SHOW', sport:'MATCH', other:'PRIZE NAME'};
 
 function typeChanged(){
   const t = val('ptype');
-  $('gigRung').style.display = (t==='gig'||t==='sport') ? 'flex' : 'none';
+  const needsVenue = (t==='gig'||t==='sport');
+  $('venueRow').style.display = needsVenue ? 'flex' : 'none';
+  $('edateRow').style.display = needsVenue ? 'flex' : 'none';
   $('ptypeOther').style.display = t==='other' ? 'inline-block' : 'none';
-  if(t==='other'){ $('ptypeOther').value=''; fitInput($('ptypeOther')); $('ptypeOther').focus(); }
-  const pn = $('pname');
-  pn.placeholder = PLACEHOLDERS[t] || PLACEHOLDERS.other;
-  fitInput(pn); fitSelect();
+  if(t==='other' && !val('ptypeOther')) $('ptypeOther').focus();
+  $('pname').placeholder = PLACEHOLDERS[t] || PLACEHOLDERS.other;
+  $('showLab').textContent = SHOWLABS[t] || SHOWLABS.other;
 }
-
-/* Bebas inputs size themselves to what's in them, so the red line always
-   ends where the words do. */
-let sizer;
-function fitInput(el){
-  if(!sizer){ sizer=document.createElement('span');
-    sizer.style.cssText="position:absolute;visibility:hidden;white-space:pre;font-family:var(--display);padding:0 9px";
-    document.body.appendChild(sizer); }
-  sizer.style.fontSize = getComputedStyle(el).fontSize;
-  sizer.textContent = el.value || el.placeholder || ' ';
-  el.style.width = (sizer.offsetWidth + 8) + 'px';
-}
-function fitSelect(){
-  const s=$('ptype'); if(!sizer) fitInput(s);
-  sizer.style.fontSize = getComputedStyle(s).fontSize;
-  sizer.textContent = s.options[s.selectedIndex].text;
-  s.style.width = (sizer.offsetWidth + 26) + 'px';
-}
-function fitAll(){ fitInput($('pname')); fitInput($('venue')); fitSelect(); }
-
-/* number: chips for the usual suspects, + for an actual number */
-function setLots(n){ $('lotsWord').textContent = String(n)==='1' ? 'LOT OF' : 'LOTS OF'; }
-
-$('numBlank').addEventListener('click', e=>{
-  if(e.target.closest('.chip')) return;
-  $('numPop').classList.toggle('open');
-  e.stopPropagation();
-});
-document.addEventListener('click', ()=>$('numPop').classList.remove('open'));
-
-document.querySelectorAll('#numPop .chip').forEach(c=>{
-  c.addEventListener('click', e=>{
-    $('numPop').classList.remove('open'); e.stopPropagation();
-    if(c.dataset.plus){
-      $('numBlank').style.display='none';
-      const ni=$('numInput'); ni.style.display='inline-block'; ni.value=''; ni.focus();
-      return;
-    }
-    document.querySelectorAll('#numPop .chip').forEach(x=>x.classList.remove('sel'));
-    c.classList.add('sel');
-    $('numVal').textContent=c.dataset.v; $('winners').value=c.dataset.v;
-    setLots(c.dataset.v); dirty();
-  });
-});
-
-$('numInput').addEventListener('blur', function(){
-  const v=parseInt(this.value,10);
-  if(v>0){
-    $('numVal').textContent=v; $('winners').value=v; setLots(v);
-    document.querySelectorAll('#numPop .chip').forEach(x=>{
-      x.classList.toggle('sel', x.dataset.v===String(v)); });
-    dirty();
-  }
-  this.style.display='none'; $('numBlank').style.display='inline-block';
-});
 
 /* OTHER left empty snaps back to the menu */
 $('ptypeOther').addEventListener('blur', function(){
@@ -689,15 +652,123 @@ function dateChip(input, outId){
   const d=new Date(input.value+'T00:00');
   $(outId).textContent = d.getDate()+' '+MONTHS[d.getMonth()];
 }
-/* widths measured against the fallback font are wrong; measure again once
-   Bebas is actually here */
-if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitAll);
+
+/* WINNERS DRAWN: next working day after close — same rule the terms engine
+   uses, computed here only for display. Nobody draws on a Sunday. */
+function drawDrawn(){
+  const c = val('closes');
+  if(!c){ $('drawnVal').innerHTML='&mdash;'; return; }
+  const d = new Date(c+'T00:00'); d.setDate(d.getDate()+1);
+  while(d.getDay()===0 || d.getDay()===6) d.setDate(d.getDate()+1);
+  $('drawnVal').textContent = d.getDate()+' '+MONTHS[d.getMonth()];
+}
+
+/* ---------------- story -> detail ---------------- */
+const storyData = () => ({prize:val('storyPrize'), care:val('storyCare'), source:val('blurb')});
+
+function subView(v){
+  $('storyView').classList.toggle('subhide', v!=='story');
+  $('detailView').classList.toggle('subhide', v!=='detail');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function backToStory(){ subView('story'); }
+
+let EXTRACTED = false;
+async function toDetail(){
+  const btn=$('toDetailBtn');
+  const s=storyData();
+  if(!EXTRACTED && (s.prize||s.care||s.source).trim()){
+    btn.disabled=true; btn.textContent='READING THAT…';
+    try{
+      const d = await api('/api/extract', s);
+      const f = d.found || {};
+      if(f.prize_type && !val('pname')) { $('ptype').value=f.prize_type; }
+      if(f.prize_name && !val('pname')) $('pname').value=f.prize_name;
+      if(f.venue && !val('venue')) $('venue').value=f.venue;
+      if(f.event_date && !val('edate')){ $('edate').value=f.event_date; dateChip($('edate'),'edateVal'); }
+      EXTRACTED = true;
+    }catch(e){ /* extraction is a favour, not a gate */ }
+    btn.disabled=false; btn.textContent='NOW THE DETAIL';
+  }
+  typeChanged(); drawDrawn(); subView('detail'); armDetail();
+}
+
+/* ---------------- the legals, folded into the detail ---------------- */
+const detailReady = () => {
+  const f=formData();
+  if(!f.prize_name.trim() || !f.opens || !f.closes) return false;
+  if(!(parseInt(f.winners,10)>0)) return false;
+  if((f.prize_type==='gig'||f.prize_type==='sport') && (!f.venue.trim()||!f.event_date)) return false;
+  return true;
+};
+
+let FIXED_OPEN=false, ARM=null, CRAFT=null, CRAFT_KEY='';
+
+function toggleFixed(){ FIXED_OPEN=!FIXED_OPEN; drawLegalsInline(); }
+
+async function refreshLegals(){
+  if(!detailReady()){
+    $('legalsInline').className='legwait';
+    $('legalsInline').textContent='Finish the facts above and the legals sort themselves.';
+    MENU=[]; return;
+  }
+  try{
+    const d = await api('/api/terms',{form:formData()});
+    MENU=d.menu; FACTS=d.facts;
+    if(CHOSEN===null) CHOSEN = MENU.filter(c=>!c.fixed && c.default).map(c=>c.id);
+    drawLegalsInline();
+  }catch(e){
+    $('legalsInline').className='legwait';
+    $('legalsInline').textContent=e.message;
+  }
+}
+
+function toggleClause(id){
+  CHOSEN = CHOSEN.includes(id) ? CHOSEN.filter(x=>x!==id) : CHOSEN.concat([id]);
+  drawLegalsInline();
+}
+
+function drawLegalsInline(){
+  if(!MENU.length) return;
+  const optional = MENU.filter(c=>!c.fixed);
+  const fixed = MENU.filter(c=>c.fixed && !c.sub);
+  $('legalsInline').className='';
+  $('legalsInline').innerHTML = optional.map(c=>`
+      <button class="chk ${CHOSEN.includes(c.id)?'on':''}" onclick="toggleClause('${c.id}')">
+        <span class="box">✓</span>
+        <span><span class="chk-l">${esc(c.label)}</span>
+        <span class="chk-t">${esc(c.text)}</span></span>
+      </button>`).join('') +
+    (FIXED_OPEN ? `<ul style="font-size:11.5px;color:var(--mid);text-align:left;
+        padding-left:18px;line-height:1.6;margin-top:8px">${fixed.map(c=>`<li>${esc(c.text)}</li>`).join('')}</ul>` : '');
+}
+
+/* ---------------- background crafting ----------------
+   The robot starts writing the moment the facts are complete, while the human
+   is still ticking legals. By the copy room, it's usually already done. */
+function armDetail(){
+  clearTimeout(ARM);
+  ARM = setTimeout(()=>{ refreshLegals(); armCraft(); }, 700);
+}
+
+function craftKey(){ return JSON.stringify([formData(), storyData()]); }
+
+function armCraft(){
+  if(!detailReady()) return;
+  const key = craftKey();
+  if(key===CRAFT_KEY) return;             // already writing (or written) this one
+  CRAFT_KEY = key;
+  CRAFT = api('/api/copy',{form:formData(), story:storyData(), source:val('blurb')})
+    .catch(e=>({__err:e.message}));
+}
 
 /* Changing a fact invalidates everything downstream. The copy was written
    against the old facts, so keeping it would be exactly the drift the whole
    tool exists to prevent. */
 function dirty(){
-  if(REACHED>0){ COPY=null; MENU=[]; CHOSEN=null; REACHED=0; unlock(); }
+  if(REACHED>0){ COPY=null; REACHED=0; unlock(); }
+  CRAFT=null; CRAFT_KEY='';
+  drawDrawn(); armDetail();
 }
 
 function unlock(){
@@ -716,13 +787,28 @@ function go(n){
 function reach(n){ if(n>REACHED){REACHED=n; unlock();} go(n); }
 
 /* ---------------- 2 COPY ---------------- */
-function toCopy(){ reach(1); if(!COPY) genCopy(); }
+async function toCopy(){
+  if(!detailReady()){ armDetail();
+    alert("A couple of facts are still missing — the dashed bits."); return; }
+  reach(1);
+  if(COPY) return;
+  const key = craftKey();
+  if(CRAFT && key===CRAFT_KEY){
+    const out=$('copyOut'); $('copyBar').style.display='none';
+    out.innerHTML='<div class="load"><img class="robotwork" src="robot-sandwich.png" alt="">The robot is writing…</div>';
+    const d = await CRAFT;
+    if(d.__err){ genCopy(); return; }       // the background try failed; go live
+    COPY=d.copy; FACTS=d.facts; CTX=d.context||{}; PICK=0; TWEAKS=0;
+    LOCKED={subject:false,headline:false,body:false}; OPENK='subject';
+    drawCopy(d.flags);
+  } else genCopy();
+}
 
 async function genCopy(){
   const out=$('copyOut'); $('copyBar').style.display='none';
   out.innerHTML='<div class="load"><img class="robotwork" src="robot-sandwich.png" alt="">The robot is writing…</div>';
   try{
-    const d = await api('/api/copy',{form:formData(), source:val('blurb')});
+    const d = await api('/api/copy',{form:formData(), story:storyData(), source:val('blurb')});
     COPY=d.copy; FACTS=d.facts; CTX=d.context||{}; PICK=0; TWEAKS=0;
     LOCKED={subject:false,headline:false,body:false}; OPENK='subject';
     drawCopy(d.flags);
@@ -835,45 +921,9 @@ function accept(k,txt){
   drawCopy();
 }
 
-/* ---------------- 3 LEGALS ---------------- */
-async function toLegals(){
-  reach(2);
-  if(MENU.length) return drawLegals();
-  $('legalsOut').innerHTML='<div class="load"><div class="spin"></div>Building the terms…</div>';
-  try{
-    const d = await api('/api/terms',{form:formData()});
-    MENU=d.menu; FACTS=d.facts;
-    if(CHOSEN===null) CHOSEN = MENU.filter(c=>!c.fixed && c.default).map(c=>c.id);
-    drawLegals();
-  }catch(e){ $('legalsOut').innerHTML=`<div class="err">${esc(e.message)}</div>`; }
-}
-
-function toggleClause(id){
-  CHOSEN = CHOSEN.includes(id) ? CHOSEN.filter(x=>x!==id) : CHOSEN.concat([id]);
-  drawLegals();
-}
-
-function drawLegals(){
-  const optional = MENU.filter(c=>!c.fixed);
-  const fixed = MENU.filter(c=>c.fixed && !c.sub);
-  const on = optional.filter(c=>CHOSEN.includes(c.id)).length;
-  $('legalsOut').innerHTML = `
-    <div class="block-l" style="margin-bottom:10px">Depends on the prize — ${on} of ${optional.length} ticked</div>
-    ${optional.map(c=>`
-      <button class="chk ${CHOSEN.includes(c.id)?'on':''}" onclick="toggleClause('${c.id}')">
-        <span class="box">✓</span>
-        <span><span class="chk-l">${esc(c.label)}</span>
-        <span class="chk-t">${esc(c.text)}</span></span>
-      </button>`).join('')}
-    <details class="always">
-      <summary>${fixed.length} clauses publish every time</summary>
-      <ul>${fixed.map(c=>`<li>${esc(c.text)}</li>`).join('')}</ul>
-    </details>`;
-}
-
-/* ---------------- 4 REVIEW ---------------- */
+/* ---------------- 3 REVIEW ---------------- */
 async function toReview(){
-  reach(3);
+  reach(2);
   $('reviewOut').innerHTML='<div class="load"><div class="spin"></div>Putting it together…</div>';
   try{
     const d = await api('/api/parcel',{form:formData(), chosen:CHOSEN,
