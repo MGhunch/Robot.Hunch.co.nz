@@ -1,22 +1,24 @@
 """
 ROBOT — AUTH
 ============
-Email-is-the-credential OTP. The name is attribution, not authentication.
+Two doors, one at a time. Pick with ROBOT_DOOR.
 
-The door is currently locked to one address. Widen it by adding to WHITELIST
-(exact addresses) or ALLOWED_DOMAINS (whole orgs) — both are just lists, and
-the domain is also what resolves the tenant, so adding one line lets a whole
-client in and routes them at the same time.
+  ROBOT_DOOR=word   (default)  A shared passphrase. No email plumbing needed.
+  ROBOT_DOOR=otp               Six-digit code to a whitelisted address.
 
-Codes are six digits, live for ten minutes, one active code per address, and
-are stored in memory. That's fine: a restart just means someone types their
-email again. Sessions are Flask's signed cookie, thirty days, so this screen
-is a once-a-month event rather than a chore.
+WORD MODE is what's on now. Anyone with the word gets in — which is the point,
+and also the caveat: it's a shared secret sitting in front of an API key that
+bills you. Fine while it's you and a couple of people you've told. Before it
+goes anywhere near a client, or anywhere it might get pasted into a Slack
+channel, flip to OTP.
 
-Email goes out via Resend if RESEND_API_KEY is set. If it isn't, the code is
-printed to the server log instead — which is how you run it locally, and how
-you get it deployed before the email plumbing exists. Never do that with the
-door open to more than yourself.
+Change the word with ROBOT_WORD. It's matched case-insensitively and trimmed,
+so "Unicorn", "unicorn " and "UNICORN" all work — nobody should fail to get in
+over a capital letter.
+
+OTP MODE is the grown-up version and it still works: whitelist by address or
+whole domain, six digits, ten minutes, Resend for delivery. The domain also
+resolves the tenant, so one line lets a client in and labels them.
 """
 
 from flask import Blueprint, jsonify, request, session
@@ -28,24 +30,53 @@ import requests
 
 auth_bp = Blueprint("auth", __name__)
 
-# --- THE DOOR ---------------------------------------------------------------
-# Exact addresses that may enter, lowercase.
+DOOR = os.environ.get("ROBOT_DOOR", "word").lower()
+WORD = os.environ.get("ROBOT_WORD", "unicorn").strip().lower()
+
+# --- OTP mode config (unused while DOOR == "word") --------------------------
 WHITELIST = {
     "michael@hunch.co.nz",
 }
-
-# Whole domains that may enter. Empty for now — this is where One NZ goes
-# once Suze is ready, and it doubles as the tenant lookup.
 ALLOWED_DOMAINS = {
     # "one.nz": "One NZ",
 }
-
 CODE_TTL = timedelta(minutes=10)
-_codes = {}  # email -> (code, expires_at)
+_codes = {}
 
+
+@auth_bp.route("/api/auth/mode")
+def mode():
+    """The front end asks this so it knows which door to draw."""
+    return jsonify({"mode": DOOR})
+
+
+# ---------------------------------------------------------------------------
+# WORD MODE
+# ---------------------------------------------------------------------------
+
+@auth_bp.route("/api/auth/word", methods=["POST"])
+def word():
+    data = request.get_json() or {}
+    given = (data.get("word") or "").strip().lower()
+    name = (data.get("name") or "").strip()
+
+    if not given:
+        return jsonify({"error": "Needs a word."}), 400
+    if given != WORD:
+        return jsonify({"error": "That's not the word."}), 403
+
+    session.permanent = True
+    session["email"] = "word:" + (name.lower().replace(" ", "-") or "guest")
+    session["name"] = name or "there"
+    session["tenant"] = ""
+    return jsonify({"success": True, "name": session["name"], "tenant": ""})
+
+
+# ---------------------------------------------------------------------------
+# OTP MODE — kept ready. Flip ROBOT_DOOR=otp once Resend is sorted.
+# ---------------------------------------------------------------------------
 
 def _allowed(email: str):
-    """Returns (ok, tenant_label)."""
     email = email.lower().strip()
     if email in WHITELIST:
         return True, "Hunch"
@@ -59,39 +90,34 @@ def _send_code(email: str, code: str):
     key = os.environ.get("RESEND_API_KEY")
     sender = os.environ.get("ROBOT_FROM", "robot@hunch.co.nz")
     if not key:
-        print(f"[robot/auth] No RESEND_API_KEY — code for {email} is {code}")
+        print(f"[robot/auth] No RESEND_API_KEY — code for {email} is {code}", flush=True)
         return
     try:
         requests.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {key}",
                      "Content-Type": "application/json"},
-            json={
-                "from": f"Robot <{sender}>",
-                "to": [email],
-                "subject": f"{code} is your code",
-                "text": (f"Your code is {code}.\n\n"
-                         f"It works for the next ten minutes.\n\n"
-                         f"If this wasn't you, ignore it — nothing's happened."),
-            },
+            json={"from": f"Robot <{sender}>", "to": [email],
+                  "subject": f"{code} is your code",
+                  "text": (f"Your code is {code}.\n\nIt works for the next ten "
+                           f"minutes.\n\nIf this wasn't you, ignore it — nothing's "
+                           f"happened.")},
             timeout=10,
         )
     except Exception as e:
-        print(f"[robot/auth] Resend failed for {email}: {e}")
+        print(f"[robot/auth] Resend failed for {email}: {e}", flush=True)
 
 
 @auth_bp.route("/api/auth/request", methods=["POST"])
 def request_code():
+    if DOOR != "otp":
+        return jsonify({"error": "The door isn't using codes right now."}), 400
     email = ((request.get_json() or {}).get("email") or "").lower().strip()
     if "@" not in email:
         return jsonify({"error": "That doesn't look like an email address."}), 400
-
-    ok, tenant = _allowed(email)
+    ok, _ = _allowed(email)
     if not ok:
-        # Say so plainly. Enumeration isn't a meaningful risk here and a vague
-        # error just makes someone email you asking why it didn't work.
         return jsonify({"error": "That address isn't on the list yet."}), 403
-
     code = f"{random.randint(0, 999999):06d}"
     _codes[email] = (code, datetime.utcnow() + CODE_TTL)
     _send_code(email, code)
@@ -100,6 +126,8 @@ def request_code():
 
 @auth_bp.route("/api/auth/verify", methods=["POST"])
 def verify_code():
+    if DOOR != "otp":
+        return jsonify({"error": "The door isn't using codes right now."}), 400
     data = request.get_json() or {}
     email = (data.get("email") or "").lower().strip()
     code = (data.get("code") or "").strip()
@@ -116,7 +144,7 @@ def verify_code():
         return jsonify({"error": "That code isn't right."}), 400
 
     _codes.pop(email, None)
-    ok, tenant = _allowed(email)
+    _, tenant = _allowed(email)
     session.permanent = True
     session["email"] = email
     session["tenant"] = tenant
@@ -124,11 +152,13 @@ def verify_code():
     return jsonify({"success": True, "tenant": tenant, "name": session["name"]})
 
 
+# ---------------------------------------------------------------------------
+
 @auth_bp.route("/api/auth/me")
 def me():
     if "email" not in session:
-        return jsonify({"authed": False})
-    return jsonify({"authed": True, "email": session["email"],
+        return jsonify({"authed": False, "mode": DOOR})
+    return jsonify({"authed": True, "mode": DOOR, "email": session["email"],
                     "tenant": session.get("tenant"), "name": session.get("name")})
 
 
@@ -143,6 +173,6 @@ def require_auth(fn):
     @wraps(fn)
     def inner(*a, **kw):
         if "email" not in session:
-            return jsonify({"error": "Sign in first."}), 401
+            return jsonify({"error": "Say the word first."}), 401
         return fn(*a, **kw)
     return inner

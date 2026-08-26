@@ -34,8 +34,10 @@ itself is a tool nobody learns to trust.
    |---|---|---|
    | `ANTHROPIC_API_KEY` | yes | |
    | `SECRET_KEY` | yes | Any long random string. Changing it signs everyone out. |
-   | `RESEND_API_KEY` | no | Unset = codes print to the Railway log. Fine while it's just you. |
-   | `ROBOT_FROM` | no | Must be a verified Resend domain. |
+   | `ROBOT_WORD` | no | The magic word. Defaults to `unicorn`. |
+   | `ROBOT_DOOR` | no | `word` (default) or `otp`. |
+   | `RESEND_API_KEY` | no | OTP mode only. Unset = codes print to the log. |
+   | `ROBOT_FROM` | no | OTP mode only. Must be a verified Resend domain. |
    | `ROBOT_MODEL` | no | Defaults to `claude-sonnet-4-6`. |
 
 4. Point `robot.hunch.co.nz` at the Railway domain.
@@ -44,14 +46,25 @@ Local: `pip install -r requirements.txt && SECRET_KEY=dev python app.py`
 
 ## The door
 
-Currently open to **michael@hunch.co.nz only**. Widen it in `auth.py`:
+**A magic word.** It's `unicorn`. Anyone who knows it gets in — no email, no
+codes, no Resend account needed. Case and spacing don't matter.
+
+Change it with `ROBOT_WORD`.
+
+The caveat, stated once: a shared word is a shared secret sitting in front of an
+API key that bills you. Fine while it's you and a couple of people you've told
+in person. Before it goes near a client — or anywhere it might get pasted into a
+Slack channel — set `ROBOT_DOOR=otp` and you're on six-digit codes to a
+whitelisted address instead. That code is written and working; it just needs a
+Resend key.
+
+In OTP mode, widen the door in `auth.py`:
 
 - `WHITELIST` — individual addresses
 - `ALLOWED_DOMAINS` — whole orgs, and it doubles as the tenant lookup, so
   `"one.nz": "One NZ"` lets the building in and labels them in one line
 
-Codes live in memory, so a restart just means typing your email again. Sessions
-last 30 days.
+Sessions last 30 days either way.
 
 ## Files
 

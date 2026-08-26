@@ -183,11 +183,11 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
       <h1 class="door-hed beb">WHAT SHALL WE<br>ROBOT TODAY?</h1>
       <div class="signin" id="signin">
         <div class="si-row">
-          <input id="siEmail" type="email" placeholder="you@work.email" autocomplete="email"
-            onkeydown="if(event.key==='Enter')askCode()">
-          <button class="si-go" id="siGo" onclick="askCode()">→</button>
+          <input id="siWord" placeholder="Say the magic word" autocomplete="off"
+            onkeydown="if(event.key==='Enter')sayWord()">
+          <button class="si-go" id="siGo" onclick="sayWord()">&rarr;</button>
         </div>
-        <div class="si-note" id="siNote">We'll send you a code. No password to forget.</div>
+        <div class="si-note" id="siNote">You either know it or you don't.</div>
       </div>
 
       <div class="rooms" id="rooms" style="display:none">
@@ -335,39 +335,24 @@ async function api(path, body){
 }
 
 /* ---------------- the door ---------------- */
-let AWAIT_CODE = false, EMAIL = '';
-
-async function askCode(){
-  const note=$('siNote'), go=$('siGo');
-  if(AWAIT_CODE) return sendCode();
-  EMAIL = $('siEmail').value.trim();
-  if(!EMAIL.includes('@')){ note.className='si-note bad'; note.textContent="That doesn't look like an email address."; return; }
-  go.disabled=true; note.className='si-note'; note.textContent='Sending…';
-  try{
-    await api('/api/auth/request',{email:EMAIL});
-    AWAIT_CODE=true;
-    $('siEmail').type='text'; $('siEmail').value='';
-    $('siEmail').placeholder='Six digit code';
-    $('siEmail').setAttribute('inputmode','numeric');
-    $('siEmail').focus();
-    note.textContent=`Code sent to ${EMAIL}. It works for ten minutes.`;
-  }catch(e){ note.className='si-note bad'; note.textContent=e.message; }
-  go.disabled=false;
-}
-
-async function sendCode(){
-  const note=$('siNote'), go=$('siGo');
+async function sayWord(){
+  const note=$('siNote'), go=$('siGo'), w=$('siWord').value.trim();
+  if(!w){ note.className='si-note bad'; note.textContent='Needs a word.'; return; }
   go.disabled=true; note.className='si-note'; note.textContent='Checking…';
   try{
-    const d = await api('/api/auth/verify',{email:EMAIL, code:$('siEmail').value.trim()});
+    const d = await api('/api/auth/word',{word:w});
     signedIn(d);
-  }catch(e){ note.className='si-note bad'; note.textContent=e.message; go.disabled=false; }
+  }catch(e){
+    note.className='si-note bad'; note.textContent=e.message;
+    $('siWord').value=''; $('siWord').focus(); go.disabled=false;
+  }
 }
 
 function signedIn(d){
   $('signin').style.display='none';
   $('rooms').style.display='flex';
-  $('hello').textContent = `Hello ${(d.name||'').split(' ')[0]}.`;
+  const first=(d.name||'').split(' ')[0];
+  $('hello').textContent = first && first!=='there' ? `Hello ${first}.` : 'Hello.';
   $('who').textContent = d.tenant || '';
 }
 
