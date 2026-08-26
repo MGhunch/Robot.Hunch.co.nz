@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en-NZ">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROBOT — Ticket giveaways</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--body);color:var(--ink);background:var(--paper);
+  min-height:100vh;display:flex;flex-direction:column;font-weight:300;line-height:1.6}
+.beb{font-family:var(--display);letter-spacing:2px;line-height:.95}
+button{font-family:inherit;cursor:pointer;border:none}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- topbar ---------- */
+.topbar{background:#fff;padding:13px var(--g);display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);flex-shrink:0}
+.mark{font-size:22px;color:var(--ink)}
+.mark span{color:var(--red)}
+.who{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--mid);font-weight:600}
+
+/* ---------- door ---------- */
+#door{flex:1;background:var(--red);display:flex;align-items:center;justify-content:center;padding:var(--g)}
+.door-in{max-width:860px;width:100%;display:grid;grid-template-columns:1fr auto;gap:48px;align-items:center}
+.door-hed{font-size:clamp(44px,7vw,78px);color:#fff}
+.door-sub{color:rgba(255,255,255,.72);font-size:14px;margin-top:14px;max-width:34ch}
+.bubble{background:var(--ink);color:#fff;border-radius:16px 16px 16px 4px;padding:11px 18px;
+  font-size:14px;display:inline-block;margin-bottom:18px}
+.signin{margin-top:26px;max-width:420px}
+.si-row{display:flex;gap:8px}
+.si-row input{flex:1;background:#fff;border:none;border-radius:var(--pill);padding:13px 20px;
+  font-size:14px;font-family:inherit;color:var(--ink);outline:none}
+.si-row input::placeholder{color:var(--mid)}
+.si-go{width:44px;height:44px;border-radius:50%;background:var(--ink);color:#fff;flex-shrink:0;
+  font-size:17px;display:grid;place-items:center}
+.si-go:hover{background:#000}
+.si-go:disabled{opacity:.5}
+.si-note{font-size:12px;color:rgba(255,255,255,.72);margin-top:11px;line-height:1.55;min-height:18px}
+.si-note.bad{color:#fff;font-weight:500}
+.rooms{margin-top:26px;display:flex;flex-direction:column;gap:10px;max-width:420px}
+.room{background:#fff;border-radius:var(--r-lg);padding:16px 18px;display:flex;align-items:center;
+  justify-content:space-between;gap:14px;text-align:left;width:100%;transition:transform .15s}
+.room:hover{transform:translateY(-2px)}
+.room-t{font-size:20px;color:var(--ink)}
+.room-d{font-size:12px;color:var(--mid);font-weight:300;margin-top:1px}
+.room-go{width:30px;height:30px;border-radius:50%;background:var(--red);color:#fff;display:grid;
+  place-items:center;flex-shrink:0;font-size:15px}
+.room.soon{opacity:.45;cursor:default}
+.room.soon:hover{transform:none}
+.room.soon .room-go{background:var(--mid)}
+.bot{width:150px;height:auto}
+@media(max-width:720px){.door-in{grid-template-columns:1fr;gap:24px}.bot{width:104px}}
+
+/* ---------- room ---------- */
+#room{flex:1;display:none;flex-direction:column;padding:0 var(--g) 64px}
+#room.on{display:flex}
+.wrap{max-width:680px;width:100%;margin:0 auto}
+
+.rail{display:flex;gap:0;margin:26px 0 30px;border-bottom:1px solid var(--border)}
+.step{flex:1;padding:0 0 10px;font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  font-weight:600;color:var(--mid);border-bottom:2px solid transparent;margin-bottom:-1px}
+.step.on{color:var(--ink);border-bottom-color:var(--red)}
+.step.done{color:var(--ink)}
+.step i{font-style:normal;color:var(--red);margin-right:5px}
+
+.pane{display:none;animation:up .3s ease}
+.pane.on{display:block}
+@keyframes up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+h2.hed{font-size:34px;margin-bottom:6px}
+.lede{font-size:14px;color:var(--mid);margin-bottom:24px;max-width:52ch}
+
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:22px}
+.field{margin-bottom:16px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;
+  color:var(--ink);margin-bottom:6px}
+input,select,textarea{width:100%;background:var(--paper);border:1px solid var(--border);
+  border-radius:var(--r-sm);padding:10px 12px;font-size:14px;font-family:inherit;color:var(--ink);
+  font-weight:300;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--red)}
+textarea{resize:vertical;min-height:90px;line-height:1.6}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:560px){.two{grid-template-columns:1fr}}
+.hint{font-size:11px;color:var(--mid);margin-top:5px}
+
+.btn{background:var(--red);color:#fff;border-radius:var(--pill);padding:12px 30px;
+  font-family:var(--display);font-size:19px;letter-spacing:3px;transition:background .15s}
+.btn:hover{background:var(--red-dark)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--border)}
+.btn.ghost:hover{background:var(--paper)}
+.bar{display:flex;gap:10px;align-items:center;margin-top:22px;flex-wrap:wrap}
+
+/* terms */
+.terms{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:22px 24px;
+  font-size:13px;line-height:1.7}
+.terms ul{list-style:none;padding:0}
+.terms li{position:relative;padding-left:18px;margin-bottom:9px}
+.terms li::before{content:'';position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:var(--red)}
+.terms li.sub{padding-left:36px;font-size:12.5px;color:#3a3835}
+.terms li.sub::before{left:20px;background:var(--mid);width:4px;height:4px}
+.terms .foot{margin-top:16px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--mid)}
+.stamp{display:inline-flex;align-items:center;gap:7px;font-size:10px;letter-spacing:2px;
+  text-transform:uppercase;font-weight:600;color:var(--mid);margin-bottom:12px}
+.stamp b{color:var(--ink);font-weight:600}
+
+/* copy blocks */
+.block{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;
+  margin-bottom:12px;position:relative;transition:border-color .15s}
+.block:hover{border-color:#d6d2cc}
+.block-h{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.block-l{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--mid)}
+.tweak{background:var(--paper);border:1px solid var(--border);border-radius:var(--pill);
+  padding:4px 13px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;color:var(--ink)}
+.tweak:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.block-b{font-size:15px;line-height:1.65}
+.block-b.big{font-family:var(--display);font-size:30px;letter-spacing:1.5px;line-height:1.05}
+.ph{background:rgba(237,28,36,.11);border-radius:3px;padding:0 3px;color:var(--red-dark);font-weight:500}
+
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{background:var(--paper);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 14px;
+  font-size:14.5px;text-align:left;display:flex;gap:11px;align-items:flex-start;line-height:1.5;font-weight:300}
+.opt:hover{border-color:var(--mid)}
+.opt.pick{border-color:var(--red);background:#fff;box-shadow:inset 0 0 0 1px var(--red)}
+.dot{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;margin-top:3px}
+.opt.pick .dot{border-color:var(--red);background:var(--red);box-shadow:inset 0 0 0 2.5px #fff}
+
+/* flags */
+.flags{background:var(--yellow);border-radius:var(--r-md);padding:14px 16px;margin-bottom:14px;font-size:13px}
+.flags b{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.flags li{margin-left:16px;margin-bottom:3px;line-height:1.5}
+.clean{font-size:12px;color:var(--mid);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.clean::before{content:'✓';color:var(--red);font-weight:700}
+
+/* tweak dialogue */
+.tw{border-top:1px solid var(--border);margin-top:14px;padding-top:14px;display:none}
+.tw.on{display:block}
+.tw-row{display:flex;gap:8px}
+.tw-row input{flex:1}
+.tw-msg{background:var(--paper);border-radius:12px 12px 12px 4px;padding:11px 14px;font-size:13px;
+  margin-bottom:10px;line-height:1.6}
+.tw-prop{background:#fff;border:1px solid var(--red);border-radius:var(--r-sm);padding:12px 14px;
+  font-size:14px;margin:10px 0;line-height:1.6}
+.mini{background:var(--red);color:#fff;border-radius:var(--pill);padding:7px 16px;font-size:10px;
+  letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
+.mini.g{background:var(--paper);color:var(--ink);border:1px solid var(--border)}
+
+.load{display:flex;align-items:center;gap:11px;color:var(--mid);font-size:13px;padding:14px 0}
+.spin{width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--red);
+  border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err{background:#fff;border:1px solid var(--red);border-radius:var(--r-md);padding:13px 15px;
+  font-size:13px;color:var(--red-dark);margin-bottom:14px}
+
+/* parcel */
+.file{display:flex;align-items:center;gap:13px;background:#fff;border:1px solid var(--border);
+  border-radius:var(--r-sm);padding:13px 15px;margin-bottom:8px}
+.file-i{width:32px;height:32px;border-radius:var(--r-sm);background:var(--red);color:#fff;
+  display:grid;place-items:center;font-size:9px;letter-spacing:1px;font-weight:700;flex-shrink:0}
+.file-n{flex:1;font-size:13.5px;font-weight:500}
+.file-d{font-size:11px;color:var(--mid);font-weight:300}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="mark beb">ROBOT<span>.</span></div>
+  <div class="who" id="who">One NZ</div>
+</div>
+
+<!-- ================= DOOR ================= -->
+<section id="door">
+  <div class="door-in">
+    <div>
+      <div class="bubble" id="hello">Hello.</div>
+      <h1 class="door-hed beb">WHAT SHALL WE<br>ROBOT TODAY?</h1>
+      <div class="signin" id="signin">
+        <div class="si-row">
+          <input id="siEmail" type="email" placeholder="you@work.email" autocomplete="email"
+            onkeydown="if(event.key==='Enter')askCode()">
+          <button class="si-go" id="siGo" onclick="askCode()">→</button>
+        </div>
+        <div class="si-note" id="siNote">We'll send you a code. No password to forget.</div>
+      </div>
+
+      <div class="rooms" id="rooms" style="display:none">
+        <button class="room" onclick="enterRoom()">
+          <div><div class="room-t beb">TICKET GIVEAWAYS</div>
+          <div class="room-d">Competitions and prize draws for Rewards</div></div>
+          <div class="room-go">→</div>
+        </button>
+        <div class="room soon">
+          <div><div class="room-t beb">PRESALE OFFERS</div>
+          <div class="room-d">Coming soon</div></div>
+          <div class="room-go">→</div>
+        </div>
+      </div>
+    </div>
+    <svg class="bot" viewBox="0 0 120 150" fill="none" aria-hidden="true">
+      <path d="M60 26v-9" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="60" cy="13" r="6" fill="#fff"/>
+      <rect x="22" y="26" width="76" height="62" rx="11" fill="#fff"/>
+      <circle cx="45" cy="55" r="7.5" fill="#1A1917"/>
+      <circle cx="75" cy="55" r="7.5" fill="#1A1917"/>
+      <rect x="50" y="72" width="20" height="3.5" rx="1.75" fill="#1A1917"/>
+      <rect x="34" y="96" width="52" height="40" rx="8" fill="#fff"/>
+      <rect x="10" y="100" width="20" height="7" rx="3.5" fill="#fff"/>
+      <rect x="90" y="100" width="20" height="7" rx="3.5" fill="#fff"/>
+      <rect x="46" y="108" width="28" height="16" rx="4" fill="#ED1C24"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ================= ROOM ================= -->
+<section id="room">
+<div class="wrap">
+
+  <div class="rail">
+    <div class="step on" data-s="0"><i>1</i>Brief</div>
+    <div class="step" data-s="1"><i>2</i>Terms</div>
+    <div class="step" data-s="2"><i>3</i>Copy</div>
+    <div class="step" data-s="3"><i>4</i>Parcel</div>
+  </div>
+
+  <!-- 1. BRIEF -->
+  <div class="pane on" data-p="0">
+    <h2 class="hed beb">WHAT ARE WE GIVING AWAY?</h2>
+    <p class="lede">Answer these and the robot does the rest. Terms get built from your answers, so get them right here and they can't go wrong later.</p>
+    <div class="card">
+      <div class="two">
+        <div class="field">
+          <label for="ptype">Prize type</label>
+          <select id="ptype" onchange="typeChanged()">
+            <option value="movie">Movie passes</option>
+            <option value="gig">Gig or concert</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="winners">Number of winners</label>
+          <input id="winners" type="number" min="1" value="5">
+        </div>
+      </div>
+      <div class="field">
+        <label for="pname">What's the prize?</label>
+        <input id="pname" placeholder="Practical Magic 2" value="Practical Magic 2">
+      </div>
+      <div class="two" id="gigfields" style="display:none">
+        <div class="field">
+          <label for="venue">Venue</label>
+          <input id="venue" placeholder="Spark Arena">
+        </div>
+        <div class="field">
+          <label for="edate">Event date</label>
+          <input id="edate" type="date">
+        </div>
+      </div>
+      <div class="two">
+        <div class="field">
+          <label for="opens">Opens</label>
+          <input id="opens" type="date" value="2026-08-24">
+        </div>
+        <div class="field">
+          <label for="closes">Closes</label>
+          <input id="closes" type="date" value="2026-09-06">
+          <div class="hint">Draw is the next working day.</div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="blurb">Anything they sent you</label>
+        <textarea id="blurb" placeholder="Paste the distributor blurb, press release, whatever landed in your inbox. The robot reads it so you don't have to.">Starring Sandra Bullock and Nicole Kidman, PRACTICAL MAGIC 2 returns to a world steeped in moonlit mischief and powerful ancestral magic, as the Owens sisters must confront the dark curse that threatens to unravel their family once and for all. Directed by Susanne Bier. In cinemas September 10.</textarea>
+      </div>
+    </div>
+    <div class="bar"><button class="btn" onclick="toTerms()">BUILD THE TERMS</button></div>
+  </div>
+
+  <!-- 2. TERMS -->
+  <div class="pane" data-p="1">
+    <h2 class="hed beb">HERE ARE YOUR TERMS</h2>
+    <p class="lede">Assembled from your answers, not written. Dates are calculated. If something's wrong, change the brief and these rebuild.</p>
+    <div class="stamp">Built from the brief · <b id="clausecount">0 clauses</b></div>
+    <div class="terms" id="termsOut"></div>
+    <div class="bar">
+      <button class="btn ghost" onclick="go(0)">BACK TO BRIEF</button>
+      <button class="btn" onclick="toCopy()">NOW THE WORDS</button>
+    </div>
+  </div>
+
+  <!-- 3. COPY -->
+  <div class="pane" data-p="2">
+    <h2 class="hed beb">THE ROBOT'S HAD A GO</h2>
+    <p class="lede">Pick a subject line. Tick anything that's right, tweak anything that isn't — say what's wrong in your own words.</p>
+    <div id="copyOut"></div>
+    <div class="bar" id="copyBar" style="display:none">
+      <button class="btn ghost" onclick="genCopy()">START AGAIN</button>
+      <button class="btn" onclick="toParcel()">WRAP IT UP</button>
+    </div>
+  </div>
+
+  <!-- 4. PARCEL -->
+  <div class="pane" data-p="3">
+    <h2 class="hed beb">READY FOR SALESFORCE</h2>
+    <p class="lede">Everything the marketing automation specialist needs, in the shape they need it. Nothing left to interpret.</p>
+    <div id="parcelOut"></div>
+    <div class="bar">
+      <button class="btn ghost" onclick="go(2)">BACK TO THE WORDS</button>
+      <button class="btn" onclick="location.reload()">DO ANOTHER ONE</button>
+    </div>
+  </div>
+
+</div>
+</section>
+
+<script>
+/* =====================================================================
+   ROBOT — frontend. All thinking happens server-side: the terms engine
+   and the API key both live in Flask where nobody can read them.
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const showPh = t => esc(t).replace(/\{(\w+)\}/g,'<span class="ph">$1</span>');
+
+async function api(path, body){
+  const r = await fetch(path, body ? {method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)} : {});
+  const d = await r.json().catch(()=>({error:'The server said something odd.'}));
+  if(!r.ok) throw new Error(d.error || 'Something went wrong.');
+  return d;
+}
+
+/* ---------------- the door ---------------- */
+let AWAIT_CODE = false, EMAIL = '';
+
+async function askCode(){
+  const note=$('siNote'), go=$('siGo');
+  if(AWAIT_CODE) return sendCode();
+  EMAIL = $('siEmail').value.trim();
+  if(!EMAIL.includes('@')){ note.className='si-note bad'; note.textContent="That doesn't look like an email address."; return; }
+  go.disabled=true; note.className='si-note'; note.textContent='Sending…';
+  try{
+    await api('/api/auth/request',{email:EMAIL});
+    AWAIT_CODE=true;
+    $('siEmail').type='text'; $('siEmail').value='';
+    $('siEmail').placeholder='Six digit code';
+    $('siEmail').setAttribute('inputmode','numeric');
+    $('siEmail').focus();
+    note.textContent=`Code sent to ${EMAIL}. It works for ten minutes.`;
+  }catch(e){ note.className='si-note bad'; note.textContent=e.message; }
+  go.disabled=false;
+}
+
+async function sendCode(){
+  const note=$('siNote'), go=$('siGo');
+  go.disabled=true; note.className='si-note'; note.textContent='Checking…';
+  try{
+    const d = await api('/api/auth/verify',{email:EMAIL, code:$('siEmail').value.trim()});
+    signedIn(d);
+  }catch(e){ note.className='si-note bad'; note.textContent=e.message; go.disabled=false; }
+}
+
+function signedIn(d){
+  $('signin').style.display='none';
+  $('rooms').style.display='flex';
+  $('hello').textContent = `Hello ${(d.name||'').split(' ')[0]}.`;
+  $('who').textContent = d.tenant || '';
+}
+
+(async ()=>{ try{ const d=await api('/api/auth/me'); if(d.authed) signedIn(d); }catch(e){} })();
+
+/* ---------------- nav ---------------- */
+let FACTS=null, COPY=null, PICK=0, CLAUSES=[];
+const val = id => ($(id) ? $(id).value : '');
+const formData = () => ({prize_type:val('ptype'), prize_name:val('pname'), winners:val('winners'),
+  opens:val('opens'), closes:val('closes'), venue:val('venue'), event_date:val('edate')});
+
+function enterRoom(){ $('door').style.display='none'; $('room').classList.add('on'); }
+function typeChanged(){ $('gigfields').style.display = val('ptype')==='movie' ? 'none' : 'grid'; }
+function go(n){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',+p.dataset.p===n));
+  document.querySelectorAll('.step').forEach(s=>{const i=+s.dataset.s;
+    s.classList.toggle('on',i===n); s.classList.toggle('done',i<n);});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ---------------- 2. terms ---------------- */
+async function toTerms(){
+  try{
+    const d = await api('/api/terms',{form:formData()});
+    FACTS=d.facts; CLAUSES=d.clauses;
+    $('clausecount').textContent = d.clauses.length + ' clauses';
+    $('termsOut').innerHTML = '<ul>' + d.clauses.map(c => c.startsWith('* ')
+      ? `<li class="sub">${esc(c.slice(2))}</li>` : `<li>${esc(c)}</li>`).join('')
+      + `</ul><div class="foot">${esc(d.footer)}</div>`;
+    COPY=null; go(1);
+  }catch(e){ alert(e.message); }
+}
+
+/* ---------------- 3. copy ---------------- */
+function toCopy(){ go(2); if(!COPY) genCopy(); }
+
+async function genCopy(){
+  const out=$('copyOut'); $('copyBar').style.display='none';
+  out.innerHTML='<div class="load"><div class="spin"></div>Reading the brief and having a go…</div>';
+  try{
+    const d = await api('/api/copy',{form:formData(), source:val('blurb')});
+    COPY=d.copy; FACTS=d.facts; PICK=0; drawCopy(d.flags);
+  }catch(e){
+    out.innerHTML=`<div class="err">${esc(e.message)}</div>`;
+    $('copyBar').style.display='flex';
+  }
+}
+
+function drawCopy(flags){
+  flags = flags || [];
+  const fl = flags.length
+    ? `<div class="flags"><b>The robot slipped up ${flags.length===1?'once':flags.length+' times'}</b><ul>${flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`
+    : `<div class="clean">Checked against the terms. Numbers and dates all match.</div>`;
+
+  $('copyOut').innerHTML = fl + `
+  <div class="block">
+    <div class="block-h"><div class="block-l">Subject line — pick one</div>
+      <button class="tweak" onclick="openTweak('subject')">Tweak</button></div>
+    <div class="opts">${COPY.subjects.map((s,i)=>
+      `<button class="opt ${i===PICK?'pick':''}" onclick="PICK=${i};drawCopy()">
+        <span class="dot"></span><span>${showPh(s)}</span></button>`).join('')}</div>
+    <div class="tw" id="tw-subject"></div>
+  </div>
+  <div class="block">
+    <div class="block-h"><div class="block-l">Headline</div>
+      <button class="tweak" onclick="openTweak('headline')">Tweak</button></div>
+    <div class="block-b big">${showPh(COPY.headline)}</div>
+    <div class="tw" id="tw-headline"></div>
+  </div>
+  <div class="block">
+    <div class="block-h"><div class="block-l">Body</div>
+      <button class="tweak" onclick="openTweak('body')">Tweak</button></div>
+    <div class="block-b">${showPh(COPY.body)}</div>
+    <div class="tw" id="tw-body"></div>
+  </div>`;
+  $('copyBar').style.display='flex';
+}
+
+/* ---------------- tick it or tweak it ---------------- */
+const HIST = {};
+let TWEAKS = 0;
+
+function blockText(k){ return k==='subject' ? COPY.subjects[PICK] : COPY[k]; }
+
+function openTweak(k){
+  const el=$('tw-'+k); el.classList.add('on');
+  el.innerHTML=`<div class="tw-msg">What's not working about it?</div>
+    <div class="tw-row"><input id="fb-${k}" placeholder="Too try-hard. Lose the second line."
+      onkeydown="if(event.key==='Enter')sendTweak('${k}')">
+      <button class="mini" onclick="sendTweak('${k}')">Send</button></div>`;
+  $('fb-'+k).focus();
+}
+
+async function sendTweak(k){
+  const note=$('fb-'+k).value.trim(); if(!note) return;
+  const el=$('tw-'+k), cur=blockText(k);
+  el.innerHTML=`<div class="tw-msg">${esc(note)}</div><div class="load"><div class="spin"></div>Having another go…</div>`;
+  HIST[k]=HIST[k]||[];
+  try{
+    const d = await api('/api/tweak',{form:formData(), block:k, current:cur, note, history:HIST[k]});
+    HIST[k].push(`Human: ${note}`, `Robot: ${d.message}`);
+    TWEAKS++;
+    let html=`<div class="tw-msg">${esc(note)}</div><div class="tw-msg">${esc(d.message)}</div>`;
+    if(d.proposal){
+      html += `<div class="tw-prop">${showPh(d.proposal)}</div>`;
+      if(d.flags && d.flags.length)
+        html += `<div class="flags" style="margin:0 0 10px"><b>Careful</b><ul>${d.flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`;
+      html += `<div class="tw-row" style="justify-content:flex-end">
+        <button class="mini g" onclick="openTweak('${k}')">Not that either</button>
+        <button class="mini" onclick='accept("${k}",${JSON.stringify(d.proposal)})'>Use it</button></div>`;
+    } else {
+      html += `<div class="tw-row" style="justify-content:flex-end">
+        <button class="mini" onclick="openTweak('${k}')">Do it anyway</button></div>`;
+    }
+    el.innerHTML=html;
+  }catch(e){ el.innerHTML=`<div class="err">${esc(e.message)}</div>`; }
+}
+
+function accept(k, txt){
+  if(k==='subject') COPY.subjects[PICK]=txt; else COPY[k]=txt;
+  drawCopy();
+}
+
+/* ---------------- 4. parcel ---------------- */
+async function toParcel(){
+  go(3);
+  $('parcelOut').innerHTML='<div class="load"><div class="spin"></div>Wrapping it up…</div>';
+  try{
+    const d = await api('/api/parcel',{form:formData(),
+      copy:{subject:COPY.subjects[PICK], headline:COPY.headline, body:COPY.body}});
+    $('parcelOut').innerHTML=`
+    <div class="file"><div class="file-i">HTML</div>
+      <div><div class="file-n">content-block.html</div>
+      <div class="file-d">Paste into Content Builder. Hero image and URL still to slot in.</div></div></div>
+    <div class="file"><div class="file-i">DOC</div>
+      <div><div class="file-n">copy-deck.docx</div>
+      <div class="file-d">Subject, headline and body — numbers already filled in</div></div></div>
+    <div class="file"><div class="file-i">DOC</div>
+      <div><div class="file-n">terms.docx</div>
+      <div class="file-d">${CLAUSES.length} clauses, built from the brief</div></div></div>
+    <div class="file"><div class="file-i">ZIP</div>
+      <div><div class="file-n">${esc(d.slug)}.zip</div>
+      <div class="file-d">The lot, ready to hand over${TWEAKS?` · ${TWEAKS} tweak${TWEAKS>1?'s':''} logged`:''}</div></div></div>
+
+    <div class="card" style="margin-top:22px">
+      <div class="block-l" style="margin-bottom:10px">Copy deck — as it'll send</div>
+      <div style="font-size:13px;line-height:1.8">
+        <div class="block-l">Subject</div><div style="margin-bottom:12px">${esc(d.subject)}</div>
+        <div class="block-l">Headline</div><div class="beb" style="margin-bottom:12px;font-size:24px">${esc(d.headline)}</div>
+        <div class="block-l">Body</div><div>${esc(d.body)}</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="block-l" style="margin-bottom:10px">Terms — as they'll publish</div>
+      <div style="font-size:12.5px;line-height:1.75;white-space:pre-wrap">${esc(d.terms)}</div>
+    </div>`;
+  }catch(e){ $('parcelOut').innerHTML=`<div class="err">${esc(e.message)}</div>`; }
+}
+</script>
+</body>
+</html>
