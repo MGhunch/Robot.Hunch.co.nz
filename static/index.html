@@ -29,7 +29,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 #door{flex:1;background:var(--red);display:flex;flex-direction:column;align-items:center;
   justify-content:center;padding:var(--g);text-align:center}
 .greet{position:relative;width:100%;display:flex;align-items:center;justify-content:center;
-  min-height:min(46vw,250px);margin-bottom:34px}
+  min-height:min(46vw,250px);margin-bottom:34px;transition:min-height .4s ease,margin-bottom .4s ease}
+/* Once the bubble's gone the box hands its land back — the greeting doesn't
+   need a bubble-sized paddock, just enough room to say HELLO YOU. */
+.greet.settled{min-height:90px;margin-bottom:18px}
 .bub{position:absolute;width:min(56vw,300px);animation:pop .45s cubic-bezier(.2,1.4,.4,1) both;
   transition:transform .35s ease,opacity .35s ease}
 @keyframes pop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
@@ -572,6 +575,7 @@ async function sayWord(){
 function signedIn(d){
   $('signin').style.display='none';
   $('bub').classList.add('gone');
+  $('bub').closest('.greet').classList.add('settled');
   const first=(d.name||'').split(' ')[0];
   $('echo').textContent = (first && first!=='there')
     ? `HELLO ${first.toUpperCase()}` : 'HELLO YOU';
