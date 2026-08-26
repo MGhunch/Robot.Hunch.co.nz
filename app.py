@@ -30,7 +30,7 @@ import os
 from auth import auth_bp, require_auth
 from copy_stage import copy_bp
 from terms import (build_facts, assemble_terms, render_terms, render_copy,
-                   prize_types, FOOTER, TermsError)
+                   clause_menu, prize_types, FOOTER, TermsError)
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-me")
@@ -43,14 +43,23 @@ app.register_blueprint(copy_bp)
 @app.route("/api/terms", methods=["POST"])
 @require_auth
 def terms():
-    """Form -> assembled terms. No model, so this is free and instant."""
+    """Form -> the clause menu. No model, so this is free and instant.
+
+    Returns every clause in publish order with its id and whether it's
+    optional, so the UI can render fixed ones as text and optional ones as
+    checkboxes. Those checkboxes are also how we learn which clauses are
+    really boilerplate — see the note in terms.py.
+    """
+    data = request.get_json() or {}
     try:
-        facts = build_facts((request.get_json() or {}).get("form") or {})
+        facts = build_facts(data.get("form") or {})
     except TermsError as e:
         return jsonify({"error": str(e)}), 400
-    clauses = assemble_terms(facts)
-    return jsonify({"success": True, "facts": facts, "clauses": clauses,
-                    "footer": FOOTER, "plain": render_terms(facts)})
+    chosen = data.get("chosen")
+    return jsonify({"success": True, "facts": facts,
+                    "menu": clause_menu(facts),
+                    "clauses": assemble_terms(facts, chosen),
+                    "footer": FOOTER})
 
 
 @app.route("/api/parcel", methods=["POST"])
@@ -68,7 +77,8 @@ def parcel():
         "subject": render_copy(c.get("subject", ""), facts),
         "headline": render_copy(c.get("headline", ""), facts),
         "body": render_copy(c.get("body", ""), facts),
-        "terms": render_terms(facts),
+        "terms": render_terms(facts, data.get("chosen")),
+        "clause_count": len(assemble_terms(facts, data.get("chosen"))),
         "slug": "".join(ch if ch.isalnum() else "-"
                         for ch in facts["prize_name"].lower()).strip("-"),
     })

@@ -15,20 +15,20 @@ Two hard rules everything else depends on:
      placeholder values. One source of truth, two renderings — so the copy and
      the terms cannot structurally disagree.
 
-Adding a prize type is a new entry in PRIZE_CLAUSES, not a code change.
+Clauses carry an id and a fixed/optional flag. Fixed ones always publish;
+optional ones get a checkbox. That checkbox is doing double duty: the optional
+clauses are exactly the ones our reference examples disagree about, so every
+tick is Suze answering a question we'd otherwise have to ask in a meeting.
 
-REFERENCE EXAMPLES this was built against (all One NZ Rewards, 2025-26):
-  - Practical Magic 2 double passes   -> the plural competition shape
+REFERENCE EXAMPLES (all One NZ Rewards, 2025-26):
+  - Practical Magic 2 double passes   -> plural competition. Modelled.
   - DOC Backcountry Hut Pass          -> singular, third-party fulfilled,
-                                         nested prize sub-clauses
-  - Ticketmaster/Live Nation presale  -> a DIFFERENT GENUS entirely. No draw,
-                                         no winners. Not yet modelled here.
-
-STILL OPEN (ask Suze):
-  - Are the expenses / liability / substitution clauses standard boilerplate,
-    or conditional on a third party being involved? Three examples disagree.
-  - Open time varies (12:00am, 12:00pm, 9:00am). Currently hardcoded midnight.
-  - Is there a legal-approved master boilerplate these were all cut from?
+                                         nested prize sub-clauses. Partly.
+  - Ticketmaster/Live Nation presale  -> A DIFFERENT GENUS. No draw, no
+                                         winners, no prize. Access window,
+                                         purchase cap, third-party terms.
+                                         Not modelled — needs offer_type as
+                                         the switch above prize_type.
 """
 
 from datetime import datetime, timedelta, date
@@ -36,48 +36,91 @@ from datetime import datetime, timedelta, date
 # ---------------------------------------------------------------------------
 # CLAUSE LIBRARY
 # ---------------------------------------------------------------------------
-# Placeholders are {braced} and filled from FACTS. A placeholder with no
-# matching fact raises — silence is how wrong terms ship.
 
 def base_clauses(plural: bool) -> list:
-    """The competition spine. Singular/plural is a switch that runs through the
-    whole document, not a word swap — see the DOC hut pass example."""
+    """The competition spine.
+
+    Singular/plural is a switch that runs through the whole document, not a
+    word swap — see the DOC hut pass example, where one winner changes the
+    grammar of four separate clauses.
+    """
     w = "winners" if plural else "winner"
     W = "The winners" if plural else "The winner"
     return [
-        "All One New Zealand customers are eligible to enter the promotion "
-        "which runs from {opens_long} at 12:00am to {closes_long} at 11:59pm.",
+        {"id": "eligibility", "fixed": True, "text":
+            "All One New Zealand customers are eligible to enter the promotion "
+            "which runs from {opens_long} at {opens_time} to {closes_long} at "
+            "{closes_time}."},
 
-        "To enter, click the 'Enter now' button above. There is one entry per person.",
+        {"id": "entry", "fixed": True, "text":
+            "To enter, click the 'Enter now' button above. There is one entry "
+            "per person."},
 
-        f"There {'are' if plural else 'is'} {{winners_word}} ({{winners}}) {w} for "
-        f"the competition. {'Each prize includes' if plural else 'The prize includes'}:",
+        {"id": "winners", "fixed": True, "text":
+            f"There {'are' if plural else 'is'} {{winners_word}} ({{winners}}) {w} "
+            f"for the competition. "
+            f"{'Each prize includes' if plural else 'The prize includes'}:"},
 
-        "The prize draw will be conducted on {draw_long} by representatives of "
-        "One New Zealand by random electronic draw.",
+        {"id": "draw", "fixed": True, "text":
+            "The prize draw will be conducted on {draw_long} by representatives "
+            "of One New Zealand by random electronic draw."},
 
-        f"{W} will be contacted on {{draw_long}} using the details provided as part "
-        f"of your My One NZ registration. If the {w} cannot be reached within 48 "
-        f"hours, One New Zealand will have sole and absolute discretion to draw the "
-        f"prize again and award the prize to a new winner.",
+        {"id": "contact", "fixed": True, "text":
+            f"{W} will be contacted on {{draw_long}} using the details provided "
+            f"as part of your My One NZ registration. If the {w} cannot be "
+            f"reached within 48 hours, One New Zealand will have sole and "
+            f"absolute discretion to draw the prize again and award the prize "
+            f"to a new winner."},
 
-        "The prize is not redeemable for cash, cannot be substituted with an "
-        "alternative prize or sold.",
+        {"id": "no_cash", "fixed": True, "text":
+            "The prize is not redeemable for cash, cannot be substituted with "
+            "an alternative prize or sold."},
 
-        "The prize will be organised by representatives of One New Zealand and will "
-        "be emailed to the {winner_word} using the email provided as part of your "
-        "My One NZ registration as soon as it becomes available.",
+        # --- the three the examples disagree about --------------------------
+        # Present in the DOC hut pass terms, absent from Practical Magic.
+        # Left unticked by default so nobody publishes legals by accident.
+        {"id": "expenses", "fixed": False, "default": False,
+         "label": "Winner pays their own expenses",
+         "text": "All expenses for items (including travel, accommodation, food "
+                 "and beverages, and any other costs) unless expressly stated "
+                 "will be at the cost of the {winner_word}."},
 
-        "Entry into the Competition is deemed to be acceptance of these terms and "
-        "conditions.",
+        {"id": "liability", "fixed": False, "default": False,
+         "label": "Liability exclusion",
+         "text": "One New Zealand is not liable for any loss or damage "
+                 "whatsoever which is suffered, including but not limited to "
+                 "indirect or consequential loss, or for personal injury "
+                 "suffered or sustained during the course of accepting or using "
+                 "the prize, except for any liability which cannot be excluded "
+                 "by law."},
 
-        "One New Zealand Rewards Terms and Conditions also apply, see "
-        "https://one.nz/legal/terms-conditions/rewards-general/",
+        {"id": "substitution", "fixed": False, "default": False,
+         "label": "Right to substitute the prize",
+         "text": "The prize is subject to availability, and we reserve the "
+                 "right to substitute any prize with another of equivalent "
+                 "value without giving notice throughout the promotional "
+                 "period."},
+        # --------------------------------------------------------------------
+
+        {"id": "fulfil_onenz", "fixed": False, "default": True,
+         "label": "One NZ sends the prize out",
+         "text": "The prize will be organised by representatives of One New "
+                 "Zealand and will be emailed to the {winner_word} using the "
+                 "email provided as part of your My One NZ registration as soon "
+                 "as it becomes available."},
+
+        {"id": "acceptance", "fixed": True, "text":
+            "Entry into the Competition is deemed to be acceptance of these "
+            "terms and conditions."},
+
+        {"id": "rewards_tcs", "fixed": True, "text":
+            "One New Zealand Rewards Terms and Conditions also apply, see "
+            "https://one.nz/legal/terms-conditions/rewards-general/"},
     ]
 
 
-# Prize-type conditionals. Each extra is (insert_after_index, clause).
-# Clauses use {winners_cap} so they stay grammatical when there's one winner.
+# Prize-type conditionals. "after" names the base clause they follow, so the
+# order stays deterministic without anyone counting indexes.
 PRIZE_CLAUSES = {
     "movie": {
         "label": "Movie passes",
@@ -85,10 +128,15 @@ PRIZE_CLAUSES = {
                 "cinema showing this film.",
         "needs": [],
         "extra": [
-            (2, "This film has not been rated yet. {winners_cap} must comply with "
-                "all age-related admission requirements."),
-            (5, "The prize must be used while the movie is still showing in "
-                "cinemas, it will not be replaced if it is not used in time."),
+            {"id": "movie_rating", "after": "winners", "fixed": False, "default": True,
+             "label": "Age-rating compliance",
+             "text": "This film has not been rated yet. {winners_cap} must "
+                     "comply with all age-related admission requirements."},
+            {"id": "movie_window", "after": "no_cash", "fixed": False, "default": True,
+             "label": "Must be used while it's in cinemas",
+             "text": "The prize must be used while the movie is still showing "
+                     "in cinemas, it will not be replaced if it is not used in "
+                     "time."},
         ],
     },
     "gig": {
@@ -96,12 +144,18 @@ PRIZE_CLAUSES = {
         "line": "One (1) double pass to {prize_name} at {venue} on {event_long}.",
         "needs": ["venue", "event_date"],
         "extra": [
-            (2, "This event is R18. {winners_cap} must be 18 years or over and "
-                "provide valid photo ID at the door."),
-            (2, "Travel, accommodation, food and beverage are not included and are "
-                "the responsibility of the {winner_word}."),
-            (5, "If the event is cancelled or postponed, One New Zealand is not "
-                "obliged to provide a replacement prize."),
+            {"id": "gig_r18", "after": "winners", "fixed": False, "default": True,
+             "label": "R18 event",
+             "text": "This event is R18. {winners_cap} must be 18 years or over "
+                     "and provide valid photo ID at the door."},
+            {"id": "gig_travel", "after": "winners", "fixed": False, "default": True,
+             "label": "Travel not included",
+             "text": "Travel, accommodation, food and beverage are not included "
+                     "and are the responsibility of the {winner_word}."},
+            {"id": "gig_cancel", "after": "no_cash", "fixed": False, "default": True,
+             "label": "If it's cancelled",
+             "text": "If the event is cancelled or postponed, One New Zealand "
+                     "is not obliged to provide a replacement prize."},
         ],
     },
     "sport": {
@@ -109,11 +163,15 @@ PRIZE_CLAUSES = {
         "line": "One (1) double pass to {prize_name} at {venue} on {event_long}.",
         "needs": ["venue", "event_date"],
         "extra": [
-            (2, "Travel, accommodation, food and beverage are not included and are "
-                "the responsibility of the {winner_word}."),
-            (5, "If the fixture is rescheduled, the prize transfers to the "
-                "rescheduled date. No replacement prize is offered if the "
-                "{winner_word} cannot attend."),
+            {"id": "sport_travel", "after": "winners", "fixed": False, "default": True,
+             "label": "Travel not included",
+             "text": "Travel, accommodation, food and beverage are not included "
+                     "and are the responsibility of the {winner_word}."},
+            {"id": "sport_reschedule", "after": "no_cash", "fixed": False, "default": True,
+             "label": "If the fixture moves",
+             "text": "If the fixture is rescheduled, the prize transfers to the "
+                     "rescheduled date. No replacement prize is offered if the "
+                     "{winner_word} cannot attend."},
         ],
     },
 }
@@ -186,7 +244,7 @@ def build_facts(form: dict) -> dict:
     if closes < opens:
         raise TermsError("The competition closes before it opens.")
 
-    # Draw is the next working day after close. Nobody at One NZ draws on a Sunday.
+    # Draw is the next working day after close. Nobody draws on a Sunday.
     draw = closes + timedelta(days=1)
     while draw.weekday() >= 5:
         draw += timedelta(days=1)
@@ -209,6 +267,10 @@ def build_facts(form: dict) -> dict:
         "closes_short": _short(closes),
         "closes_day": closes.strftime("%A"),
         "days_open": (closes - opens).days + 1,
+        # Varies across the reference examples (12:00am, 12:00pm, 9:00am), so
+        # it's a fact with a sensible default, not a hardcoded string.
+        "opens_time": (form.get("opens_time") or "12:00am").strip(),
+        "closes_time": (form.get("closes_time") or "11:59pm").strip(),
     }
 
     for need in PRIZE_CLAUSES[prize_type]["needs"]:
@@ -233,28 +295,63 @@ def build_facts(form: dict) -> dict:
 # ASSEMBLY
 # ---------------------------------------------------------------------------
 
-def _fill(clause: str, facts: dict) -> str:
+def _fill(text: str, facts: dict) -> str:
     try:
-        return clause.format(**facts)
+        return text.format(**facts)
     except KeyError as e:
         raise TermsError(f"A clause needs a fact we haven't got: {e}") from e
 
 
-def assemble_terms(facts: dict) -> list:
-    """FACTS -> ordered clause list. A leading '* ' marks a sub-bullet."""
+def clause_menu(facts: dict) -> list:
+    """Every clause in publish order, with id, text and whether it's optional.
+
+    The UI renders this straight: fixed clauses as plain text, optional ones
+    with a checkbox. Nothing here is a judgement call — the order is the order
+    the terms publish in.
+    """
     spec = PRIZE_CLAUSES[facts["prize_type"]]
-    clauses = base_clauses(facts["plural"])
-    clauses.insert(3, "* " + spec["line"])
-    # Back-to-front so earlier indexes stay valid. +2 accounts for the
-    # prize line already inserted at position 3.
-    for pos, clause in sorted(spec["extra"], key=lambda x: -x[0]):
-        clauses.insert(pos + 2, clause)
-    return [_fill(c, facts) for c in clauses]
+    out = []
+    for clause in base_clauses(facts["plural"]):
+        out.append({
+            "id": clause["id"],
+            "text": _fill(clause["text"], facts),
+            "fixed": clause["fixed"],
+            "default": clause.get("default", True),
+            "label": clause.get("label", ""),
+            "sub": False,
+        })
+        # The prize line hangs off the winners clause as a sub-bullet.
+        if clause["id"] == "winners":
+            out.append({"id": "prize_line", "text": _fill(spec["line"], facts),
+                        "fixed": True, "default": True, "label": "", "sub": True})
+        # Prize-type conditionals slot in after their anchor clause.
+        for x in spec["extra"]:
+            if x["after"] == clause["id"]:
+                out.append({
+                    "id": x["id"], "text": _fill(x["text"], facts),
+                    "fixed": x["fixed"], "default": x.get("default", True),
+                    "label": x.get("label", ""), "sub": False,
+                })
+    return out
 
 
-def render_terms(facts: dict) -> str:
+def assemble_terms(facts: dict, chosen=None) -> list:
+    """FACTS (+ the optional clauses ticked) -> ordered clause list.
+
+    chosen is a list of ids. Pass None and every optional clause falls back to
+    its default, so the terms are always valid even if the UI never asks.
+    """
+    menu = clause_menu(facts)
+    if chosen is None:
+        keep = {c["id"] for c in menu if c["fixed"] or c["default"]}
+    else:
+        keep = {c["id"] for c in menu if c["fixed"]} | set(chosen)
+    return [("* " if c["sub"] else "") + c["text"] for c in menu if c["id"] in keep]
+
+
+def render_terms(facts: dict, chosen=None) -> str:
     lines = []
-    for clause in assemble_terms(facts):
+    for clause in assemble_terms(facts, chosen):
         lines.append(f"    • {clause[2:]}" if clause.startswith("* ") else f"• {clause}")
     return "\n".join(lines) + "\n\n" + FOOTER
 
@@ -263,8 +360,8 @@ def render_terms(facts: dict) -> str:
 # THE CHECK — code half. Runs before Suze sees any copy.
 # ---------------------------------------------------------------------------
 
-# The only placeholders the copy stage may use. Anything else it needs,
-# it doesn't get: it writes prose, not facts.
+# The only placeholders the copy stage may use. Anything else it needs, it
+# doesn't get: it writes prose, not facts.
 COPY_PLACEHOLDERS = [
     "prize_name", "winners", "winners_word", "winner_word",
     "closes_short", "closes_long", "closes_day", "opens_short",
@@ -287,11 +384,11 @@ def check_copy(copy_text: str, facts: dict) -> list:
     flags = []
     ctx = copy_context(facts)
 
-    for ph in re.findall(r"\{(\w+)\}", copy_text):
+    for ph in re.findall(r"\{(\w+)\}", copy_text or ""):
         if ph not in ctx:
             flags.append(f"Copy uses {{{ph}}}, which isn't a fact it's allowed.")
 
-    stripped = re.sub(r"\{\w+\}", "", copy_text)
+    stripped = re.sub(r"\{\w+\}", "", copy_text or "")
     for match in re.findall(r"\b\d[\d,/-]*\b", stripped):
         flags.append(
             f'Copy has the bare number "{match}" in it. Numbers have to be '
@@ -307,9 +404,10 @@ def check_copy(copy_text: str, facts: dict) -> list:
 
 def render_copy(copy_text: str, facts: dict) -> str:
     """Fill the copy's placeholders from the same facts that built the terms."""
-    ctx = copy_context(facts)
     import re
-    return re.sub(r"\{(\w+)\}", lambda m: str(ctx.get(m.group(1), m.group(0))), copy_text)
+    ctx = copy_context(facts)
+    return re.sub(r"\{(\w+)\}", lambda m: str(ctx.get(m.group(1), m.group(0))),
+                  copy_text or "")
 
 
 def prize_types() -> list:

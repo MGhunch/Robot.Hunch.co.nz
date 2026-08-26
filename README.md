@@ -2,17 +2,33 @@
 
 `robot.hunch.co.nz` — a front door with one room in it.
 
-Room one is **ticket giveaways** for One NZ Rewards. Answer a few questions, the
-terms get assembled from your answers, the robot writes the copy, you tick it or
-tweak it, and it comes out as a parcel the marketing automation specialist can
-take straight into Salesforce Marketing Cloud.
+Room one is **ticket giveaways** for One NZ Rewards.
+
+**Brief → Copy → Legals → Review.** Answer a few questions, the robot writes the
+copy and you tick or tweak it, then tick which legals apply, then look at the
+whole email before anything goes anywhere. Out the other end: a parcel the
+marketing automation specialist takes straight into Salesforce Marketing Cloud.
+
+The fun bit comes first on purpose. The facts still come from the brief, so
+nothing structural changes — the terms are downstream of the facts either way.
+
+You can go back at any point via the step rail. **Changing a fact on the brief
+wipes the copy**, because copy written against old facts is exactly the drift
+this whole thing exists to prevent.
 
 ## The trick
 
 Copy and terms are two different engines and they don't talk to each other.
 
 **Terms are assembled.** Clause library, prize-type conditionals, date
-arithmetic in Python. The model never sees this and can't paraphrase it.
+arithmetic in Python. The model never sees this and can't paraphrase it. Most
+clauses are fixed; the handful that vary get a checkbox.
+
+Those checkboxes are doing double duty. The optional clauses are precisely the
+ones our reference examples disagree about — expenses, liability, substitution
+appear in the DOC hut pass terms and not in the movie one. Every tick is Suze
+answering the question we'd otherwise have to ask in a meeting. **The UI does
+the research.**
 
 **Copy is written.** The robot does hook, headline, body — prose only. It's
 forbidden from writing any number or date as a literal; it uses placeholders
@@ -93,9 +109,9 @@ examples produced three different shapes:
   prize-type.
 
 Questions for Suze:
-1. Are the expenses / liability / substitution clauses standard boilerplate, or
-   conditional on a third party being involved? The three examples disagree.
-2. Open time varies (12:00am, 12:00pm, 9:00am). Currently hardcoded to midnight.
+1. ~~Are the expenses / liability / substitution clauses standard boilerplate?~~
+   Now checkboxes, unticked by default. Watch what she does with them.
+2. ~~Open time varies (12:00am, 12:00pm, 9:00am).~~ Now a form field.
 3. How many offer types are there? Sampling can tell us which clauses are fixed;
    it can't tell us what we haven't seen.
 4. **Is there a legal-approved master boilerplate all of these were cut from?**

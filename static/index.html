@@ -11,25 +11,24 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
-body{font-family:var(--body);color:var(--ink);background:var(--paper);
-  min-height:100vh;display:flex;flex-direction:column;font-weight:300;line-height:1.6}
+body{font-family:var(--body);color:var(--ink);background:var(--paper);min-height:100vh;
+  display:flex;flex-direction:column;font-weight:300;line-height:1.6}
 .beb{font-family:var(--display);letter-spacing:2px;line-height:.95}
-button{font-family:inherit;cursor:pointer;border:none}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--red);outline-offset:2px}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid var(--red);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
-/* ---------- topbar ---------- */
-.topbar{background:#fff;padding:13px var(--g);display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--border);flex-shrink:0}
-.mark{font-size:22px;color:var(--ink)}
+.topbar{background:#fff;padding:13px var(--g);display:flex;align-items:center;
+  justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+.mark{font-size:22px}
 .mark span{color:var(--red)}
 .who{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--mid);font-weight:600}
 
-/* ---------- door ---------- */
+/* ---------------- door ---------------- */
 #door{flex:1;background:var(--red);display:flex;align-items:center;justify-content:center;padding:var(--g)}
 .door-in{max-width:860px;width:100%;display:grid;grid-template-columns:1fr auto;gap:48px;align-items:center}
-.door-hed{font-size:clamp(44px,7vw,78px);color:#fff}
-.door-sub{color:rgba(255,255,255,.72);font-size:14px;margin-top:14px;max-width:34ch}
+.door-hed{font-size:clamp(42px,7vw,76px);color:#fff}
 .bubble{background:var(--ink);color:#fff;border-radius:16px 16px 16px 4px;padding:11px 18px;
   font-size:14px;display:inline-block;margin-bottom:18px}
 .signin{margin-top:26px;max-width:420px}
@@ -41,32 +40,36 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   font-size:17px;display:grid;place-items:center}
 .si-go:hover{background:#000}
 .si-go:disabled{opacity:.5}
-.si-note{font-size:12px;color:rgba(255,255,255,.72);margin-top:11px;line-height:1.55;min-height:18px}
+.si-note{font-size:12px;color:var(--white-hi);margin-top:11px;line-height:1.55;min-height:18px}
 .si-note.bad{color:#fff;font-weight:500}
-.rooms{margin-top:26px;display:flex;flex-direction:column;gap:10px;max-width:420px}
+.rooms{margin-top:26px;display:none;flex-direction:column;gap:10px;max-width:420px}
 .room{background:#fff;border-radius:var(--r-lg);padding:16px 18px;display:flex;align-items:center;
   justify-content:space-between;gap:14px;text-align:left;width:100%;transition:transform .15s}
 .room:hover{transform:translateY(-2px)}
-.room-t{font-size:20px;color:var(--ink)}
-.room-d{font-size:12px;color:var(--mid);font-weight:300;margin-top:1px}
-.room-go{width:30px;height:30px;border-radius:50%;background:var(--red);color:#fff;display:grid;
-  place-items:center;flex-shrink:0;font-size:15px}
+.room-t{font-size:20px;font-family:var(--display);letter-spacing:2px}
+.room-d{font-size:12px;color:var(--mid);margin-top:1px}
+.room-go{width:30px;height:30px;border-radius:50%;background:var(--red);color:#fff;
+  display:grid;place-items:center;flex-shrink:0;font-size:15px}
 .room.soon{opacity:.45;cursor:default}
 .room.soon:hover{transform:none}
 .room.soon .room-go{background:var(--mid)}
-.bot{width:150px;height:auto}
+.bot{width:150px}
 @media(max-width:720px){.door-in{grid-template-columns:1fr;gap:24px}.bot{width:104px}}
 
-/* ---------- room ---------- */
+/* ---------------- room ---------------- */
 #room{flex:1;display:none;flex-direction:column;padding:0 var(--g) 64px}
 #room.on{display:flex}
 .wrap{max-width:680px;width:100%;margin:0 auto}
 
-.rail{display:flex;gap:0;margin:26px 0 30px;border-bottom:1px solid var(--border)}
+.rail{display:flex;margin:26px 0 30px;border-bottom:1px solid var(--border)}
 .step{flex:1;padding:0 0 10px;font-size:10px;letter-spacing:2px;text-transform:uppercase;
-  font-weight:600;color:var(--mid);border-bottom:2px solid transparent;margin-bottom:-1px}
+  font-weight:600;color:var(--mid);border-bottom:2px solid transparent;margin-bottom:-1px;
+  font-family:inherit;transition:color .15s}
+.step:hover{color:var(--ink)}
 .step.on{color:var(--ink);border-bottom-color:var(--red)}
 .step.done{color:var(--ink)}
+.step.locked{opacity:.4;cursor:default}
+.step.locked:hover{color:var(--mid)}
 .step i{font-style:normal;color:var(--red);margin-right:5px}
 
 .pane{display:none;animation:up .3s ease}
@@ -74,20 +77,21 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @keyframes up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 h2.hed{font-size:34px;margin-bottom:6px}
-.lede{font-size:14px;color:var(--mid);margin-bottom:24px;max-width:52ch}
+.lede{font-size:14px;color:var(--mid);margin-bottom:24px;max-width:54ch}
 
 .card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:22px}
 .field{margin-bottom:16px}
 .field:last-child{margin-bottom:0}
 label{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;
-  color:var(--ink);margin-bottom:6px}
+  margin-bottom:6px}
 input,select,textarea{width:100%;background:var(--paper);border:1px solid var(--border);
   border-radius:var(--r-sm);padding:10px 12px;font-size:14px;font-family:inherit;color:var(--ink);
   font-weight:300;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--red)}
 textarea{resize:vertical;min-height:90px;line-height:1.6}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:560px){.two{grid-template-columns:1fr}}
+.three{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:560px){.two,.three{grid-template-columns:1fr}}
 .hint{font-size:11px;color:var(--mid);margin-top:5px}
 
 .btn{background:var(--red);color:#fff;border-radius:var(--pill);padding:12px 30px;
@@ -95,51 +99,37 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
 .btn:hover{background:var(--red-dark)}
 .btn:disabled{opacity:.45;cursor:default}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--border)}
-.btn.ghost:hover{background:var(--paper)}
+.btn.ghost:hover{background:#fff}
 .bar{display:flex;gap:10px;align-items:center;margin-top:22px;flex-wrap:wrap}
-
-/* terms */
-.terms{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:22px 24px;
-  font-size:13px;line-height:1.7}
-.terms ul{list-style:none;padding:0}
-.terms li{position:relative;padding-left:18px;margin-bottom:9px}
-.terms li::before{content:'';position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:var(--red)}
-.terms li.sub{padding-left:36px;font-size:12.5px;color:#3a3835}
-.terms li.sub::before{left:20px;background:var(--mid);width:4px;height:4px}
-.terms .foot{margin-top:16px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--mid)}
-.stamp{display:inline-flex;align-items:center;gap:7px;font-size:10px;letter-spacing:2px;
-  text-transform:uppercase;font-weight:600;color:var(--mid);margin-bottom:12px}
-.stamp b{color:var(--ink);font-weight:600}
 
 /* copy blocks */
 .block{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;
-  margin-bottom:12px;position:relative;transition:border-color .15s}
+  margin-bottom:12px;transition:border-color .15s}
 .block:hover{border-color:#d6d2cc}
 .block-h{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
 .block-l{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--mid)}
 .tweak{background:var(--paper);border:1px solid var(--border);border-radius:var(--pill);
-  padding:4px 13px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;color:var(--ink)}
+  padding:4px 13px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
 .tweak:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
 .block-b{font-size:15px;line-height:1.65}
 .block-b.big{font-family:var(--display);font-size:30px;letter-spacing:1.5px;line-height:1.05}
-.ph{background:rgba(237,28,36,.11);border-radius:3px;padding:0 3px;color:var(--red-dark);font-weight:500}
+.ph{background:var(--delta);border-radius:3px;padding:0 3px;color:var(--red-dark);font-weight:500}
 
 .opts{display:flex;flex-direction:column;gap:8px}
-.opt{background:var(--paper);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 14px;
-  font-size:14.5px;text-align:left;display:flex;gap:11px;align-items:flex-start;line-height:1.5;font-weight:300}
+.opt{background:var(--paper);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:11px 14px;font-size:14.5px;text-align:left;display:flex;gap:11px;align-items:flex-start;
+  line-height:1.5;width:100%}
 .opt:hover{border-color:var(--mid)}
 .opt.pick{border-color:var(--red);background:#fff;box-shadow:inset 0 0 0 1px var(--red)}
 .dot{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;margin-top:3px}
 .opt.pick .dot{border-color:var(--red);background:var(--red);box-shadow:inset 0 0 0 2.5px #fff}
 
-/* flags */
 .flags{background:var(--yellow);border-radius:var(--r-md);padding:14px 16px;margin-bottom:14px;font-size:13px}
 .flags b{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
 .flags li{margin-left:16px;margin-bottom:3px;line-height:1.5}
 .clean{font-size:12px;color:var(--mid);margin-bottom:14px;display:flex;align-items:center;gap:7px}
 .clean::before{content:'✓';color:var(--red);font-weight:700}
 
-/* tweak dialogue */
 .tw{border-top:1px solid var(--border);margin-top:14px;padding-top:14px;display:none}
 .tw.on{display:block}
 .tw-row{display:flex;gap:8px}
@@ -152,35 +142,71 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
   letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
 .mini.g{background:var(--paper);color:var(--ink);border:1px solid var(--border)}
 
+/* legals */
+.chk{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--border);
+  border-radius:var(--r-sm);padding:13px 15px;margin-bottom:8px;text-align:left;width:100%;
+  transition:border-color .15s}
+.chk:hover{border-color:var(--mid)}
+.chk.on{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.box{width:17px;height:17px;border-radius:4px;border:1.5px solid var(--border);flex-shrink:0;
+  margin-top:2px;display:grid;place-items:center;font-size:11px;color:transparent;line-height:1}
+.chk.on .box{background:var(--red);border-color:var(--red);color:#fff}
+.chk-l{font-size:13px;font-weight:600;margin-bottom:3px}
+.chk-t{font-size:12px;color:var(--mid);line-height:1.55}
+.always{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:6px 20px 16px;margin-top:6px}
+.always summary{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;
+  color:var(--mid);cursor:pointer;padding:12px 0}
+.always li{font-size:12.5px;line-height:1.65;margin-bottom:8px;list-style:none;position:relative;padding-left:16px}
+.always li::before{content:'';position:absolute;left:2px;top:8px;width:4px;height:4px;
+  border-radius:50%;background:var(--mid)}
+
+/* email preview */
+.mail{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.mail-bar{background:var(--paper);border-bottom:1px solid var(--border);padding:12px 18px}
+.mail-from{font-size:12px;color:var(--mid);margin-bottom:3px}
+.mail-subj{font-size:14.5px;font-weight:600}
+.mail-body{padding:26px 24px 30px;text-align:center}
+.mail-img{background:var(--paper);border:1px dashed var(--border);border-radius:var(--r-sm);
+  height:150px;display:grid;place-items:center;color:var(--mid);font-size:10px;letter-spacing:2px;
+  text-transform:uppercase;margin-bottom:22px}
+.mail-h{font-family:var(--display);font-size:31px;letter-spacing:1.5px;line-height:1.05;margin-bottom:13px}
+.mail-p{font-size:14.5px;line-height:1.65;color:#3a3835;margin:0 auto 22px;max-width:44ch}
+.mail-cta{display:inline-block;background:var(--red);color:#fff;border-radius:var(--pill);
+  padding:12px 30px;font-size:14px;font-weight:600}
+.mail-tcs{border-top:1px solid var(--border);padding:16px 24px;font-size:10.5px;color:var(--mid);
+  line-height:1.6;text-align:left;white-space:pre-wrap}
+
+.file{display:flex;align-items:center;gap:13px;background:#fff;border:1px solid var(--border);
+  border-radius:var(--r-sm);padding:13px 15px;margin-bottom:8px}
+.file-i{width:32px;height:32px;border-radius:var(--r-sm);background:var(--red);color:#fff;
+  display:grid;place-items:center;font-size:9px;letter-spacing:1px;font-weight:700;flex-shrink:0}
+.file-n{font-size:13.5px;font-weight:500}
+.file-d{font-size:11px;color:var(--mid)}
+
 .load{display:flex;align-items:center;gap:11px;color:var(--mid);font-size:13px;padding:14px 0}
 .spin{width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--red);
   border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 .err{background:#fff;border:1px solid var(--red);border-radius:var(--r-md);padding:13px 15px;
   font-size:13px;color:var(--red-dark);margin-bottom:14px}
-
-/* parcel */
-.file{display:flex;align-items:center;gap:13px;background:#fff;border:1px solid var(--border);
-  border-radius:var(--r-sm);padding:13px 15px;margin-bottom:8px}
-.file-i{width:32px;height:32px;border-radius:var(--r-sm);background:var(--red);color:#fff;
-  display:grid;place-items:center;font-size:9px;letter-spacing:1px;font-weight:700;flex-shrink:0}
-.file-n{flex:1;font-size:13.5px;font-weight:500}
-.file-d{font-size:11px;color:var(--mid);font-weight:300}
+.sect{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--mid);
+  margin:26px 0 10px}
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="mark beb">ROBOT<span>.</span></div>
-  <div class="who" id="who">One NZ</div>
+  <div class="who" id="who"></div>
 </div>
 
-<!-- ================= DOOR ================= -->
+<!-- ===================== DOOR ===================== -->
 <section id="door">
   <div class="door-in">
     <div>
       <div class="bubble" id="hello">Hello.</div>
       <h1 class="door-hed beb">WHAT SHALL WE<br>ROBOT TODAY?</h1>
+
       <div class="signin" id="signin">
         <div class="si-row">
           <input id="siWord" placeholder="Say the magic word" autocomplete="off"
@@ -190,16 +216,16 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
         <div class="si-note" id="siNote">You either know it or you don't.</div>
       </div>
 
-      <div class="rooms" id="rooms" style="display:none">
+      <div class="rooms" id="rooms">
         <button class="room" onclick="enterRoom()">
-          <div><div class="room-t beb">TICKET GIVEAWAYS</div>
+          <div><div class="room-t">TICKET GIVEAWAYS</div>
           <div class="room-d">Competitions and prize draws for Rewards</div></div>
-          <div class="room-go">→</div>
+          <div class="room-go">&rarr;</div>
         </button>
         <div class="room soon">
-          <div><div class="room-t beb">PRESALE OFFERS</div>
+          <div><div class="room-t">PRESALE OFFERS</div>
           <div class="room-d">Coming soon</div></div>
-          <div class="room-go">→</div>
+          <div class="room-go">&rarr;</div>
         </div>
       </div>
     </div>
@@ -218,57 +244,60 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
   </div>
 </section>
 
-<!-- ================= ROOM ================= -->
+<!-- ===================== ROOM ===================== -->
 <section id="room">
 <div class="wrap">
 
   <div class="rail">
-    <div class="step on" data-s="0"><i>1</i>Brief</div>
-    <div class="step" data-s="1"><i>2</i>Terms</div>
-    <div class="step" data-s="2"><i>3</i>Copy</div>
-    <div class="step" data-s="3"><i>4</i>Parcel</div>
+    <button class="step on"     data-s="0" onclick="go(0)"><i>1</i>Brief</button>
+    <button class="step locked" data-s="1" onclick="go(1)"><i>2</i>Copy</button>
+    <button class="step locked" data-s="2" onclick="go(2)"><i>3</i>Legals</button>
+    <button class="step locked" data-s="3" onclick="go(3)"><i>4</i>Review</button>
   </div>
 
-  <!-- 1. BRIEF -->
+  <!-- 1 BRIEF -->
   <div class="pane on" data-p="0">
     <h2 class="hed beb">WHAT ARE WE GIVING AWAY?</h2>
-    <p class="lede">Answer these and the robot does the rest. Terms get built from your answers, so get them right here and they can't go wrong later.</p>
+    <p class="lede">Answer these and the robot takes it from here. Everything downstream is built from these answers, so this is the only place a mistake can start.</p>
     <div class="card">
       <div class="two">
         <div class="field">
           <label for="ptype">Prize type</label>
-          <select id="ptype" onchange="typeChanged()">
+          <select id="ptype" onchange="typeChanged();dirty()">
             <option value="movie">Movie passes</option>
             <option value="gig">Gig or concert</option>
+            <option value="sport">Sport fixture</option>
           </select>
         </div>
         <div class="field">
           <label for="winners">Number of winners</label>
-          <input id="winners" type="number" min="1" value="5">
+          <input id="winners" type="number" min="1" value="5" oninput="dirty()">
         </div>
       </div>
       <div class="field">
         <label for="pname">What's the prize?</label>
-        <input id="pname" placeholder="Practical Magic 2" value="Practical Magic 2">
+        <input id="pname" value="Practical Magic 2" oninput="dirty()">
       </div>
       <div class="two" id="gigfields" style="display:none">
         <div class="field">
           <label for="venue">Venue</label>
-          <input id="venue" placeholder="Spark Arena">
+          <input id="venue" placeholder="Spark Arena" oninput="dirty()">
         </div>
         <div class="field">
           <label for="edate">Event date</label>
-          <input id="edate" type="date">
+          <input id="edate" type="date" oninput="dirty()">
         </div>
       </div>
-      <div class="two">
+      <div class="three">
         <div class="field">
           <label for="opens">Opens</label>
-          <input id="opens" type="date" value="2026-08-24">
+          <input id="opens" type="date" value="2026-08-24" oninput="dirty()">
+          <input id="opensTime" value="12:00am" style="margin-top:6px" oninput="dirty()">
         </div>
         <div class="field">
           <label for="closes">Closes</label>
-          <input id="closes" type="date" value="2026-09-06">
+          <input id="closes" type="date" value="2026-09-06" oninput="dirty()">
+          <input id="closesTime" value="11:59pm" style="margin-top:6px" oninput="dirty()">
           <div class="hint">Draw is the next working day.</div>
         </div>
       </div>
@@ -277,39 +306,39 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
         <textarea id="blurb" placeholder="Paste the distributor blurb, press release, whatever landed in your inbox. The robot reads it so you don't have to.">Starring Sandra Bullock and Nicole Kidman, PRACTICAL MAGIC 2 returns to a world steeped in moonlit mischief and powerful ancestral magic, as the Owens sisters must confront the dark curse that threatens to unravel their family once and for all. Directed by Susanne Bier. In cinemas September 10.</textarea>
       </div>
     </div>
-    <div class="bar"><button class="btn" onclick="toTerms()">BUILD THE TERMS</button></div>
+    <div class="bar"><button class="btn" onclick="toCopy()">LET THE ROBOT LOOSE</button></div>
   </div>
 
-  <!-- 2. TERMS -->
+  <!-- 2 COPY -->
   <div class="pane" data-p="1">
-    <h2 class="hed beb">HERE ARE YOUR TERMS</h2>
-    <p class="lede">Assembled from your answers, not written. Dates are calculated. If something's wrong, change the brief and these rebuild.</p>
-    <div class="stamp">Built from the brief · <b id="clausecount">0 clauses</b></div>
-    <div class="terms" id="termsOut"></div>
-    <div class="bar">
-      <button class="btn ghost" onclick="go(0)">BACK TO BRIEF</button>
-      <button class="btn" onclick="toCopy()">NOW THE WORDS</button>
-    </div>
-  </div>
-
-  <!-- 3. COPY -->
-  <div class="pane" data-p="2">
     <h2 class="hed beb">THE ROBOT'S HAD A GO</h2>
-    <p class="lede">Pick a subject line. Tick anything that's right, tweak anything that isn't — say what's wrong in your own words.</p>
+    <p class="lede">Pick a subject line. Tick what's right, tweak what isn't — say what's wrong in your own words and it'll have another crack.</p>
     <div id="copyOut"></div>
     <div class="bar" id="copyBar" style="display:none">
       <button class="btn ghost" onclick="genCopy()">START AGAIN</button>
-      <button class="btn" onclick="toParcel()">WRAP IT UP</button>
+      <button class="btn" onclick="toLegals()">NOW THE LEGALS</button>
     </div>
   </div>
 
-  <!-- 4. PARCEL -->
-  <div class="pane" data-p="3">
-    <h2 class="hed beb">READY FOR SALESFORCE</h2>
-    <p class="lede">Everything the marketing automation specialist needs, in the shape they need it. Nothing left to interpret.</p>
-    <div id="parcelOut"></div>
+  <!-- 3 LEGALS -->
+  <div class="pane" data-p="2">
+    <h2 class="hed beb">TICK THE LEGALS</h2>
+    <p class="lede">Most of it publishes every time and doesn't need you. These are the ones that depend on the prize.</p>
+    <div id="legalsOut"></div>
     <div class="bar">
-      <button class="btn ghost" onclick="go(2)">BACK TO THE WORDS</button>
+      <button class="btn ghost" onclick="go(1)">BACK TO THE WORDS</button>
+      <button class="btn" onclick="toReview()">SEE IT ALL</button>
+    </div>
+  </div>
+
+  <!-- 4 REVIEW -->
+  <div class="pane" data-p="3">
+    <h2 class="hed beb">HERE'S THE EMAIL</h2>
+    <p class="lede">What the customer sees, and what the specialist gets. Anything wrong, go back and fix it — nothing's gone anywhere yet.</p>
+    <div id="reviewOut"></div>
+    <div class="bar">
+      <button class="btn ghost" onclick="go(1)">CHANGE THE WORDS</button>
+      <button class="btn ghost" onclick="go(2)">CHANGE THE LEGALS</button>
       <button class="btn" onclick="location.reload()">DO ANOTHER ONE</button>
     </div>
   </div>
@@ -319,8 +348,9 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
 
 <script>
 /* =====================================================================
-   ROBOT — frontend. All thinking happens server-side: the terms engine
-   and the API key both live in Flask where nobody can read them.
+   ROBOT — frontend
+   All the thinking happens server-side: the terms engine and the API key
+   both live in Flask where nobody can read them.
    ===================================================================== */
 const $ = id => document.getElementById(id);
 const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -339,62 +369,68 @@ async function sayWord(){
   const note=$('siNote'), go=$('siGo'), w=$('siWord').value.trim();
   if(!w){ note.className='si-note bad'; note.textContent='Needs a word.'; return; }
   go.disabled=true; note.className='si-note'; note.textContent='Checking…';
-  try{
-    const d = await api('/api/auth/word',{word:w});
-    signedIn(d);
-  }catch(e){
+  try{ signedIn(await api('/api/auth/word',{word:w})); }
+  catch(e){
     note.className='si-note bad'; note.textContent=e.message;
     $('siWord').value=''; $('siWord').focus(); go.disabled=false;
   }
 }
-
 function signedIn(d){
   $('signin').style.display='none';
   $('rooms').style.display='flex';
   const first=(d.name||'').split(' ')[0];
-  $('hello').textContent = first && first!=='there' ? `Hello ${first}.` : 'Hello.';
+  $('hello').textContent = (first && first!=='there') ? `Hello ${first}.` : 'Hello.';
   $('who').textContent = d.tenant || '';
 }
+(async()=>{ try{ const d=await api('/api/auth/me'); if(d.authed) signedIn(d); }catch(e){} })();
 
-(async ()=>{ try{ const d=await api('/api/auth/me'); if(d.authed) signedIn(d); }catch(e){} })();
+/* ---------------- state + nav ---------------- */
+let FACTS=null, COPY=null, PICK=0, MENU=[], CHOSEN=null, TWEAKS=0;
+let REACHED = 0;                 // furthest step unlocked
+const HIST = {};
 
-/* ---------------- nav ---------------- */
-let FACTS=null, COPY=null, PICK=0, CLAUSES=[];
 const val = id => ($(id) ? $(id).value : '');
-const formData = () => ({prize_type:val('ptype'), prize_name:val('pname'), winners:val('winners'),
-  opens:val('opens'), closes:val('closes'), venue:val('venue'), event_date:val('edate')});
+const formData = () => ({
+  prize_type:val('ptype'), prize_name:val('pname'), winners:val('winners'),
+  opens:val('opens'), closes:val('closes'),
+  opens_time:val('opensTime'), closes_time:val('closesTime'),
+  venue:val('venue'), event_date:val('edate')
+});
 
 function enterRoom(){ $('door').style.display='none'; $('room').classList.add('on'); }
 function typeChanged(){ $('gigfields').style.display = val('ptype')==='movie' ? 'none' : 'grid'; }
+
+/* Changing a fact invalidates everything downstream. The copy was written
+   against the old facts, so keeping it would be exactly the drift the whole
+   tool exists to prevent. */
+function dirty(){
+  if(REACHED>0){ COPY=null; MENU=[]; CHOSEN=null; REACHED=0; unlock(); }
+}
+
+function unlock(){
+  document.querySelectorAll('.step').forEach(s=>{
+    s.classList.toggle('locked', +s.dataset.s > REACHED);
+  });
+}
+
 function go(n){
+  if(n>REACHED) return;                       // can't skip ahead
   document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',+p.dataset.p===n));
   document.querySelectorAll('.step').forEach(s=>{const i=+s.dataset.s;
     s.classList.toggle('on',i===n); s.classList.toggle('done',i<n);});
   window.scrollTo({top:0,behavior:'smooth'});
 }
+function reach(n){ if(n>REACHED){REACHED=n; unlock();} go(n); }
 
-/* ---------------- 2. terms ---------------- */
-async function toTerms(){
-  try{
-    const d = await api('/api/terms',{form:formData()});
-    FACTS=d.facts; CLAUSES=d.clauses;
-    $('clausecount').textContent = d.clauses.length + ' clauses';
-    $('termsOut').innerHTML = '<ul>' + d.clauses.map(c => c.startsWith('* ')
-      ? `<li class="sub">${esc(c.slice(2))}</li>` : `<li>${esc(c)}</li>`).join('')
-      + `</ul><div class="foot">${esc(d.footer)}</div>`;
-    COPY=null; go(1);
-  }catch(e){ alert(e.message); }
-}
-
-/* ---------------- 3. copy ---------------- */
-function toCopy(){ go(2); if(!COPY) genCopy(); }
+/* ---------------- 2 COPY ---------------- */
+function toCopy(){ reach(1); if(!COPY) genCopy(); }
 
 async function genCopy(){
   const out=$('copyOut'); $('copyBar').style.display='none';
   out.innerHTML='<div class="load"><div class="spin"></div>Reading the brief and having a go…</div>';
   try{
     const d = await api('/api/copy',{form:formData(), source:val('blurb')});
-    COPY=d.copy; FACTS=d.facts; PICK=0; drawCopy(d.flags);
+    COPY=d.copy; FACTS=d.facts; PICK=0; TWEAKS=0; drawCopy(d.flags);
   }catch(e){
     out.innerHTML=`<div class="err">${esc(e.message)}</div>`;
     $('copyBar').style.display='flex';
@@ -405,7 +441,7 @@ function drawCopy(flags){
   flags = flags || [];
   const fl = flags.length
     ? `<div class="flags"><b>The robot slipped up ${flags.length===1?'once':flags.length+' times'}</b><ul>${flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`
-    : `<div class="clean">Checked against the terms. Numbers and dates all match.</div>`;
+    : `<div class="clean">Checked against the facts. Numbers and dates all match.</div>`;
 
   $('copyOut').innerHTML = fl + `
   <div class="block">
@@ -431,11 +467,8 @@ function drawCopy(flags){
   $('copyBar').style.display='flex';
 }
 
-/* ---------------- tick it or tweak it ---------------- */
-const HIST = {};
-let TWEAKS = 0;
-
-function blockText(k){ return k==='subject' ? COPY.subjects[PICK] : COPY[k]; }
+/* tick it or tweak it */
+const blockText = k => k==='subject' ? COPY.subjects[PICK] : COPY[k];
 
 function openTweak(k){
   const el=$('tw-'+k); el.classList.add('on');
@@ -452,9 +485,8 @@ async function sendTweak(k){
   el.innerHTML=`<div class="tw-msg">${esc(note)}</div><div class="load"><div class="spin"></div>Having another go…</div>`;
   HIST[k]=HIST[k]||[];
   try{
-    const d = await api('/api/tweak',{form:formData(), block:k, current:cur, note, history:HIST[k]});
-    HIST[k].push(`Human: ${note}`, `Robot: ${d.message}`);
-    TWEAKS++;
+    const d = await api('/api/tweak',{form:formData(),block:k,current:cur,note,history:HIST[k]});
+    HIST[k].push(`Human: ${note}`,`Robot: ${d.message}`); TWEAKS++;
     let html=`<div class="tw-msg">${esc(note)}</div><div class="tw-msg">${esc(d.message)}</div>`;
     if(d.proposal){
       html += `<div class="tw-prop">${showPh(d.proposal)}</div>`;
@@ -471,19 +503,70 @@ async function sendTweak(k){
   }catch(e){ el.innerHTML=`<div class="err">${esc(e.message)}</div>`; }
 }
 
-function accept(k, txt){
+function accept(k,txt){
   if(k==='subject') COPY.subjects[PICK]=txt; else COPY[k]=txt;
   drawCopy();
 }
 
-/* ---------------- 4. parcel ---------------- */
-async function toParcel(){
-  go(3);
-  $('parcelOut').innerHTML='<div class="load"><div class="spin"></div>Wrapping it up…</div>';
+/* ---------------- 3 LEGALS ---------------- */
+async function toLegals(){
+  reach(2);
+  if(MENU.length) return drawLegals();
+  $('legalsOut').innerHTML='<div class="load"><div class="spin"></div>Building the terms…</div>';
   try{
-    const d = await api('/api/parcel',{form:formData(),
+    const d = await api('/api/terms',{form:formData()});
+    MENU=d.menu; FACTS=d.facts;
+    if(CHOSEN===null) CHOSEN = MENU.filter(c=>!c.fixed && c.default).map(c=>c.id);
+    drawLegals();
+  }catch(e){ $('legalsOut').innerHTML=`<div class="err">${esc(e.message)}</div>`; }
+}
+
+function toggleClause(id){
+  CHOSEN = CHOSEN.includes(id) ? CHOSEN.filter(x=>x!==id) : CHOSEN.concat([id]);
+  drawLegals();
+}
+
+function drawLegals(){
+  const optional = MENU.filter(c=>!c.fixed);
+  const fixed = MENU.filter(c=>c.fixed && !c.sub);
+  const on = optional.filter(c=>CHOSEN.includes(c.id)).length;
+  $('legalsOut').innerHTML = `
+    <div class="block-l" style="margin-bottom:10px">Depends on the prize — ${on} of ${optional.length} ticked</div>
+    ${optional.map(c=>`
+      <button class="chk ${CHOSEN.includes(c.id)?'on':''}" onclick="toggleClause('${c.id}')">
+        <span class="box">✓</span>
+        <span><span class="chk-l">${esc(c.label)}</span>
+        <span class="chk-t">${esc(c.text)}</span></span>
+      </button>`).join('')}
+    <details class="always">
+      <summary>${fixed.length} clauses publish every time</summary>
+      <ul>${fixed.map(c=>`<li>${esc(c.text)}</li>`).join('')}</ul>
+    </details>`;
+}
+
+/* ---------------- 4 REVIEW ---------------- */
+async function toReview(){
+  reach(3);
+  $('reviewOut').innerHTML='<div class="load"><div class="spin"></div>Putting it together…</div>';
+  try{
+    const d = await api('/api/parcel',{form:formData(), chosen:CHOSEN,
       copy:{subject:COPY.subjects[PICK], headline:COPY.headline, body:COPY.body}});
-    $('parcelOut').innerHTML=`
+    $('reviewOut').innerHTML = `
+    <div class="mail">
+      <div class="mail-bar">
+        <div class="mail-from">One NZ Rewards &lt;rewards@one.nz&gt;</div>
+        <div class="mail-subj">${esc(d.subject)}</div>
+      </div>
+      <div class="mail-body">
+        <div class="mail-img">Hero image goes here</div>
+        <div class="mail-h">${esc(d.headline)}</div>
+        <div class="mail-p">${esc(d.body)}</div>
+        <span class="mail-cta">Enter now</span>
+      </div>
+      <div class="mail-tcs">${esc(d.terms)}</div>
+    </div>
+
+    <div class="sect">For the specialist</div>
     <div class="file"><div class="file-i">HTML</div>
       <div><div class="file-n">content-block.html</div>
       <div class="file-d">Paste into Content Builder. Hero image and URL still to slot in.</div></div></div>
@@ -492,25 +575,11 @@ async function toParcel(){
       <div class="file-d">Subject, headline and body — numbers already filled in</div></div></div>
     <div class="file"><div class="file-i">DOC</div>
       <div><div class="file-n">terms.docx</div>
-      <div class="file-d">${CLAUSES.length} clauses, built from the brief</div></div></div>
+      <div class="file-d">${d.clause_count} clauses, built from the brief</div></div></div>
     <div class="file"><div class="file-i">ZIP</div>
       <div><div class="file-n">${esc(d.slug)}.zip</div>
-      <div class="file-d">The lot, ready to hand over${TWEAKS?` · ${TWEAKS} tweak${TWEAKS>1?'s':''} logged`:''}</div></div></div>
-
-    <div class="card" style="margin-top:22px">
-      <div class="block-l" style="margin-bottom:10px">Copy deck — as it'll send</div>
-      <div style="font-size:13px;line-height:1.8">
-        <div class="block-l">Subject</div><div style="margin-bottom:12px">${esc(d.subject)}</div>
-        <div class="block-l">Headline</div><div class="beb" style="margin-bottom:12px;font-size:24px">${esc(d.headline)}</div>
-        <div class="block-l">Body</div><div>${esc(d.body)}</div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:12px">
-      <div class="block-l" style="margin-bottom:10px">Terms — as they'll publish</div>
-      <div style="font-size:12.5px;line-height:1.75;white-space:pre-wrap">${esc(d.terms)}</div>
-    </div>`;
-  }catch(e){ $('parcelOut').innerHTML=`<div class="err">${esc(e.message)}</div>`; }
+      <div class="file-d">The lot, ready to hand over${TWEAKS?` · ${TWEAKS} tweak${TWEAKS>1?'s':''} logged`:''}</div></div></div>`;
+  }catch(e){ $('reviewOut').innerHTML=`<div class="err">${esc(e.message)}</div>`; }
 }
 </script>
 </body>
