@@ -33,6 +33,16 @@ auth_bp = Blueprint("auth", __name__)
 DOOR = os.environ.get("ROBOT_DOOR", "word").lower()
 WORD = os.environ.get("ROBOT_WORD", "unicorn").strip().lower()
 
+# Per-person words, so the door can greet by name: "unicorn:Suz,taniwha:Michael".
+# Any word in this map wins over ROBOT_WORD; ROBOT_WORD stays as the anonymous
+# fallback. Give each person their own word and HELLO <NAME> comes for free.
+WORDS = {}
+for pair in os.environ.get("ROBOT_WORDS", "").split(","):
+    if ":" in pair:
+        w, n = pair.split(":", 1)
+        if w.strip():
+            WORDS[w.strip().lower()] = n.strip()
+
 # --- OTP mode config (unused while DOOR == "word") --------------------------
 WHITELIST = {
     "michael@hunch.co.nz",
@@ -62,8 +72,10 @@ def word():
 
     if not given:
         return jsonify({"error": "Needs a word."}), 400
-    if given != WORD:
-        return jsonify({"error": "That's not the word."}), 403
+    if given in WORDS:
+        name = WORDS[given]
+    elif given != WORD:
+        return jsonify({"error": "That's not it."}), 403
 
     session.permanent = True
     session["email"] = "word:" + (name.lower().replace(" ", "-") or "guest")
