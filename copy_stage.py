@@ -29,22 +29,34 @@ from terms import build_facts, check_copy, copy_context, TermsError
 copy_bp = Blueprint("copy", __name__)
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
-MODEL = os.environ.get("ROBOT_MODEL", "claude-sonnet-4-6")
+MODEL = os.environ.get("ROBOT_MODEL", "claude-opus-4-8")
 
-TWEAK_LOG = []
 
 
 VOICE = """You write customer emails for One NZ, a New Zealand telco, for their
-Rewards programme. The reader is an existing customer who might fancy winning
-something.
+Rewards programme. You're giving away exclusive prizes to One NZ customers —
+sometimes a concert, sometimes movies, always exciting, always customers-only.
+The reader is an existing customer who might fancy winning something.
 
-VOICE
-- New Zealand English. Warm, dry, unfussy. Never American, never breathless.
-- Short sentences. No exclamation marks. No "Don't miss out", no "Hurry",
-  no "amazing", no "grab yours".
-- Never write like a press release. If the source material lists a director and
-  a cast, that's the studio's writing, not yours. Find the human hook instead.
-- The subject line can be playful. The headline has to be clear about what you
+THE VOICE — four pillars, in this order when they fight:
+- Proudly Kiwi. New Zealand English, local rhythm, never American.
+- Fun and funny. Wit that lands, not wackiness that tries.
+- Energetic and adventurous. The prize is a night out, not a transaction.
+- Smart. Assume the reader is clever. One good idea beats three loud ones.
+
+HOW TO WRITE IT
+- You're an enthusiast, not a cheerleader. Dig for what's genuinely cool
+  about this show, band or movie and serve it up snappy and interesting.
+- Always dig for the human hook: what the reader gets to do, feel, or tell
+  their mates about — not what the product is.
+- If the source material is too thin to find the hook, say so in "wants":
+  one short line naming what would help you write it better. Don't fake
+  enthusiasm you can't source.
+- Short sentences. No exclamation marks. Never "Don't miss out", "Hurry",
+  "amazing", "grab yours" — that's cheerleading, and you're not one.
+- Never write like a press release. A director-and-cast list is the studio's
+  writing, not yours.
+- The subject line can be playful. The headline must be plain about what you
   win — clarity beats cleverness there, every time.
 
 HARD RULE - NUMBERS AND DATES
@@ -56,19 +68,20 @@ Write "one of {winners_word} double passes", never "one of five".
 Write "closes {closes_day}", never "closes Sunday".
 A bare digit or a written-out month is a failure and will be rejected."""
 
-GENERATE = VOICE + """
-
+GENERATE = """
 Return ONLY this JSON, nothing else, no code fences:
-{"subjects":["...","...","..."],"headline":"...","body":"..."}
+{"subjects":["...","...","..."],"headline":"...","body":"...","wants":null}
 
 subjects: three options, each under 45 characters, genuinely different from
 each other in approach — not three rewordings of one idea. One can reference
 the prize's own world, one can reference what the reader does with it.
 headline: one line, says plainly what you win.
-body: two or three short sentences. Ends with what to do."""
+body: two or three short sentences. Ends with what to do.
+wants: null, or one short line asking for the info that would let you write
+this better ("Any reviews or word of mouth on this one?"). Ask only if it
+would genuinely change the copy."""
 
-TWEAK = VOICE + """
-
+TWEAK = """
 You wrote the block below and the human has a note on it. Rewrite it to answer
 their note, keeping the same placeholder discipline.
 
@@ -78,6 +91,90 @@ insisting, do what they asked.
 
 Return ONLY this JSON, nothing else, no code fences:
 {"message":"one short line to them","proposal":"the new text, or null if you're pushing back","pushback":true|false}"""
+
+
+# ---------------------------------------------------------------------------
+# THE FEEDBACK LOOP
+# Two inputs make the robot better over time, both folded into the system
+# prompt on every call:
+#   1. voice_examples.json — copy the humans rated, with one line on why.
+#      This is the gold. Few-shot examples teach voice better than any rule.
+#   2. TWEAK_LOG — every correction ever made, persisted to ROBOT_STORE
+#      (JSON lines). Recent notes go back into the prompt so the same
+#      correction never needs making twice.
+# NOTE: Railway's filesystem is ephemeral. Mount a volume at the store path
+# or the log survives restarts but not redeploys.
+# ---------------------------------------------------------------------------
+
+STORE = os.environ.get("ROBOT_STORE", "robot_store.jsonl")
+EXAMPLES_FILE = os.environ.get("ROBOT_EXAMPLES", "voice_examples.json")
+
+
+def _load_log():
+    entries = []
+    try:
+        with open(STORE) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        entries.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        pass
+    except FileNotFoundError:
+        pass
+    return entries
+
+
+TWEAK_LOG = _load_log()
+
+
+def _persist(entry):
+    try:
+        with open(STORE, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+    except OSError as e:
+        print(f"[robot/store] couldn't persist tweak: {e}")
+
+
+def _examples():
+    """voice_examples.json: a list of {"text": ..., "why": ...} (why optional).
+    Absent or empty is fine — the slot sits wired and waiting."""
+    try:
+        with open(EXAMPLES_FILE) as f:
+            items = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+    out = []
+    for it in items if isinstance(items, list) else []:
+        if isinstance(it, str):
+            out.append({"text": it, "why": ""})
+        elif isinstance(it, dict) and it.get("text"):
+            out.append({"text": it["text"], "why": it.get("why", "")})
+    return out
+
+
+def _voice_now():
+    """The system prompt, assembled fresh each call: the pillars, then the
+    gold examples, then recent human corrections."""
+    parts = [VOICE]
+    ex = _examples()
+    if ex:
+        lines = "\n".join(f'- "{e["text"]}"' + (f' — {e["why"]}' if e["why"] else "")
+                          for e in ex[:8])
+        parts.append("COPY THE HUMANS RATED — match this standard and register:\n" + lines)
+    notes = []
+    for t in reversed(TWEAK_LOG):
+        n = (t.get("note") or "").strip()
+        if n and n not in notes:
+            notes.append(n)
+        if len(notes) >= 12:
+            break
+    if notes:
+        parts.append("RECENT CORRECTIONS FROM THE HUMANS — recurring notes on "
+                     "your work. Don't make anyone give the same note twice:\n"
+                     + "\n".join(f"- {n}" for n in notes))
+    return "\n\n".join(parts)
 
 
 def _json_from(text):
@@ -127,7 +224,7 @@ don't echo it):
 {(data.get('source') or '(nothing supplied)').strip()[:4000]}"""
 
     try:
-        result = _json_from(_call(GENERATE, brief))
+        result = _json_from(_call(_voice_now() + GENERATE, brief))
     except Exception as e:
         print(f"[robot/copy] generate failed: {e}")
         return jsonify({"error": "The robot fell over. Try again?"}), 500
@@ -168,7 +265,7 @@ def tweak():
         user += "\n\nEARLIER IN THIS EXCHANGE:\n" + "\n".join(data["history"])[:2000]
 
     try:
-        result = _json_from(_call(TWEAK, user, 700))
+        result = _json_from(_call(_voice_now() + TWEAK, user, 700))
     except Exception as e:
         print(f"[robot/tweak] failed: {e}")
         return jsonify({"error": "The robot fell over. Try again?"}), 500
@@ -179,7 +276,7 @@ def tweak():
     proposal = result.get("proposal")
     flags = check_copy(proposal, facts) if proposal else []
 
-    TWEAK_LOG.append({
+    entry = {
         "at": datetime.utcnow().isoformat(),
         "who": session.get("email"),
         "prize": facts["prize_name"],
@@ -188,7 +285,9 @@ def tweak():
         "before": current,
         "after": proposal,
         "pushback": bool(result.get("pushback")),
-    })
+    }
+    TWEAK_LOG.append(entry)
+    _persist(entry)
 
     return jsonify({"success": True, "message": result.get("message", ""),
                     "proposal": proposal, "pushback": bool(result.get("pushback")),

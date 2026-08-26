@@ -81,16 +81,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 #room.on{display:flex}
 .wrap{max-width:680px;width:100%;margin:0 auto}
 
-.rail{display:flex;margin:26px 0 44px;border-bottom:1px solid var(--border)}
-.step{flex:1;padding:0 0 12px;font-family:var(--display);font-size:21px;letter-spacing:0;
-  text-align:left;color:#C9C5BF;border-bottom:2px solid transparent;margin-bottom:-1px;
-  transition:color .15s}
+.rail{display:flex;margin:26px 0 30px;border-bottom:1px solid var(--border)}
+.step{flex:1;padding:0 0 10px;font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  font-weight:600;color:var(--mid);border-bottom:2px solid transparent;margin-bottom:-1px;
+  font-family:inherit;transition:color .15s}
 .step:hover{color:var(--ink)}
-.step.on{color:var(--red);border-bottom-color:var(--red)}
+.step.on{color:var(--ink);border-bottom-color:var(--red)}
 .step.done{color:var(--ink)}
-.step.locked{opacity:.45;cursor:default}
-.step.locked:hover{color:#C9C5BF}
-
+.step.locked{opacity:.4;cursor:default}
+.step.locked:hover{color:var(--mid)}
+.step i{font-style:normal;color:var(--red);margin-right:5px}
 
 .pane{display:none;animation:up .3s ease}
 .pane.on{display:block}
@@ -149,6 +149,10 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
 .flags li{margin-left:16px;margin-bottom:3px;line-height:1.5}
 .clean{font-size:12px;color:var(--mid);margin-bottom:14px;display:flex;align-items:center;gap:7px}
 .clean::before{content:'✓';color:var(--red);font-weight:700}
+.wants{background:var(--paper);border-radius:12px 12px 12px 4px;padding:10px 14px;
+  margin-bottom:14px;font-size:13px;line-height:1.55}
+.wants b{color:var(--red);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+  margin-right:6px}
 
 .tw{border-top:1px solid var(--border);margin-top:14px;padding-top:14px;display:none}
 .tw.on{display:block}
@@ -245,27 +249,28 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
 @media(prefers-reduced-motion:reduce){.robotwork{animation:none}}
 
-/* ================= THE SENTENCE IS THE HEADLINE =================
-   The rail asks WHAT?; this answers it at full scale. Connective
-   words whisper in grey; the answers shout in Bebas on fat red lines. */
+/* ================= THE BRIEF LADDER =================
+   Fill-in-the-blanks. The connective words whisper in grey;
+   the answers shout in Bebas on fat red lines. */
 .redword{color:var(--red)}
-.shead{font-family:var(--display);font-size:27px;letter-spacing:0;line-height:1;margin-bottom:12px}
+.shead{font-family:var(--display);font-size:26px;letter-spacing:0;line-height:1;margin-bottom:3px}
+.slede{font-size:13px;color:var(--mid);margin-bottom:22px}
 
-.ladder{display:flex;flex-direction:column;gap:22px;margin:4px 0 26px}
-.rung{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
-.join{font-family:var(--display);font-size:26px;letter-spacing:0;color:#B7B2AC;
+.ladder{display:flex;flex-direction:column;gap:18px;margin-bottom:36px}
+.rung{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.join{font-family:var(--display);font-size:24px;letter-spacing:0;color:#B7B2AC;
   line-height:1;white-space:nowrap}
 
-.blank{position:relative;display:inline-block;border-bottom:5px solid var(--red);
-  padding:0 10px 3px;cursor:pointer;font-family:var(--display);font-size:56px;
+.blank{position:relative;display:inline-block;border-bottom:4px solid var(--red);
+  padding:0 9px 2px;cursor:pointer;font-family:var(--display);font-size:42px;
   letter-spacing:0;line-height:1;white-space:nowrap;transition:background .12s}
 .blank:hover{background:#FFF3F3}
-.blank .caret{font-size:.38em;color:#B7B2AC;margin-left:8px;vertical-align:8px;pointer-events:none}
+.blank .caret{font-size:.4em;color:#B7B2AC;margin-left:7px;vertical-align:6px;pointer-events:none}
 
 /* typed answers sit on the same red line */
-.ladderInput{font-family:var(--display);font-size:56px;letter-spacing:0;line-height:1;
-  color:var(--ink);border:none;border-bottom:5px solid var(--red);border-radius:0;
-  padding:0 10px 3px;background:transparent;width:auto;min-width:120px;font-weight:400}
+.ladderInput{font-family:var(--display);font-size:42px;letter-spacing:0;line-height:1;
+  color:var(--ink);border:none;border-bottom:4px solid var(--red);border-radius:0;
+  padding:0 9px 2px;background:transparent;width:auto;min-width:100px;font-weight:400}
 .ladderInput:focus{outline:none;background:#FFF3F3;border-color:var(--red)}
 .ladderInput::placeholder{color:#D8D4CF}
 input.ladderInput[type=number]::-webkit-outer-spin-button,
@@ -273,14 +278,14 @@ input.ladderInput[type=number]::-webkit-inner-spin-button{-webkit-appearance:non
 input.ladderInput[type=number]{-moz-appearance:textfield}
 
 /* prize type: a real <select>, wearing the blank's clothes */
-.selwrap{position:relative;display:inline-block;border-bottom:5px solid var(--red);
-  padding:0 10px 3px;transition:background .12s}
+.selwrap{position:relative;display:inline-block;border-bottom:4px solid var(--red);
+  padding:0 9px 2px;transition:background .12s}
 .selwrap:hover{background:#FFF3F3}
 .selwrap select{appearance:none;-webkit-appearance:none;border:none;background:transparent;
-  font-family:var(--display);font-size:56px;letter-spacing:0;line-height:1.05;color:var(--ink);
-  padding:0 38px 0 0;cursor:pointer;width:auto;font-weight:400;border-radius:0}
+  font-family:var(--display);font-size:42px;letter-spacing:0;line-height:1.05;color:var(--ink);
+  padding:0 30px 0 0;cursor:pointer;width:auto;font-weight:400;border-radius:0}
 .selwrap select:focus{outline:none}
-.selwrap .caret{position:absolute;right:9px;top:14px;font-size:20px;color:#B7B2AC;pointer-events:none}
+.selwrap .caret{position:absolute;right:8px;top:10px;font-size:17px;color:#B7B2AC;pointer-events:none}
 
 /* number chips */
 .pop{position:absolute;top:calc(100% + 12px);left:0;z-index:20;background:#fff;
@@ -295,35 +300,33 @@ input.ladderInput[type=number]{-moz-appearance:textfield}
 .chip.plus{font-size:25px;line-height:0}
 
 /* dates: Bebas labels, calendar pills */
-/* dates: one unlabelled chip row, the sentence's quiet last breath */
-.dater{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:48px}
-.dater .dj{font-size:21px}
-label.dchip{display:inline-flex;align-items:center;gap:10px;border:1.5px solid var(--ink);
+.dates{display:flex;gap:48px;margin-bottom:40px;flex-wrap:wrap;align-items:flex-start}
+.dlabel{font-family:var(--display);font-size:21px;letter-spacing:0;margin-bottom:8px}
+label.dchip{display:inline-flex;align-items:center;gap:11px;border:1.5px solid var(--ink);
   border-radius:var(--pill);padding:9px 20px;cursor:pointer;font-family:var(--display);
-  font-size:21px;letter-spacing:0;text-transform:none;font-weight:400;line-height:1;
+  font-size:22px;letter-spacing:0;text-transform:none;font-weight:400;line-height:1;
   margin-bottom:0;color:var(--ink);position:relative;transition:border-color .12s}
 label.dchip:hover{border-color:var(--red)}
 label.dchip svg{display:block;flex-shrink:0}
 label.dchip input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
   padding:0;border:none}
-label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:7px}
-.times{font-size:12px;color:#B7B2AC;white-space:nowrap}
-.times input{width:58px;background:transparent;border:none;border-radius:0;padding:0;
-  font-size:12px;color:#B7B2AC;font-family:var(--body);font-weight:400;text-align:center}
-.times input:focus{outline:none;color:var(--ink);border-bottom:1px solid var(--red)}
+label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
+.tquiet{margin-top:7px}
+.tquiet input{width:78px;background:transparent;border:none;border-radius:0;padding:0 2px;
+  font-size:12px;color:var(--mid);font-family:var(--body);font-weight:400}
+.tquiet input:focus{color:var(--ink);border-bottom:1px solid var(--red)}
 
-/* what do you know — the instruction lives in the ghost */
+/* what do we know */
 .paste textarea{background:#fff;border:1.5px solid var(--ink);border-radius:16px;
   padding:15px 17px;font-size:14px;min-height:105px}
 .paste textarea:focus{border-color:var(--red)}
-.paste textarea::placeholder{color:#A9A49E}
+.paste .slede{margin-bottom:12px}
 
 @media(max-width:560px){
-  .blank,.ladderInput,.selwrap select{font-size:36px}
-  .selwrap .caret{top:9px}
-  .join{font-size:20px}
-  .step{font-size:17px}
-  .dater{gap:12px}
+  .blank,.ladderInput,.selwrap select{font-size:31px}
+  .selwrap .caret{top:7px}
+  .join{font-size:19px}
+  .dates{gap:22px}
 }
 </style>
 </head>
@@ -382,14 +385,20 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:7px}
 <div class="wrap">
 
   <div class="rail">
-    <button class="step on"     data-s="0" onclick="go(0)">WHAT?</button>
-    <button class="step locked" data-s="1" onclick="go(1)">HOW?</button>
-    <button class="step locked" data-s="2" onclick="go(2)">REVIEW</button>
-    <button class="step locked" data-s="3" onclick="go(3)">SEND</button>
+    <button class="step on"     data-s="0" onclick="go(0)"><i>1</i>Brief</button>
+    <button class="step locked" data-s="1" onclick="go(1)"><i>2</i>Copy</button>
+    <button class="step locked" data-s="2" onclick="go(2)"><i>3</i>Legals</button>
+    <button class="step locked" data-s="3" onclick="go(3)"><i>4</i>Review</button>
   </div>
 
-  <!-- 1 WHAT? — the rail asks, the sentence answers -->
+  <!-- 1 BRIEF — fill in the blanks -->
   <div class="pane on" data-p="0">
+    <h2 class="hed beb">WHAT'S THE <span class="redword">PROMO?</span></h2>
+    <p class="lede">Fill in the blanks. The robot does the rest.</p>
+
+    <div class="shead">WHAT'S THE PRIZE?</div>
+    <p class="slede">What are we giving away and when?</p>
+
     <div class="ladder">
       <div class="rung">
         <span class="blank" id="numBlank"><span id="numVal">5</span><span class="caret">&#9662;</span>
@@ -446,32 +455,39 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:7px}
       </div>
     </div>
 
-    <div class="dater">
-      <label class="dchip">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="5" width="18" height="16" rx="4"/>
-          <path d="M3 10h18M8 3v4M16 3v4"/>
-          <circle cx="12" cy="15" r="2.4" fill="#ED1C24" stroke="none"/>
-        </svg>
-        <span id="opensVal">24 AUG</span>
-        <input type="date" id="opens" value="2026-08-24" onchange="dateChip(this,'opensVal');dirty()">
-      </label>
-      <span class="join dj">TO</span>
-      <label class="dchip">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="5" width="18" height="16" rx="4"/>
-          <path d="M3 10h18M8 3v4M16 3v4"/>
-          <circle cx="12" cy="15" r="2.4" fill="#ED1C24" stroke="none"/>
-        </svg>
-        <span id="closesVal">6 SEP</span>
-        <input type="date" id="closes" value="2026-09-06" onchange="dateChip(this,'closesVal');dirty()">
-      </label>
-      <span class="times"><input id="opensTime" value="12:00am" oninput="dirty()" aria-label="Opens at"> &mdash; <input id="closesTime" value="11:59pm" oninput="dirty()" aria-label="Closes at"></span>
+    <div class="dates">
+      <div>
+        <div class="dlabel">STARTS</div>
+        <label class="dchip">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="5" width="18" height="16" rx="4"/>
+            <path d="M3 10h18M8 3v4M16 3v4"/>
+            <circle cx="12" cy="15" r="2.4" fill="#ED1C24" stroke="none"/>
+          </svg>
+          <span id="opensVal">24 AUG</span>
+          <input type="date" id="opens" value="2026-08-24" onchange="dateChip(this,'opensVal');dirty()">
+        </label>
+        <div class="tquiet"><input id="opensTime" value="12:00am" oninput="dirty()" aria-label="Opens at"></div>
+      </div>
+      <div>
+        <div class="dlabel">ENDS</div>
+        <label class="dchip">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="5" width="18" height="16" rx="4"/>
+            <path d="M3 10h18M8 3v4M16 3v4"/>
+            <circle cx="12" cy="15" r="2.4" fill="#ED1C24" stroke="none"/>
+          </svg>
+          <span id="closesVal">6 SEP</span>
+          <input type="date" id="closes" value="2026-09-06" onchange="dateChip(this,'closesVal');dirty()">
+        </label>
+        <div class="tquiet"><input id="closesTime" value="11:59pm" oninput="dirty()" aria-label="Closes at"></div>
+      </div>
     </div>
 
     <div class="paste">
-      <div class="shead">WHAT DO YOU KNOW?</div>
-      <textarea id="blurb" placeholder="Cut and paste what you know about the prize &mdash; the blurb, the press release, whatever landed in your inbox. The robot reads it so you don't have to." oninput="dirty()"></textarea>
+      <div class="shead">WHAT DO WE KNOW?</div>
+      <p class="slede">Cut and paste what we know about the prize.</p>
+      <textarea id="blurb" placeholder="Paste the distributor blurb, press release, whatever landed in your inbox. The robot reads it so you don't have to." oninput="dirty()"></textarea>
     </div>
 
     <div class="bar"><button class="btn" onclick="toCopy()">WRITE THE WORDS</button></div>
@@ -726,6 +742,8 @@ function drawCopy(flags){
   const fl = flags.length
     ? `<div class="flags"><b>The robot slipped up ${flags.length===1?'once':flags.length+' times'}</b><ul>${flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`
     : `<div class="clean">Checked against the facts. Numbers and dates all match.</div>`;
+  const wants = COPY.wants
+    ? `<div class="wants"><b>The robot asks</b>${esc(COPY.wants)}</div>` : '';
 
   const inner = {
     subject: `<div class="block-l" style="margin-bottom:10px">${LABELS.subject} — pick one</div>
@@ -738,7 +756,7 @@ function drawCopy(flags){
       <div class="block-b">${fillPh(COPY.body)}</div>`
   };
 
-  $('copyOut').innerHTML = fl + ORDER.map(k=>{
+  $('copyOut').innerHTML = fl + wants + ORDER.map(k=>{
     if(LOCKED[k]) return `
       <button class="receipt" onclick="reopen('${k}')" aria-label="Reopen ${LABELS[k]}">
         ${padlock('var(--red)')}
