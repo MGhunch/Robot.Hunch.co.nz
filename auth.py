@@ -43,6 +43,39 @@ for pair in os.environ.get("ROBOT_WORDS", "").split(","):
         if w.strip():
             WORDS[w.strip().lower()] = n.strip()
 
+# --- The brake --------------------------------------------------------------
+# Five wrong words from one address, then the door won't listen for a minute.
+# This is what makes a friendly two-word password safe: a person mistyping
+# never notices it, a script guessing thousands of words gets nowhere.
+BRAKE_TRIES = 5
+BRAKE_WAIT = timedelta(minutes=1)
+_misses = {}  # ip -> [count, unlock_time]
+
+
+def _braked(ip):
+    entry = _misses.get(ip)
+    if not entry:
+        return False
+    count, unlock = entry
+    if count < BRAKE_TRIES:
+        return False
+    if datetime.utcnow() >= unlock:
+        _misses.pop(ip, None)
+        return False
+    return True
+
+
+def _miss(ip):
+    count = _misses.get(ip, [0, None])[0] + 1
+    _misses[ip] = [count, datetime.utcnow() + BRAKE_WAIT]
+
+
+def _client_ip():
+    # Railway sits behind a proxy, so the real address rides in this header.
+    fwd = request.headers.get("X-Forwarded-For", "")
+    return fwd.split(",")[0].strip() if fwd else (request.remote_addr or "?")
+
+
 # --- OTP mode config (unused while DOOR == "word") --------------------------
 WHITELIST = {
     "michael@hunch.co.nz",
@@ -66,6 +99,10 @@ def mode():
 
 @auth_bp.route("/api/auth/word", methods=["POST"])
 def word():
+    ip = _client_ip()
+    if _braked(ip):
+        return jsonify({"error": "Too many guesses. Give it a minute."}), 429
+
     data = request.get_json() or {}
     given = (data.get("word") or "").strip().lower()
     name = (data.get("name") or "").strip()
@@ -75,7 +112,10 @@ def word():
     if given in WORDS:
         name = WORDS[given]
     elif given != WORD:
+        _miss(ip)
         return jsonify({"error": "That's not it."}), 403
+
+    _misses.pop(ip, None)
 
     session.permanent = True
     session["email"] = "word:" + (name.lower().replace(" ", "-") or "guest")

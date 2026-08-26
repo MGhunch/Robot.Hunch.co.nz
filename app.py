@@ -34,7 +34,9 @@ from terms import (build_facts, assemble_terms, render_terms, render_copy,
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-me")
-app.permanent_session_lifetime = timedelta(days=30)
+# A day, not a month. The door takes four seconds, so asking once a day costs
+# nothing — and a forwarded link or a shared laptop goes cold by tomorrow.
+app.permanent_session_lifetime = timedelta(hours=24)
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(copy_bp)
