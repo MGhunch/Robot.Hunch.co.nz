@@ -36,7 +36,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .bub svg{display:block;width:100%;height:auto}
 .bub-word{position:absolute;inset:0 0 12% 0;display:flex;align-items:center;justify-content:center}
 .bub-word span{color:var(--red);font-size:clamp(52px,11vw,88px)}
-.bub.gone{transform:scale(.86);opacity:0;pointer-events:none}
+/* .gone must kill the entry animation — its fill-mode (`both`) otherwise
+   pins opacity:1 forever and beats the class in the cascade. That was the
+   ghost: bubble staying put with the echo mangled behind it. */
+.bub.gone{animation:none;transform:scale(.86);opacity:0;pointer-events:none;
+  visibility:hidden;transition:transform .35s ease,opacity .35s ease,visibility 0s .35s}
 .echo{position:absolute;color:#fff;font-size:clamp(46px,8vw,74px);opacity:0}
 .echo.on{opacity:1;animation:pop .4s cubic-bezier(.2,1.4,.4,1) both}
 .q{color:#fff;font-size:clamp(22px,3.4vw,30px);letter-spacing:1px;margin:-8px 0 28px;
@@ -77,16 +81,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 #room.on{display:flex}
 .wrap{max-width:680px;width:100%;margin:0 auto}
 
-.rail{display:flex;margin:26px 0 30px;border-bottom:1px solid var(--border)}
-.step{flex:1;padding:0 0 10px;font-size:10px;letter-spacing:2px;text-transform:uppercase;
-  font-weight:600;color:var(--mid);border-bottom:2px solid transparent;margin-bottom:-1px;
-  font-family:inherit;transition:color .15s}
+.rail{display:flex;margin:26px 0 44px;border-bottom:1px solid var(--border)}
+.step{flex:1;padding:0 0 12px;font-family:var(--display);font-size:21px;letter-spacing:0;
+  text-align:left;color:#C9C5BF;border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:color .15s}
 .step:hover{color:var(--ink)}
-.step.on{color:var(--ink);border-bottom-color:var(--red)}
+.step.on{color:var(--red);border-bottom-color:var(--red)}
 .step.done{color:var(--ink)}
-.step.locked{opacity:.4;cursor:default}
-.step.locked:hover{color:var(--mid)}
-.step i{font-style:normal;color:var(--red);margin-right:5px}
+.step.locked{opacity:.45;cursor:default}
+.step.locked:hover{color:#C9C5BF}
+
 
 .pane{display:none;animation:up .3s ease}
 .pane.on{display:block}
@@ -158,6 +162,36 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
   letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
 .mini.g{background:var(--paper);color:var(--ink);border:1px solid var(--border)}
 
+/* fall into place: locked receipts, the open block, the waiting queue.
+   Same padlock as the door — it pops open to let you in, it snaps shut as
+   you commit copy. */
+.receipt{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:12px 18px;margin-bottom:10px;display:flex;align-items:center;gap:13px;width:100%;
+  text-align:left;font-family:inherit;transition:border-color .15s;animation:up .25s ease}
+.receipt:hover{border-color:var(--red)}
+.receipt svg{width:15px;height:15px;flex-shrink:0}
+.receipt-m{flex:1;min-width:0}
+.receipt-l{font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--mid)}
+.receipt-t{font-size:14px;color:var(--ink);margin-top:2px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.receipt-tw{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;
+  color:var(--red);flex-shrink:0}
+.waiting{background:transparent;border:1px dashed var(--border);border-radius:var(--r-lg);
+  padding:12px 18px;margin-bottom:10px;font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  font-weight:600;color:var(--mid);opacity:.6}
+.pair{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+.tweakit{background:transparent;color:var(--red);border:1.5px solid var(--red);
+  border-radius:var(--pill);padding:8px 20px;font-size:11px;letter-spacing:1.5px;
+  text-transform:uppercase;font-weight:600}
+.tweakit:hover{background:var(--delta)}
+.lockit{background:var(--red);color:#fff;border-radius:var(--pill);padding:8px 20px;font-size:11px;
+  letter-spacing:1.5px;text-transform:uppercase;font-weight:600;display:inline-flex;
+  align-items:center;gap:7px}
+.lockit:hover{background:var(--red-dark)}
+.lockit svg{width:13px;height:13px}
+.factnote{font-size:11px;color:var(--mid);margin-top:10px;display:flex;align-items:center;gap:6px}
+.factnote::before{content:'✓';color:var(--red);font-weight:700}
+
 /* legals */
 .chk{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--border);
   border-radius:var(--r-sm);padding:13px 15px;margin-bottom:8px;text-align:left;width:100%;
@@ -211,28 +245,27 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
 @media(prefers-reduced-motion:reduce){.robotwork{animation:none}}
 
-/* ================= THE BRIEF LADDER =================
-   Fill-in-the-blanks. The connective words whisper in grey;
-   the answers shout in Bebas on fat red lines. */
+/* ================= THE SENTENCE IS THE HEADLINE =================
+   The rail asks WHAT?; this answers it at full scale. Connective
+   words whisper in grey; the answers shout in Bebas on fat red lines. */
 .redword{color:var(--red)}
-.shead{font-family:var(--display);font-size:26px;letter-spacing:0;line-height:1;margin-bottom:3px}
-.slede{font-size:13px;color:var(--mid);margin-bottom:22px}
+.shead{font-family:var(--display);font-size:27px;letter-spacing:0;line-height:1;margin-bottom:12px}
 
-.ladder{display:flex;flex-direction:column;gap:18px;margin-bottom:36px}
-.rung{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
-.join{font-family:var(--display);font-size:24px;letter-spacing:0;color:#B7B2AC;
+.ladder{display:flex;flex-direction:column;gap:22px;margin:4px 0 26px}
+.rung{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+.join{font-family:var(--display);font-size:26px;letter-spacing:0;color:#B7B2AC;
   line-height:1;white-space:nowrap}
 
-.blank{position:relative;display:inline-block;border-bottom:4px solid var(--red);
-  padding:0 9px 2px;cursor:pointer;font-family:var(--display);font-size:42px;
+.blank{position:relative;display:inline-block;border-bottom:5px solid var(--red);
+  padding:0 10px 3px;cursor:pointer;font-family:var(--display);font-size:56px;
   letter-spacing:0;line-height:1;white-space:nowrap;transition:background .12s}
 .blank:hover{background:#FFF3F3}
-.blank .caret{font-size:.4em;color:#B7B2AC;margin-left:7px;vertical-align:6px;pointer-events:none}
+.blank .caret{font-size:.38em;color:#B7B2AC;margin-left:8px;vertical-align:8px;pointer-events:none}
 
 /* typed answers sit on the same red line */
-.ladderInput{font-family:var(--display);font-size:42px;letter-spacing:0;line-height:1;
-  color:var(--ink);border:none;border-bottom:4px solid var(--red);border-radius:0;
-  padding:0 9px 2px;background:transparent;width:auto;min-width:100px;font-weight:400}
+.ladderInput{font-family:var(--display);font-size:56px;letter-spacing:0;line-height:1;
+  color:var(--ink);border:none;border-bottom:5px solid var(--red);border-radius:0;
+  padding:0 10px 3px;background:transparent;width:auto;min-width:120px;font-weight:400}
 .ladderInput:focus{outline:none;background:#FFF3F3;border-color:var(--red)}
 .ladderInput::placeholder{color:#D8D4CF}
 input.ladderInput[type=number]::-webkit-outer-spin-button,
@@ -240,14 +273,14 @@ input.ladderInput[type=number]::-webkit-inner-spin-button{-webkit-appearance:non
 input.ladderInput[type=number]{-moz-appearance:textfield}
 
 /* prize type: a real <select>, wearing the blank's clothes */
-.selwrap{position:relative;display:inline-block;border-bottom:4px solid var(--red);
-  padding:0 9px 2px;transition:background .12s}
+.selwrap{position:relative;display:inline-block;border-bottom:5px solid var(--red);
+  padding:0 10px 3px;transition:background .12s}
 .selwrap:hover{background:#FFF3F3}
 .selwrap select{appearance:none;-webkit-appearance:none;border:none;background:transparent;
-  font-family:var(--display);font-size:42px;letter-spacing:0;line-height:1.05;color:var(--ink);
-  padding:0 30px 0 0;cursor:pointer;width:auto;font-weight:400;border-radius:0}
+  font-family:var(--display);font-size:56px;letter-spacing:0;line-height:1.05;color:var(--ink);
+  padding:0 38px 0 0;cursor:pointer;width:auto;font-weight:400;border-radius:0}
 .selwrap select:focus{outline:none}
-.selwrap .caret{position:absolute;right:8px;top:10px;font-size:17px;color:#B7B2AC;pointer-events:none}
+.selwrap .caret{position:absolute;right:9px;top:14px;font-size:20px;color:#B7B2AC;pointer-events:none}
 
 /* number chips */
 .pop{position:absolute;top:calc(100% + 12px);left:0;z-index:20;background:#fff;
@@ -262,33 +295,35 @@ input.ladderInput[type=number]{-moz-appearance:textfield}
 .chip.plus{font-size:25px;line-height:0}
 
 /* dates: Bebas labels, calendar pills */
-.dates{display:flex;gap:48px;margin-bottom:40px;flex-wrap:wrap;align-items:flex-start}
-.dlabel{font-family:var(--display);font-size:21px;letter-spacing:0;margin-bottom:8px}
-label.dchip{display:inline-flex;align-items:center;gap:11px;border:1.5px solid var(--ink);
+/* dates: one unlabelled chip row, the sentence's quiet last breath */
+.dater{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:48px}
+.dater .dj{font-size:21px}
+label.dchip{display:inline-flex;align-items:center;gap:10px;border:1.5px solid var(--ink);
   border-radius:var(--pill);padding:9px 20px;cursor:pointer;font-family:var(--display);
-  font-size:22px;letter-spacing:0;text-transform:none;font-weight:400;line-height:1;
+  font-size:21px;letter-spacing:0;text-transform:none;font-weight:400;line-height:1;
   margin-bottom:0;color:var(--ink);position:relative;transition:border-color .12s}
 label.dchip:hover{border-color:var(--red)}
 label.dchip svg{display:block;flex-shrink:0}
 label.dchip input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
   padding:0;border:none}
-label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
-.tquiet{margin-top:7px}
-.tquiet input{width:78px;background:transparent;border:none;border-radius:0;padding:0 2px;
-  font-size:12px;color:var(--mid);font-family:var(--body);font-weight:400}
-.tquiet input:focus{color:var(--ink);border-bottom:1px solid var(--red)}
+label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:7px}
+.times{font-size:12px;color:#B7B2AC;white-space:nowrap}
+.times input{width:58px;background:transparent;border:none;border-radius:0;padding:0;
+  font-size:12px;color:#B7B2AC;font-family:var(--body);font-weight:400;text-align:center}
+.times input:focus{outline:none;color:var(--ink);border-bottom:1px solid var(--red)}
 
-/* what do we know */
+/* what do you know — the instruction lives in the ghost */
 .paste textarea{background:#fff;border:1.5px solid var(--ink);border-radius:16px;
   padding:15px 17px;font-size:14px;min-height:105px}
 .paste textarea:focus{border-color:var(--red)}
-.paste .slede{margin-bottom:12px}
+.paste textarea::placeholder{color:#A9A49E}
 
 @media(max-width:560px){
-  .blank,.ladderInput,.selwrap select{font-size:31px}
-  .selwrap .caret{top:7px}
-  .join{font-size:19px}
-  .dates{gap:22px}
+  .blank,.ladderInput,.selwrap select{font-size:36px}
+  .selwrap .caret{top:9px}
+  .join{font-size:20px}
+  .step{font-size:17px}
+  .dater{gap:12px}
 }
 </style>
 </head>
@@ -347,20 +382,14 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 <div class="wrap">
 
   <div class="rail">
-    <button class="step on"     data-s="0" onclick="go(0)"><i>1</i>Brief</button>
-    <button class="step locked" data-s="1" onclick="go(1)"><i>2</i>Copy</button>
-    <button class="step locked" data-s="2" onclick="go(2)"><i>3</i>Legals</button>
-    <button class="step locked" data-s="3" onclick="go(3)"><i>4</i>Review</button>
+    <button class="step on"     data-s="0" onclick="go(0)">WHAT?</button>
+    <button class="step locked" data-s="1" onclick="go(1)">HOW?</button>
+    <button class="step locked" data-s="2" onclick="go(2)">REVIEW</button>
+    <button class="step locked" data-s="3" onclick="go(3)">SEND</button>
   </div>
 
-  <!-- 1 BRIEF — fill in the blanks -->
+  <!-- 1 WHAT? — the rail asks, the sentence answers -->
   <div class="pane on" data-p="0">
-    <h2 class="hed beb">WHAT'S THE <span class="redword">PROMO?</span></h2>
-    <p class="lede">Fill in the blanks. The robot does the rest.</p>
-
-    <div class="shead">WHAT'S THE PRIZE?</div>
-    <p class="slede">What are we giving away and when?</p>
-
     <div class="ladder">
       <div class="rung">
         <span class="blank" id="numBlank"><span id="numVal">5</span><span class="caret">&#9662;</span>
@@ -417,39 +446,32 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
       </div>
     </div>
 
-    <div class="dates">
-      <div>
-        <div class="dlabel">STARTS</div>
-        <label class="dchip">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="5" width="18" height="16" rx="4"/>
-            <path d="M3 10h18M8 3v4M16 3v4"/>
-            <circle cx="12" cy="15" r="2.4" fill="#ED1C24" stroke="none"/>
-          </svg>
-          <span id="opensVal">24 AUG</span>
-          <input type="date" id="opens" value="2026-08-24" onchange="dateChip(this,'opensVal');dirty()">
-        </label>
-        <div class="tquiet"><input id="opensTime" value="12:00am" oninput="dirty()" aria-label="Opens at"></div>
-      </div>
-      <div>
-        <div class="dlabel">ENDS</div>
-        <label class="dchip">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="5" width="18" height="16" rx="4"/>
-            <path d="M3 10h18M8 3v4M16 3v4"/>
-            <circle cx="12" cy="15" r="2.4" fill="#ED1C24" stroke="none"/>
-          </svg>
-          <span id="closesVal">6 SEP</span>
-          <input type="date" id="closes" value="2026-09-06" onchange="dateChip(this,'closesVal');dirty()">
-        </label>
-        <div class="tquiet"><input id="closesTime" value="11:59pm" oninput="dirty()" aria-label="Closes at"></div>
-      </div>
+    <div class="dater">
+      <label class="dchip">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="5" width="18" height="16" rx="4"/>
+          <path d="M3 10h18M8 3v4M16 3v4"/>
+          <circle cx="12" cy="15" r="2.4" fill="#ED1C24" stroke="none"/>
+        </svg>
+        <span id="opensVal">24 AUG</span>
+        <input type="date" id="opens" value="2026-08-24" onchange="dateChip(this,'opensVal');dirty()">
+      </label>
+      <span class="join dj">TO</span>
+      <label class="dchip">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="5" width="18" height="16" rx="4"/>
+          <path d="M3 10h18M8 3v4M16 3v4"/>
+          <circle cx="12" cy="15" r="2.4" fill="#ED1C24" stroke="none"/>
+        </svg>
+        <span id="closesVal">6 SEP</span>
+        <input type="date" id="closes" value="2026-09-06" onchange="dateChip(this,'closesVal');dirty()">
+      </label>
+      <span class="times"><input id="opensTime" value="12:00am" oninput="dirty()" aria-label="Opens at"> &mdash; <input id="closesTime" value="11:59pm" oninput="dirty()" aria-label="Closes at"></span>
     </div>
 
     <div class="paste">
-      <div class="shead">WHAT DO WE KNOW?</div>
-      <p class="slede">Cut and paste what we know about the prize.</p>
-      <textarea id="blurb" placeholder="Paste the distributor blurb, press release, whatever landed in your inbox. The robot reads it so you don't have to." oninput="dirty()"></textarea>
+      <div class="shead">WHAT DO YOU KNOW?</div>
+      <textarea id="blurb" placeholder="Cut and paste what you know about the prize &mdash; the blurb, the press release, whatever landed in your inbox. The robot reads it so you don't have to." oninput="dirty()"></textarea>
     </div>
 
     <div class="bar"><button class="btn" onclick="toCopy()">WRITE THE WORDS</button></div>
@@ -458,7 +480,7 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
   <!-- 2 COPY -->
   <div class="pane" data-p="1">
     <h2 class="hed beb">THE ROBOT'S HAD A GO</h2>
-    <p class="lede">Pick a subject line. Tick what's right, tweak what isn't — say what's wrong in your own words and it'll have another crack.</p>
+    <p class="lede">One thing at a time. Tweak it till it's right, lock it when it is — locked lines stack up as you go.</p>
     <div id="copyOut"></div>
     <div class="bar" id="copyBar" style="display:none">
       <button class="btn ghost" onclick="genCopy()">START AGAIN</button>
@@ -473,7 +495,7 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
     <div id="legalsOut"></div>
     <div class="bar">
       <button class="btn ghost" onclick="go(1)">BACK TO THE WORDS</button>
-      <button class="btn" onclick="toReview()">SEE IT ALL</button>
+      <button class="btn" onclick="toReview()">PACKAGE IT UP</button>
     </div>
   </div>
 
@@ -500,7 +522,12 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
    ===================================================================== */
 const $ = id => document.getElementById(id);
 const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const showPh = t => esc(t).replace(/\{(\w+)\}/g,'<span class="ph">$1</span>');
+/* The copy keeps its {slots} underneath — that's the bulletproof rule — but
+   the room shows the filled facts, marked so you know the robot can't have
+   got them wrong. CTX is copy_context(facts), straight off /api/copy. */
+const fillPh = t => esc(t).replace(/\{(\w+)\}/g,(m,k)=>`<span class="ph">${esc(CTX[k]??k)}</span>`);
+const fillPlain = t => String(t??'').replace(/\{(\w+)\}/g,(m,k)=>String(CTX[k]??k));
+const hasPh = t => /\{\w+\}/.test(String(t??''));
 
 async function api(path, body){
   const r = await fetch(path, body ? {method:'POST',headers:{'Content-Type':'application/json'},
@@ -541,6 +568,10 @@ function signedIn(d){
 
 /* ---------------- state + nav ---------------- */
 let FACTS=null, COPY=null, PICK=0, MENU=[], CHOSEN=null, TWEAKS=0;
+let CTX={};                                    // slot -> value, from the brief
+const ORDER=['subject','headline','body'];
+let LOCKED={subject:false,headline:false,body:false};
+let OPENK='subject';                           // the one section that's open
 let REACHED = 0;                 // furthest step unlocked
 const HIST = {};
 
@@ -672,12 +703,23 @@ async function genCopy(){
   out.innerHTML='<div class="load"><img class="robotwork" src="robot-sandwich.png" alt="">The robot is writing…</div>';
   try{
     const d = await api('/api/copy',{form:formData(), source:val('blurb')});
-    COPY=d.copy; FACTS=d.facts; PICK=0; TWEAKS=0; drawCopy(d.flags);
+    COPY=d.copy; FACTS=d.facts; CTX=d.context||{}; PICK=0; TWEAKS=0;
+    LOCKED={subject:false,headline:false,body:false}; OPENK='subject';
+    drawCopy(d.flags);
   }catch(e){
     out.innerHTML=`<div class="err">${esc(e.message)}</div>`;
     $('copyBar').style.display='flex';
   }
 }
+
+/* The room falls into place: one section open at a time, LOCK IT collapses
+   it to a receipt, the next opens. Lock all three and the way forward appears.
+   Tap a receipt to reopen — lock is "done for now", not welded shut. */
+const LABELS={subject:'Subject line',headline:'Headline',body:'Body'};
+const padlock = c =>
+  `<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2" stroke="${c}" stroke-width="1.8" stroke-linecap="round"/>
+    <rect x="3" y="7" width="10" height="7" rx="2" fill="${c}"/></svg>`;
 
 function drawCopy(flags){
   flags = flags || [];
@@ -685,28 +727,49 @@ function drawCopy(flags){
     ? `<div class="flags"><b>The robot slipped up ${flags.length===1?'once':flags.length+' times'}</b><ul>${flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`
     : `<div class="clean">Checked against the facts. Numbers and dates all match.</div>`;
 
-  $('copyOut').innerHTML = fl + `
-  <div class="block">
-    <div class="block-h"><div class="block-l">Subject line — pick one</div>
-      <button class="tweak" onclick="openTweak('subject')">Tweak</button></div>
-    <div class="opts">${COPY.subjects.map((s,i)=>
-      `<button class="opt ${i===PICK?'pick':''}" onclick="PICK=${i};drawCopy()">
-        <span class="dot"></span><span>${showPh(s)}</span></button>`).join('')}</div>
-    <div class="tw" id="tw-subject"></div>
-  </div>
-  <div class="block">
-    <div class="block-h"><div class="block-l">Headline</div>
-      <button class="tweak" onclick="openTweak('headline')">Tweak</button></div>
-    <div class="block-b big">${showPh(COPY.headline)}</div>
-    <div class="tw" id="tw-headline"></div>
-  </div>
-  <div class="block">
-    <div class="block-h"><div class="block-l">Body</div>
-      <button class="tweak" onclick="openTweak('body')">Tweak</button></div>
-    <div class="block-b">${showPh(COPY.body)}</div>
-    <div class="tw" id="tw-body"></div>
-  </div>`;
-  $('copyBar').style.display='flex';
+  const inner = {
+    subject: `<div class="block-l" style="margin-bottom:10px">${LABELS.subject} — pick one</div>
+      <div class="opts">${COPY.subjects.map((s,i)=>
+        `<button class="opt ${i===PICK?'pick':''}" onclick="PICK=${i};drawCopy()">
+          <span class="dot"></span><span>${fillPh(s)}</span></button>`).join('')}</div>`,
+    headline: `<div class="block-l" style="margin-bottom:10px">${LABELS.headline}</div>
+      <div class="block-b big">${fillPh(COPY.headline)}</div>`,
+    body: `<div class="block-l" style="margin-bottom:10px">${LABELS.body}</div>
+      <div class="block-b">${fillPh(COPY.body)}</div>`
+  };
+
+  $('copyOut').innerHTML = fl + ORDER.map(k=>{
+    if(LOCKED[k]) return `
+      <button class="receipt" onclick="reopen('${k}')" aria-label="Reopen ${LABELS[k]}">
+        ${padlock('var(--red)')}
+        <span class="receipt-m"><span class="receipt-l">${LABELS[k]}</span>
+        <span class="receipt-t" style="display:block">${esc(fillPlain(blockText(k)))}</span></span>
+        <span class="receipt-tw">Tweak</span>
+      </button>`;
+    if(k===OPENK) return `
+      <div class="block">
+        ${inner[k]}
+        ${hasPh(blockText(k)) ? `<div class="factnote">Facts pulled from the brief — the robot can't get them wrong. Change them there, not here.</div>` : ``}
+        <div class="tw" id="tw-${k}"></div>
+        <div class="pair">
+          <button class="tweakit" onclick="openTweak('${k}')">Tweak it</button>
+          <button class="lockit" onclick="lockIt('${k}')">${padlock('#fff')}Lock it</button>
+        </div>
+      </div>`;
+    return `<div class="waiting">${LABELS[k]}</div>`;
+  }).join('');
+
+  $('copyBar').style.display = ORDER.every(k=>LOCKED[k]) ? 'flex' : 'none';
+}
+
+function lockIt(k){
+  LOCKED[k]=true;
+  OPENK = ORDER.find(x=>!LOCKED[x]) || null;
+  drawCopy();
+}
+function reopen(k){
+  LOCKED[k]=false; OPENK=k;
+  drawCopy();
 }
 
 /* tick it or tweak it */
@@ -731,7 +794,7 @@ async function sendTweak(k){
     HIST[k].push(`Human: ${note}`,`Robot: ${d.message}`); TWEAKS++;
     let html=`<div class="tw-msg">${esc(note)}</div><div class="tw-msg">${esc(d.message)}</div>`;
     if(d.proposal){
-      html += `<div class="tw-prop">${showPh(d.proposal)}</div>`;
+      html += `<div class="tw-prop">${fillPh(d.proposal)}</div>`;
       if(d.flags && d.flags.length)
         html += `<div class="flags" style="margin:0 0 10px"><b>Careful</b><ul>${d.flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`;
       html += `<div class="tw-row" style="justify-content:flex-end">
