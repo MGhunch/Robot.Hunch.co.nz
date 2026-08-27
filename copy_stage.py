@@ -37,19 +37,19 @@ CONTAINER = "prize_draw"
 
 # ---------------------------------------------------------------------------
 # THE PROMPTS live in /prompts as markdown — findable, editable, diffable
-# without touching this file. Engine prompts sit flat (spine, tweak_it,
-# extract); container prompts sit in folders by family (write_it/,
-# feed_it/). The folder structure is the §5 diagram.
+# without touching this file. Workers are the engine and sit flat (writer,
+# fixer, feeder, extract); a container is only voice + specs, under
+# containers/<name>/. The folder structure is the site plan's §6.
 # Files are re-read when they change on disk, so a prompt edit lands on the
-# next call — no restart. If a file goes missing, the embedded fallback
-# keeps the lights on and complains in the log.
+# next call — no restart. A missing file fails loud: better a crash on
+# deploy than the robot quietly writing from a stale voice.
 # ---------------------------------------------------------------------------
 
 PROMPTS_DIR = os.environ.get(
     "ROBOT_PROMPTS", os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts"))
 _PROMPT_CACHE = {}
 
-def prompt(name, fallback=""):
+def prompt(name):
     path = os.path.join(PROMPTS_DIR, name + ".md")
     try:
         mtime = os.path.getmtime(path)
@@ -60,86 +60,8 @@ def prompt(name, fallback=""):
             text = f.read().strip()
         _PROMPT_CACHE[name] = (mtime, text)
         return text
-    except OSError:
-        if fallback:
-            print(f"[robot/prompts] {name}.md missing — using embedded fallback")
-            return fallback
-        raise
-
-# Embedded fallbacks: the prompts as they stood when the folder was cut.
-# The files are the truth; these only exist so a bad deploy fails soft.
-_VOICE_FALLBACK = """You write customer emails for One NZ, a New Zealand telco, for their
-Rewards programme. You're giving away exclusive prizes to One NZ customers —
-sometimes a concert, sometimes movies, always exciting, always customers-only.
-The reader is an existing customer who might fancy winning something.
-
-THE VOICE — four pillars, in this order when they fight:
-- Proudly Kiwi. New Zealand English, local rhythm, never American.
-- Fun and funny. Wit that lands, not wackiness that tries.
-- Energetic and adventurous. The prize is a night out, not a transaction.
-- Smart. Assume the reader is clever. One good idea beats three loud ones.
-
-HOW TO WRITE IT
-- You're an enthusiast, not a cheerleader. Dig for what's genuinely cool
-  about this show, band or movie and serve it up snappy and interesting.
-- Always dig for the human hook: what the reader gets to do, feel, or tell
-  their mates about — not what the product is.
-- If the source material is too thin to find the hook, say so in "wants":
-  one short line naming what would help you write it better. Don't fake
-  enthusiasm you can't source.
-- Short sentences. No exclamation marks. Never "Don't miss out", "Hurry",
-  "amazing", "grab yours" — that's cheerleading, and you're not one.
-- Never write like a press release. A director-and-cast list is the studio's
-  writing, not yours.
-- The subject line can be playful. The headline must be plain about what you
-  win — clarity beats cleverness there, every time.
-
-HARD RULE - NUMBERS AND DATES
-You are forbidden from writing any number or date as a literal. Use only these
-placeholders, in curly braces, spelled exactly:
-  {prize_name} {winners_word} {winner_word} {closes_day} {closes_short}
-  {closes_long} {opens_short} {venue} {event_short}
-Write "one of {winners_word} double passes", never "one of five".
-Write "closes {closes_day}", never "closes Sunday".
-A bare digit or a written-out month is a failure and will be rejected."""
-
-_GENERATE_FALLBACK = """
-Return ONLY this JSON, nothing else, no code fences:
-{"subjects":["...","...","..."],"headline":"...","body":"...","wants":null}
-
-subjects: three options, each under 45 characters, genuinely different from
-each other in approach — not three rewordings of one idea. One can reference
-the prize's own world, one can reference what the reader does with it.
-headline: one line, says plainly what you win.
-body: two or three short sentences. Ends with what to do.
-wants: null, or one short line asking for the info that would let you write
-this better ("Any reviews or word of mouth on this one?"). Ask only if it
-would genuinely change the copy."""
-
-_TWEAK_FALLBACK = """
-You wrote the block below and the human has a note on it. Rewrite it to answer
-their note, keeping the same placeholder discipline.
-
-If the note would genuinely make it worse, say so instead of complying — you're
-allowed to disagree once, briefly and politely, with a reason. If they come back
-insisting, do what they asked.
-
-Return ONLY this JSON, nothing else, no code fences:
-{"message":"one short line to them","proposal":"the new text, or null if you're pushing back","pushback":true|false}"""
-
-_EXTRACT_FALLBACK = """You read a promo brief written by a human and pull out the hard
-facts so a form can be pre-filled. Extract ONLY what is actually stated or
-unmistakable — never guess, never invent. Missing means null.
-
-prize_type: exactly one of "movie", "gig", "sport", "other", or null.
-prize_name: the show, film, artist or event name as a human would write it, or null.
-venue: the venue name only (no city unless part of the name), or null.
-event_date: the event date in YYYY-MM-DD only if a full, unambiguous date is
-stated (assume the next future occurrence if the year is missing), else null.
-
-Return ONLY this JSON, nothing else, no code fences:
-{"prize_type":null,"prize_name":null,"venue":null,"event_date":null}"""
-
+    except OSError as e:
+        raise RuntimeError(f"prompt file missing: {path}") from e
 
 # ---------------------------------------------------------------------------
 # THE FEEDBACK LOOP
@@ -203,9 +125,9 @@ def _examples():
 
 
 def _voice_now():
-    """The system prompt, assembled fresh each call: the pillars, then the
-    gold examples, then recent human corrections."""
-    parts = [prompt("spine", _VOICE_FALLBACK)]
+    """The container's voice, assembled fresh each call: the voice pages,
+    then the gold examples, then recent curated corrections."""
+    parts = [prompt(f"containers/{CONTAINER}/voice")]
     ex = _examples()
     if ex:
         lines = "\n".join(f'- "{e["text"]}"' + (f' — {e["why"]}' if e["why"] else "")
@@ -288,7 +210,8 @@ don't echo it):
 
     try:
         result = _json_from(_call(
-            _voice_now() + "\n\n" + prompt("write_it/prize_draw", _GENERATE_FALLBACK), brief))
+            _voice_now() + "\n\n" + prompt(f"containers/{CONTAINER}/specs")
+            + "\n\n" + prompt("writer"), brief))
     except Exception as e:
         print(f"[robot/copy] generate failed: {e}")
         return jsonify({"error": "The robot fell over. Try again?"}), 500
@@ -329,7 +252,7 @@ def extract():
         return jsonify({"success": True, "found": {}})
 
     try:
-        result = _json_from(_call(prompt("extract", _EXTRACT_FALLBACK), text, 300)) or {}
+        result = _json_from(_call(prompt("extract"), text, 300)) or {}
     except Exception as e:
         print(f"[robot/extract] failed: {e}")
         return jsonify({"success": True, "found": {}})  # extraction is a favour, not a gate
@@ -347,7 +270,7 @@ def extract():
 @copy_bp.route("/api/tweak", methods=["POST"])
 @require_auth
 def tweak():
-    """The surgeon. Smallest change that honours the note — the new copy
+    """The FIXER. Smallest change that honours the note — the new copy
     goes straight back to the card, changes marked client-side. declined
     covers both the locked-fact refusal and the one allowed pushback."""
     data = request.get_json() or {}
@@ -377,7 +300,8 @@ def tweak():
 
     try:
         result = _json_from(_call(
-            _voice_now() + "\n\n" + prompt("tweak_it", _TWEAK_FALLBACK), user, 700))
+            _voice_now() + "\n\n" + prompt(f"containers/{CONTAINER}/specs")
+            + "\n\n" + prompt("fixer"), user, 700))
     except Exception as e:
         print(f"[robot/tweak] failed: {e}")
         return jsonify({"error": "The robot fell over. Try again?"}), 500
@@ -385,10 +309,9 @@ def tweak():
     if not result:
         return jsonify({"error": "The robot said something we couldn't read."}), 500
 
-    # The surgeon speaks say/copy/declined; tolerate the old dialect too.
-    say = result.get("say") or result.get("message") or ""
-    new_copy = result.get("copy") if "copy" in result else result.get("proposal")
-    declined = bool(result.get("declined", result.get("pushback", False)))
+    say = result.get("say") or ""
+    new_copy = result.get("copy")
+    declined = bool(result.get("declined", False))
     if declined:
         new_copy = None
     flags = check_copy(new_copy, facts) if new_copy else []
@@ -409,9 +332,7 @@ def tweak():
 
     return jsonify({"success": True, "say": say, "copy": new_copy,
                     "declined": declined, "wants": result.get("wants"),
-                    "flags": flags,
-                    # legacy mirrors, one release of grace
-                    "message": say, "proposal": new_copy, "pushback": declined})
+                    "flags": flags})
 
 
 @copy_bp.route("/api/log")

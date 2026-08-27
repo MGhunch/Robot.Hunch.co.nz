@@ -1142,7 +1142,7 @@ async function genCopy(){
    FIX IT — the Wrangler split.
    The whole email sits on the table as the artefact. Padlocks live in
    the gutter and they are the buttons: open / pencil / shut. The rail
-   is the robot's side of the desk — the tour in one state, the surgeon
+   is the robot's side of the desk — the tour in one state, the fixer
    chat in the other. Rewrites land straight on the card, changes
    marked. The card is the proposal.
    ===================================================================== */
@@ -1286,7 +1286,7 @@ function fxTogglePad(k){
 }
 function fxPackage(){ if(FXORDER.every(k=>FXLOCK[k])) toReview(); }
 
-/* ── the edit state: the surgeon's chat ── */
+/* ── the edit state: the fixer's chat ── */
 function fxSay(html,who){
   const d=document.createElement('div');
   d.className='fx-msg '+(who||'robot'); d.innerHTML=html;
