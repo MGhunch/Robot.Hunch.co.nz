@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ROBOT — Ticket giveaways</title>
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -280,7 +285,7 @@ mark.fx-ch{background:var(--delta);color:inherit;border-radius:2px;padding:0 1px
 .fx-robotrow{display:flex;gap:10px;align-items:flex-start;}
 .fx-av{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:var(--red);
   display:flex;align-items:center;justify-content:center;}
-.fx-av img{width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);}
+.fx-av img{width:24px;height:24px;object-fit:contain;}
 .fx-card{flex:1;background:#fff;border-radius:14px;border-top-left-radius:4px;padding:14px 15px;}
 .fx-card .k{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
   color:var(--red);margin-bottom:6px;}
@@ -314,7 +319,7 @@ mark.fx-ch{background:var(--delta);color:inherit;border-radius:2px;padding:0 1px
 .fx-edhead{display:flex;align-items:center;gap:11px;padding:12px 15px;border-bottom:1px solid var(--border);}
 .fx-edav{flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:var(--red);
   display:flex;align-items:center;justify-content:center;}
-.fx-edav img{width:22px;height:22px;object-fit:contain;filter:brightness(0) invert(1);}
+.fx-edav img{width:22px;height:22px;object-fit:contain;}
 .fx-edtitle{font-family:var(--display);font-size:20px;letter-spacing:1px;padding-top:2px;}
 .fx-edtitle span{color:var(--red);}
 .fx-edpill{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
@@ -807,7 +812,7 @@ select.fval{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:ri
           <h2 class="fx-room beb">THE WORKINGS</h2>
           <div class="fx-robotwrap">
             <div class="fx-robotrow">
-              <div class="fx-av"><img src="robot-sandwich-ink.png" alt=""></div>
+              <div class="fx-av"><img src="robot-face.svg" alt=""></div>
               <div class="fx-card" id="fxTourCard"></div>
             </div>
           </div>
@@ -820,7 +825,7 @@ select.fval{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:ri
           </div>
           <div class="fx-edit" id="fxEdit">
             <div class="fx-edhead">
-              <div class="fx-edav"><img src="robot-sandwich-ink.png" alt=""></div>
+              <div class="fx-edav"><img src="robot-face.svg" alt=""></div>
               <div style="display:flex;align-items:center;gap:10px">
                 <div class="fx-edtitle">TWEAK <span>IT.</span></div>
                 <span class="fx-edpill" id="fxEdPill"></span>
