@@ -234,8 +234,16 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
 .fixstage{margin-left:calc(50% - 50vw);width:100vw;background:var(--red);
   padding:36px 24px 60px;margin-top:8px;}
 .fx-grid{display:grid;grid-template-columns:minmax(0,560px) minmax(300px,360px);
-  gap:96px;justify-content:center;align-items:start;max-width:1120px;margin:0 auto;}
+  gap:150px;justify-content:center;align-items:start;max-width:1200px;margin:0 auto;}
 .fx-room{font-size:52px;line-height:.85;color:#fff;margin:0 0 18px;letter-spacing:1px;}
+
+/* the tabs — furniture for now; go live with the second artefact (12b) */
+.fx-tabs{display:flex;gap:7px;}
+.fx-tab{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;
+  padding:10px 18px 8px;border-radius:9px 9px 0 0;user-select:none;}
+.fx-tab.on{background:var(--paper);color:var(--red);}
+.fx-tab.dead{background:rgba(255,255,255,.14);color:rgba(255,255,255,.55);}
+.fx-art{border-top-left-radius:0;}
 .fx-artwrap{position:relative;}
 .fx-art{box-shadow:0 14px 44px rgba(0,0,0,.2);}
 .fx-sec{position:relative;transition:background .25s;}
@@ -247,12 +255,16 @@ mark.fx-ch{background:var(--delta);color:inherit;border-radius:2px;padding:0 1px
   box-shadow:inset 0 -1px 0 rgba(237,28,36,.5);}
 .fx-tcs.locked-look{background:var(--paper);}
 
-/* the gutter */
+/* the gutter — the locks belong to THE WORK: one rail, fixed x, a dotted
+   stub tying each lock to the artefact edge. Vertical comes from the
+   section; horizontal comes from the card. */
 .fx-gutter{position:absolute;top:0;right:-70px;width:44px;height:100%;pointer-events:none;}
 .fx-pad{position:absolute;left:0;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
   pointer-events:auto;background:#fff;color:var(--red);box-shadow:0 4px 14px rgba(0,0,0,.24);
   display:flex;align-items:center;justify-content:center;
   transition:transform .15s,box-shadow .25s,background .2s,top .3s;}
+.fx-pad::before{content:'';position:absolute;right:100%;width:26px;
+  border-top:2px dotted rgba(255,255,255,.85);}
 .fx-pad svg{width:19px;height:19px;}
 .fx-pad:hover{transform:scale(1.12);}
 .fx-pad .i-shut,.fx-pad .i-pen{display:none;}
@@ -265,12 +277,10 @@ mark.fx-ch{background:var(--delta);color:inherit;border-radius:2px;padding:0 1px
 
 /* the rail */
 .fx-rail{position:sticky;top:16px;display:flex;flex-direction:column;gap:13px;}
-.fx-railhed{font-size:21px;letter-spacing:2px;color:#fff;padding:6px 0 8px;}
-.fx-railhed span{color:rgba(255,255,255,.45);}
 .fx-robotrow{display:flex;gap:10px;align-items:flex-start;}
-.fx-av{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:#fff;
+.fx-av{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:var(--red);
   display:flex;align-items:center;justify-content:center;}
-.fx-av img{width:26px;height:26px;object-fit:contain;}
+.fx-av img{width:24px;height:24px;object-fit:contain;filter:brightness(0) invert(1);}
 .fx-card{flex:1;background:#fff;border-radius:14px;border-top-left-radius:4px;padding:14px 15px;}
 .fx-card .k{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
   color:var(--red);margin-bottom:6px;}
@@ -334,7 +344,7 @@ mark.fx-hl{background:var(--yellow);color:var(--ink);border-radius:2px;padding:0
 .fx-send:hover{background:var(--red-dark);}
 
 /* the exit */
-.fx-gtg{background:#fff;border-radius:var(--r-lg);padding:14px 15px 12px;}
+.fx-gtg{background:#fff;border-radius:var(--r-lg);padding:14px 15px 12px;margin-top:26px;}
 .fx-gtgtop{display:flex;align-items:center;gap:11px;margin-bottom:11px;}
 .fx-gtgico{flex:0 0 auto;width:38px;height:38px;border-radius:50%;background:#fff;color:var(--red);
   box-shadow:0 2px 10px rgba(0,0,0,.16);display:flex;align-items:center;justify-content:center;
@@ -783,14 +793,18 @@ select.fval{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:ri
     <div class="fixstage" id="fixStage">
       <div class="fx-grid">
         <div>
-          <h2 class="fx-room beb">FIX IT</h2>
+          <h2 class="fx-room beb">THE WORK</h2>
+          <div class="fx-tabs">
+            <span class="fx-tab on">#1: Email</span>
+            <span class="fx-tab dead">#2: Webtile</span>
+          </div>
           <div class="fx-artwrap">
             <div class="mail fx-art" id="fxArt"></div>
             <div class="fx-gutter" id="fxGutter"></div>
           </div>
         </div>
         <div class="fx-rail">
-          <div class="fx-railhed beb">TWEAK IT <span>OR LOCK IT.</span></div>
+          <h2 class="fx-room beb">THE WORKINGS</h2>
           <div class="fx-robotwrap">
             <div class="fx-robotrow">
               <div class="fx-av"><img src="robot-sandwich-ink.png" alt=""></div>
