@@ -24,6 +24,52 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .mark{font-size:22px}
 .mark span{color:var(--red)}
 .who{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--mid);font-weight:600}
+.top-r{display:flex;align-items:center;gap:12px}
+
+/* ---------------- hamburger + house pages ---------------- */
+.burger{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;
+  transition:background .15s}
+.burger:hover{background:var(--paper)}
+.burger svg{width:19px;height:19px;display:block}
+.burger line{stroke:var(--ink);stroke-width:2;stroke-linecap:round;transition:transform .2s ease,opacity .2s ease}
+.burger.x .bl1{transform:translateY(4.5px) rotate(45deg);transform-origin:center}
+.burger.x .bl2{opacity:0}
+.burger.x .bl3{transform:translateY(-4.5px) rotate(-45deg);transform-origin:center}
+.hm-menu{position:absolute;top:54px;right:14px;background:#fff;border:1px solid var(--border);
+  border-radius:14px;padding:6px;min-width:148px;box-shadow:0 10px 30px rgba(26,25,23,.14);
+  display:none;z-index:60}
+.hm-menu.on{display:block}
+.hm-menu button{display:block;width:100%;text-align:left;padding:10px 14px;border-radius:9px;
+  font-family:var(--display);font-size:16px;letter-spacing:1.2px}
+.hm-menu button:hover{background:var(--paper);color:var(--red)}
+.hm-shade{position:fixed;inset:0;background:rgba(26,25,23,.55);display:none;
+  align-items:center;justify-content:center;z-index:70;padding:20px}
+.hm-shade.on{display:flex}
+.hm-card{background:var(--paper);border-radius:var(--r-lg);width:100%;max-width:560px;
+  max-height:min(84vh,700px);display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.35);text-align:left}
+.hm-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 0 26px}
+.hm-title{font-family:var(--display);font-size:34px;letter-spacing:1px;line-height:.95}
+.hm-title span{color:var(--red)}
+.hm-x{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
+.hm-x:hover{background:#fff}
+.hm-x svg{width:15px;height:15px}
+.hm-x line{stroke:var(--red);stroke-width:2.4;stroke-linecap:round}
+.hm-body{padding:12px 26px 26px;overflow-y:auto}
+.hm-body.about p{font-size:15px;line-height:1.65;margin-bottom:14px;font-weight:400}
+.hm-body.about p:last-child{margin-bottom:0}
+.faq{border-top:1px solid var(--border)}
+.faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;
+  text-align:left;padding:14px 2px;font-family:var(--display);font-size:18px;
+  letter-spacing:.8px;line-height:1.05;transition:color .15s}
+.faq-q:hover{color:var(--red)}
+.faq.open .faq-q{color:var(--red)}
+.faq-chev{flex-shrink:0;width:17px;height:17px;transition:transform .22s ease}
+.faq-chev path{stroke:var(--red);stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.faq.open .faq-chev{transform:rotate(180deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .26s ease}
+.faq.open .faq-a{max-height:240px}
+.faq-a p{font-size:13.5px;line-height:1.6;font-weight:400;padding:0 2px 16px;max-width:54ch}
 
 /* ---------------- door ---------------- */
 #door{flex:1;background:var(--red);display:flex;flex-direction:column;align-items:center;
@@ -179,6 +225,157 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
 .mini{background:var(--red);color:#fff;border-radius:var(--pill);padding:7px 16px;font-size:10px;
   letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
 .mini.g{background:var(--paper);color:var(--ink);border:1px solid var(--border)}
+
+
+/* ---------------- FIX IT — the Wrangler split ----------------
+   The whole email on the table, white on red. Tools on the right.
+   Padlocks in the gutter between: open / pencil / shut, and they're
+   the buttons. The artefact wears the client; the chrome stays ours. */
+.fixstage{margin-left:calc(50% - 50vw);width:100vw;background:var(--red);
+  padding:36px 24px 60px;margin-top:8px;}
+.fx-grid{display:grid;grid-template-columns:minmax(0,560px) minmax(300px,360px);
+  gap:96px;justify-content:center;align-items:start;max-width:1120px;margin:0 auto;}
+.fx-room{font-size:52px;line-height:.85;color:#fff;margin:0 0 18px;letter-spacing:1px;}
+.fx-artwrap{position:relative;}
+.fx-art{box-shadow:0 14px 44px rgba(0,0,0,.2);}
+.fx-sec{position:relative;transition:background .25s;}
+.fx-sec.editing{background:rgba(237,28,36,.04);}
+.fx-sec.flash{animation:fxlanded .7s ease-out;}
+@keyframes fxlanded{0%{background:rgba(237,28,36,.14);}100%{background:transparent;}}
+.fx-art .ph{cursor:not-allowed;}
+mark.fx-ch{background:var(--delta);color:inherit;border-radius:2px;padding:0 1px;
+  box-shadow:inset 0 -1px 0 rgba(237,28,36,.5);}
+.fx-tcs.locked-look{background:var(--paper);}
+
+/* the gutter */
+.fx-gutter{position:absolute;top:0;right:-70px;width:44px;height:100%;pointer-events:none;}
+.fx-pad{position:absolute;left:0;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
+  pointer-events:auto;background:#fff;color:var(--red);box-shadow:0 4px 14px rgba(0,0,0,.24);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .15s,box-shadow .25s,background .2s,top .3s;}
+.fx-pad svg{width:19px;height:19px;}
+.fx-pad:hover{transform:scale(1.12);}
+.fx-pad .i-shut,.fx-pad .i-pen{display:none;}
+.fx-pad.locked{background:var(--ink);color:#fff;}
+.fx-pad.locked .i-open{display:none;}.fx-pad.locked .i-shut{display:block;}
+.fx-pad.edit{background:var(--red);color:#fff;
+  box-shadow:0 4px 14px rgba(0,0,0,.24),0 0 0 5px rgba(255,255,255,.35);}
+.fx-pad.edit .i-open,.fx-pad.edit .i-shut{display:none;}.fx-pad.edit .i-pen{display:block;}
+.fx-pad.here{box-shadow:0 4px 14px rgba(0,0,0,.24),0 0 0 5px rgba(255,255,255,.35);transform:scale(1.06);}
+
+/* the rail */
+.fx-rail{position:sticky;top:16px;display:flex;flex-direction:column;gap:13px;}
+.fx-railhed{font-size:21px;letter-spacing:2px;color:#fff;padding:6px 0 8px;}
+.fx-railhed span{color:rgba(255,255,255,.45);}
+.fx-robotrow{display:flex;gap:10px;align-items:flex-start;}
+.fx-av{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:#fff;
+  display:flex;align-items:center;justify-content:center;}
+.fx-av img{width:26px;height:26px;object-fit:contain;}
+.fx-card{flex:1;background:#fff;border-radius:14px;border-top-left-radius:4px;padding:14px 15px;}
+.fx-card .k{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  color:var(--red);margin-bottom:6px;}
+.fx-card .say{font-size:13px;line-height:1.55;margin-bottom:13px;}
+.fx-card .small{font-size:11px;line-height:1.5;color:var(--mid);margin:-6px 0 12px;}
+.fx-pair{display:flex;gap:9px;}
+.fx-pair .tweakit,.fx-pair .lockit{flex:1;display:flex;align-items:center;justify-content:center;
+  gap:7px;padding:10px 8px;font-size:11px;}
+.fx-pair .lockit svg{width:13px;height:13px;}
+
+.fx-receipt{background:#fff;border-radius:var(--r-lg);overflow:hidden;}
+.fx-rchead{display:flex;align-items:center;justify-content:space-between;width:100%;
+  background:none;border:none;cursor:pointer;padding:11px 15px;font-family:inherit;}
+.fx-rcount{font-size:12px;font-weight:600;display:flex;gap:7px;}
+.fx-rcount b{color:var(--red);}
+.fx-rchev{font-size:10px;color:var(--mid);transition:transform .2s;}
+.fx-receipt.open .fx-rchev{transform:rotate(180deg);}
+.fx-rlist{display:none;border-top:1px solid var(--border);}
+.fx-receipt.open .fx-rlist{display:block;}
+.fx-ritem{padding:9px 15px;border-bottom:1px solid var(--border);}
+.fx-ritem:last-child{border-bottom:none;}
+.fx-rlbl{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--red);margin-bottom:2px;}
+.fx-rwhy{font-size:11px;line-height:1.5;color:var(--ink);}
+
+/* the edit state */
+.fx-edit{display:none;flex-direction:column;background:#fff;border-radius:var(--r-lg);
+  box-shadow:0 12px 40px rgba(0,0,0,.22);overflow:hidden;}
+.fx-edit.on{display:flex;}
+.fixstage.editing .fx-tour,.fixstage.editing .fx-robotwrap{display:none;}
+.fx-edhead{display:flex;align-items:center;gap:11px;padding:12px 15px;border-bottom:1px solid var(--border);}
+.fx-edav{flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:var(--red);
+  display:flex;align-items:center;justify-content:center;}
+.fx-edav img{width:22px;height:22px;object-fit:contain;filter:brightness(0) invert(1);}
+.fx-edtitle{font-family:var(--display);font-size:20px;letter-spacing:1px;padding-top:2px;}
+.fx-edtitle span{color:var(--red);}
+.fx-edpill{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--mid);border:1px solid var(--border);border-radius:var(--pill);padding:4px 10px;}
+.fx-edx{margin-left:auto;background:none;border:none;color:var(--mid);font-size:19px;
+  cursor:pointer;line-height:1;}
+.fx-edx:hover{color:var(--ink);}
+.fx-edbody{overflow-y:auto;max-height:320px;padding:13px 14px;display:flex;
+  flex-direction:column;gap:9px;}
+.fx-msg{font-size:12.5px;line-height:1.6;max-width:90%;padding:9px 13px;border-radius:12px;}
+.fx-msg.robot{background:var(--paper);align-self:flex-start;border-bottom-left-radius:3px;}
+.fx-msg.me{background:var(--red);color:#fff;align-self:flex-end;border-bottom-right-radius:3px;}
+mark.fx-hl{background:var(--yellow);color:var(--ink);border-radius:2px;padding:0 2px;}
+.fx-opt{align-self:flex-start;max-width:92%;background:#fff;border:1px solid var(--border);
+  border-radius:12px;padding:9px 13px;font-size:12.5px;line-height:1.55;cursor:pointer;
+  text-align:left;transition:border-color .15s;font-family:inherit;}
+.fx-opt:hover{border-color:var(--red);}
+.fx-think{display:flex;gap:4px;align-self:flex-start;padding:9px 12px;}
+.fx-think span{width:6px;height:6px;border-radius:50%;background:var(--red);
+  animation:fxblink 1.2s infinite;}
+.fx-think span:nth-child(2){animation-delay:.2s;}.fx-think span:nth-child(3){animation-delay:.4s;}
+@keyframes fxblink{0%,80%,100%{opacity:.25;}40%{opacity:1;}}
+.fx-edfoot{display:flex;gap:8px;padding:11px 13px;border-top:1px solid var(--border);}
+.fx-edfoot input{flex:1;border-radius:20px;}
+.fx-send{background:var(--red);color:#fff;border:none;border-radius:20px;padding:9px 17px;
+  font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;}
+.fx-send:hover{background:var(--red-dark);}
+
+/* the exit */
+.fx-gtg{background:#fff;border-radius:var(--r-lg);padding:14px 15px 12px;}
+.fx-gtgtop{display:flex;align-items:center;gap:11px;margin-bottom:11px;}
+.fx-gtgico{flex:0 0 auto;width:38px;height:38px;border-radius:50%;background:#fff;color:var(--red);
+  box-shadow:0 2px 10px rgba(0,0,0,.16);display:flex;align-items:center;justify-content:center;
+  transition:background .25s;}
+.fx-gtgico svg{width:17px;height:17px;}
+.fx-gtgico .i-tick{display:none;}
+.fx-gtg.ready .fx-gtgico{background:var(--red);color:#fff;}
+.fx-gtg.ready .fx-gtgico .i-open{display:none;}
+.fx-gtg.ready .fx-gtgico .i-tick{display:block;}
+.fx-gtghed{font-family:var(--display);font-size:22px;letter-spacing:1px;padding-top:3px;}
+.fx-pkg{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
+  background:none;color:var(--red);border:1.5px solid var(--red);border-radius:var(--pill);
+  padding:12px 18px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  cursor:default;opacity:.55;transition:all .2s;font-family:inherit;}
+.fx-gtg.ready .fx-pkg{background:var(--red);color:#fff;opacity:1;cursor:pointer;}
+.fx-gtg.ready .fx-pkg:hover{background:var(--red-dark);}
+.fx-cap{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid);
+  margin-top:8px;text-align:center;}
+.fx-gtg.ready .fx-cap{color:var(--red);}
+
+/* don't touch */
+.fx-shade{position:fixed;inset:0;background:rgba(26,25,23,.55);display:none;
+  align-items:center;justify-content:center;z-index:50;}
+.fx-shade.on{display:flex;}
+.fx-dont{background:#fff;border-radius:var(--r-lg);max-width:360px;width:calc(100% - 48px);
+  padding:28px 28px 24px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.35);}
+.fx-dont .dhed{font-family:var(--display);font-size:42px;color:var(--red);line-height:.9;
+  margin-bottom:12px;}
+.fx-dont .dsay{font-size:13px;line-height:1.6;margin-bottom:20px;}
+.fx-fair{background:var(--ink);color:#fff;border:none;border-radius:var(--pill);
+  padding:11px 28px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  cursor:pointer;font-family:inherit;}
+.fx-fair:hover{background:var(--red);}
+
+@media(max-width:920px){
+  .fx-grid{grid-template-columns:1fr;gap:22px;}
+  .fx-rail{position:static;}
+  .fx-artwrap{padding-right:56px;}
+  .fx-gutter{right:0;}
+  .fx-room{font-size:42px;}
+}
 
 /* fall into place: locked receipts, the open block, the waiting queue.
    Same padlock as the door — it pops open to let you in, it snaps shut as
@@ -386,7 +583,51 @@ select.fval{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:ri
 
 <div class="topbar">
   <img src="ai2-logo.png" alt="Hunch ai2" style="height:22px;display:block">
-  <div class="who" id="who"></div>
+  <div class="top-r">
+    <div class="who" id="who"></div>
+    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false" onclick="hmMenu()">
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <line class="bl1" x1="2" y1="5.5" x2="18" y2="5.5"/>
+        <line class="bl2" x1="2" y1="10" x2="18" y2="10"/>
+        <line class="bl3" x1="2" y1="14.5" x2="18" y2="14.5"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<nav class="hm-menu" id="hmMenuBox">
+  <button onclick="hmOpen('about')">ABOUT</button>
+  <button onclick="hmOpen('faqs')">FAQS</button>
+</nav>
+
+<!-- ABOUT -->
+<div class="hm-shade" id="hm-about">
+  <div class="hm-card" role="dialog" aria-modal="true" aria-label="About">
+    <div class="hm-head">
+      <div class="hm-title">ABOUT<span>.</span></div>
+      <button class="hm-x" aria-label="Close" onclick="hmClose('about')">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><line x1="2" y1="2" x2="14" y2="14"/><line x1="14" y1="2" x2="2" y2="14"/></svg>
+      </button>
+    </div>
+    <div class="hm-body about">
+      <p>Robots are brilliant at squirting words into well designed containers. So if you have a good story (and good containers) this should work really well.</p>
+      <p>If you need help deciding what to say or designing great containers, humans are the way to go. Hunch is pretty good at both.</p>
+      <p>Once you've nailed those, you can roll with a robot every day of the week. Just feed it, fix it and you'll be finished in a flash. Happy days.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FAQS -->
+<div class="hm-shade" id="hm-faqs">
+  <div class="hm-card" role="dialog" aria-modal="true" aria-label="FAQs">
+    <div class="hm-head">
+      <div class="hm-title">FAQS<span>.</span></div>
+      <button class="hm-x" aria-label="Close" onclick="hmClose('faqs')">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><line x1="2" y1="2" x2="14" y2="14"/><line x1="14" y1="2" x2="2" y2="14"/></svg>
+      </button>
+    </div>
+    <div class="hm-body" id="faqList"></div>
+  </div>
 </div>
 
 <!-- ===================== DOOR ===================== -->
@@ -439,9 +680,9 @@ select.fval{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:ri
 <div class="wrap">
 
   <div class="rail">
-    <button class="step on"     data-s="0" onclick="go(0)"><i>1</i>Brief</button>
-    <button class="step locked" data-s="1" onclick="go(1)"><i>2</i>Copy</button>
-    <button class="step locked" data-s="2" onclick="go(2)"><i>3</i>Review</button>
+    <button class="step on"     data-s="0" onclick="go(0)"><i>1</i>Feed it</button>
+    <button class="step locked" data-s="1" onclick="go(1)"><i>2</i>Fix it</button>
+    <button class="step locked" data-s="2" onclick="go(2)"><i>3</i>Finished</button>
   </div>
 
   <!-- 1 BRIEF — the story, then the detail -->
@@ -536,14 +777,72 @@ select.fval{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:ri
     </div>
   </div>
 
-  <!-- 2 COPY -->
+  <!-- 2 FIX IT — the whole email on the table, tools on the right,
+       padlocks in the gutter between. Tweak it or lock it. -->
   <div class="pane" data-p="1">
-    <h2 class="hed beb">THE ROBOT'S HAD A GO</h2>
-    <p class="lede">One thing at a time. Tweak it till it's right, lock it when it is — locked lines stack up as you go.</p>
-    <div id="copyOut"></div>
-    <div class="bar" id="copyBar" style="display:none">
-      <button class="btn ghost" onclick="genCopy()">START AGAIN</button>
-      <button class="btn" onclick="toReview()">PACKAGE IT UP</button>
+    <div class="fixstage" id="fixStage">
+      <div class="fx-grid">
+        <div>
+          <h2 class="fx-room beb">FIX IT</h2>
+          <div class="fx-artwrap">
+            <div class="mail fx-art" id="fxArt"></div>
+            <div class="fx-gutter" id="fxGutter"></div>
+          </div>
+        </div>
+        <div class="fx-rail">
+          <div class="fx-railhed beb">TWEAK IT <span>OR LOCK IT.</span></div>
+          <div class="fx-robotwrap">
+            <div class="fx-robotrow">
+              <div class="fx-av"><img src="robot-sandwich-ink.png" alt=""></div>
+              <div class="fx-card" id="fxTourCard"></div>
+            </div>
+          </div>
+          <div class="fx-receipt" id="fxReceipt" style="display:none">
+            <button class="fx-rchead" onclick="$('fxReceipt').classList.toggle('open')">
+              <span class="fx-rcount"><b>&#10003;</b><span id="fxRCount"></span></span>
+              <span class="fx-rchev">&#9662;</span>
+            </button>
+            <div class="fx-rlist" id="fxRList"></div>
+          </div>
+          <div class="fx-edit" id="fxEdit">
+            <div class="fx-edhead">
+              <div class="fx-edav"><img src="robot-sandwich-ink.png" alt=""></div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="fx-edtitle">TWEAK <span>IT.</span></div>
+                <span class="fx-edpill" id="fxEdPill"></span>
+              </div>
+              <button class="fx-edx" onclick="fxCloseEdit()" aria-label="Back">&times;</button>
+            </div>
+            <div class="fx-edbody" id="fxEdBody"></div>
+            <div class="fx-edfoot">
+              <input id="fxNote" placeholder="Say it straight&hellip;"
+                onkeydown="if(event.key==='Enter')fxSend()">
+              <button class="fx-send" onclick="fxSend()">Send</button>
+            </div>
+          </div>
+          <div class="fx-gtg" id="fxGtg">
+            <div class="fx-gtgtop">
+              <div class="fx-gtgico">
+                <svg class="i-open" viewBox="0 0 16 16" fill="none"><path d="M11.5 7V5a3.5 3.5 0 0 0-7 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="3" y="7" width="10" height="7" rx="2" stroke="currentColor" stroke-width="1.7" fill="none"/><circle cx="8" cy="10.5" r="1.15" fill="currentColor"/></svg>
+                <svg class="i-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="fx-gtghed">GOOD TO GO?</div>
+            </div>
+            <button class="fx-pkg" onclick="fxPackage()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Package it up
+            </button>
+            <div class="fx-cap" id="fxCap">Lock everything first</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="fx-shade" id="fxShade" onclick="if(event.target===this)this.classList.remove('on')">
+      <div class="fx-dont" role="alertdialog" aria-label="Don't touch">
+        <div class="dhed">DON'T<br>TOUCH.</div>
+        <div class="dsay" id="fxDontSay">That's from the brief &mdash; dates, numbers and legals travel locked. Change it back in FEED IT and the robot rewrites around it.</div>
+        <button class="fx-fair" onclick="$('fxShade').classList.remove('on')">Fair enough</button>
+      </div>
     </div>
   </div>
 
@@ -820,132 +1119,272 @@ async function toCopy(){
   if(COPY) return;
   const key = craftKey();
   if(CRAFT && key===CRAFT_KEY){
-    const out=$('copyOut'); $('copyBar').style.display='none';
-    out.innerHTML='<div class="load"><img class="robotwork" src="robot-sandwich.png" alt="">The robot is writing…</div>';
+    $('fxArt').innerHTML='<div class="load" style="margin:40px auto"><img class="robotwork" src="robot-sandwich.png" alt="">The robot is writing…</div>';
+    $('fxGutter').innerHTML=''; $('fxTourCard').innerHTML='';
     const d = await CRAFT;
     if(d.__err){ genCopy(); return; }       // the background try failed; go live
-    COPY=d.copy; FACTS=d.facts; CTX=d.context||{}; PICK=0; TWEAKS=0;
-    LOCKED={subject:false,headline:false,body:false}; OPENK='subject';
-    drawCopy(d.flags);
+    fxInit(d);
   } else genCopy();
 }
 
 async function genCopy(){
-  const out=$('copyOut'); $('copyBar').style.display='none';
-  out.innerHTML='<div class="load"><img class="robotwork" src="robot-sandwich.png" alt="">The robot is writing…</div>';
+  $('fxArt').innerHTML='<div class="load" style="margin:40px auto"><img class="robotwork" src="robot-sandwich.png" alt="">The robot is writing…</div>';
+  $('fxGutter').innerHTML=''; $('fxTourCard').innerHTML='';
   try{
     const d = await api('/api/copy',{form:formData(), story:storyData(), source:val('blurb')});
-    COPY=d.copy; FACTS=d.facts; CTX=d.context||{}; PICK=0; TWEAKS=0;
-    LOCKED={subject:false,headline:false,body:false}; OPENK='subject';
-    drawCopy(d.flags);
+    fxInit(d);
   }catch(e){
-    out.innerHTML=`<div class="err">${esc(e.message)}</div>`;
-    $('copyBar').style.display='flex';
+    $('fxArt').innerHTML=`<div class="err" style="margin:20px">${esc(e.message)}</div>`;
   }
 }
 
-/* The room falls into place: one section open at a time, LOCK IT collapses
-   it to a receipt, the next opens. Lock all three and the way forward appears.
-   Tap a receipt to reopen — lock is "done for now", not welded shut. */
-const LABELS={subject:'Subject line',headline:'Headline',body:'Body'};
-const padlock = c =>
-  `<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2" stroke="${c}" stroke-width="1.8" stroke-linecap="round"/>
-    <rect x="3" y="7" width="10" height="7" rx="2" fill="${c}"/></svg>`;
+/* =====================================================================
+   FIX IT — the Wrangler split.
+   The whole email sits on the table as the artefact. Padlocks live in
+   the gutter and they are the buttons: open / pencil / shut. The rail
+   is the robot's side of the desk — the tour in one state, the surgeon
+   chat in the other. Rewrites land straight on the card, changes
+   marked. The card is the proposal.
+   ===================================================================== */
+const FXORDER=['subject','headline','body','terms'];
+const FXLBL={subject:'Subject line',headline:'Headline',body:'Body',terms:'Terms'};
+let FXLOCK={}, FXEDIT=null, FXHL=null, FXDIFF={}, FXLIST=[], FXFLAGS=[], WHY={};
 
-function drawCopy(flags){
-  flags = flags || [];
-  const fl = flags.length
-    ? `<div class="flags"><b>The robot slipped up ${flags.length===1?'once':flags.length+' times'}</b><ul>${flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`
-    : `<div class="clean">Checked against the facts. Numbers and dates all match.</div>`;
-  const wants = COPY.wants
-    ? `<div class="wants"><b>The robot asks</b>${esc(COPY.wants)}</div>` : '';
+const FXFALLBACK_WHY={
+  subject:'The pick of three — two more wait in the drawer.',
+  headline:'Plain about what you win — the rule up here.',
+  body:'The story, three short lines, ends with what to do.',
+  terms:"Suze's clauses, assembled from the brief. Read it and nod."
+};
 
-  const inner = {
-    subject: `<div class="block-l" style="margin-bottom:10px">${LABELS.subject} — pick one</div>
-      <div class="opts">${COPY.subjects.map((s,i)=>
-        `<button class="opt ${i===PICK?'pick':''}" onclick="PICK=${i};drawCopy()">
-          <span class="dot"></span><span>${fillPh(s)}</span></button>`).join('')}</div>`,
-    headline: `<div class="block-l" style="margin-bottom:10px">${LABELS.headline}</div>
-      <div class="block-b big">${fillPh(COPY.headline)}</div>`,
-    body: `<div class="block-l" style="margin-bottom:10px">${LABELS.body}</div>
-      <div class="block-b">${fillPh(COPY.body)}</div>`
-  };
+function fxInit(d){
+  COPY=d.copy; FACTS=d.facts; CTX=d.context||{}; PICK=0; TWEAKS=0;
+  WHY=(COPY.why&&typeof COPY.why==='object')?COPY.why:{};
+  FXLOCK={subject:false,headline:false,body:false,terms:false};
+  FXEDIT=null; FXHL=null; FXDIFF={}; FXLIST=[]; FXFLAGS=d.flags||[];
+  LOCKED=FXLOCK;
+  drawFix();
+}
 
-  $('copyOut').innerHTML = fl + wants + ORDER.map(k=>{
-    if(LOCKED[k]) return `
-      <button class="receipt" onclick="reopen('${k}')" aria-label="Reopen ${LABELS[k]}">
-        ${padlock('var(--red)')}
-        <span class="receipt-m"><span class="receipt-l">${LABELS[k]}</span>
-        <span class="receipt-t" style="display:block">${esc(fillPlain(blockText(k)))}</span></span>
-        <span class="receipt-tw">Tweak</span>
-      </button>`;
-    if(k===OPENK) return `
-      <div class="block">
-        ${inner[k]}
-        ${hasPh(blockText(k)) ? `<div class="factnote">Facts pulled from the brief — the robot can't get them wrong. Change them there, not here.</div>` : ``}
-        <div class="tw" id="tw-${k}"></div>
-        <div class="pair">
-          <button class="tweakit" onclick="openTweak('${k}')">Tweak it</button>
-          <button class="lockit" onclick="lockIt('${k}')">${padlock('#fff')}Lock it</button>
-        </div>
-      </div>`;
-    return `<div class="waiting">${LABELS[k]}</div>`;
+const fxDiffWords=(o,n)=>{
+  const tok=x=>String(x??'').split(/(\s+)/); const a=tok(o),b=tok(n);
+  const m=a.length,k=b.length;
+  const dp=Array.from({length:m+1},()=>new Array(k+1).fill(0));
+  for(let i=m-1;i>=0;i--)for(let j=k-1;j>=0;j--)
+    dp[i][j]=a[i]===b[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+  let i=0,j=0,out='';
+  while(j<k){
+    if(i<m&&a[i]===b[j]){out+=fillPh(b[j]);i++;j++;}
+    else if(i<m&&dp[i+1][j]>=dp[i][j+1]){i++;}
+    else{out+=b[j].trim()===''?esc(b[j]):'<mark class="fx-ch">'+fillPh(b[j])+'</mark>';j++;}
+  }
+  return out;
+};
+const fxText = k => k==='subject' ? COPY.subjects[PICK] : COPY[k];
+const fxShow = k => FXDIFF[k] ? fxDiffWords(FXDIFF[k].old, FXDIFF[k].new) : fillPh(fxText(k));
+
+function fxTermsText(){
+  if(!MENU || !MENU.length) return 'Terms assemble from the brief once the facts are in.';
+  return MENU.filter(c=>c.fixed || (CHOSEN||[]).includes(c.id)).map(c=>c.text).join(' ');
+}
+
+function fxBeat(){ return FXORDER.find(k=>!FXLOCK[k]) || null; }
+
+function drawFix(){
+  /* the artefact — the email itself, sections wrapped for the gutter */
+  $('fxArt').innerHTML = `
+    <div class="mail-bar fx-sec ${FXEDIT==='subject'?'editing':''}" data-k="subject">
+      <div class="mail-from">One NZ Rewards &lt;rewards@one.nz&gt;</div>
+      <div class="mail-subj">${fxShow('subject')}</div>
+    </div>
+    <div class="mail-body" style="padding-bottom:6px">
+      <div class="mail-img">Hero image goes here</div>
+      <div class="fx-sec ${FXEDIT==='headline'?'editing':''}" data-k="headline" style="padding:4px 0 10px">
+        <div class="mail-h" style="margin-bottom:0">${fxShow('headline')}</div>
+      </div>
+      <div class="fx-sec ${FXEDIT==='body'?'editing':''}" data-k="body" style="padding:2px 0 8px">
+        <div class="mail-p" style="margin-bottom:16px">${fxShow('body')}</div>
+        <span class="mail-cta" style="margin-bottom:22px">Enter now</span>
+      </div>
+    </div>
+    <div class="mail-tcs fx-sec fx-tcs ${FXLOCK.terms?'locked-look':''}" data-k="terms">${esc(fxTermsText())}</div>`;
+
+  fxGutterDraw();
+  fxRailDraw();
+  requestAnimationFrame(fxPos);
+}
+
+/* ── the gutter: three states, and the padlock is the button ── */
+const FXI_OPEN='<svg class="i-open" viewBox="0 0 16 16" fill="none"><path d="M11.5 7V5a3.5 3.5 0 0 0-7 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="3" y="7" width="10" height="7" rx="2" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="8" cy="10.5" r="1.1" fill="currentColor"/></svg>';
+const FXI_SHUT='<svg class="i-shut" viewBox="0 0 16 16" fill="none"><path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="3" y="7" width="10" height="7" rx="2" fill="currentColor"/><circle cx="8" cy="10.5" r="1.1" fill="var(--ink)"/></svg>';
+const FXI_PEN='<svg class="i-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+
+function fxGutterDraw(){
+  const beat=fxBeat();
+  $('fxGutter').innerHTML = FXORDER.map(k=>{
+    const st = FXEDIT===k ? 'edit' : FXLOCK[k] ? 'locked' : 'open';
+    const here = st==='open' && beat===k && !FXEDIT;
+    const tip = st==='edit'?'Editing — click to close':st==='locked'?'Locked — click to reopen':'Open — click to lock';
+    const act = st==='edit'?'fxCloseEdit()':`fxTogglePad('${k}')`;
+    return `<button class="fx-pad ${st==='locked'?'locked':''} ${st==='edit'?'edit':''} ${here?'here':''}"
+      data-k="${k}" onclick="${act}" title="${tip}" aria-label="${tip}: ${FXLBL[k]}">
+      ${FXI_OPEN}${FXI_SHUT}${FXI_PEN}</button>`;
   }).join('');
+}
+function fxPos(){
+  const art=$('fxArt'); if(!art) return;
+  const top=art.getBoundingClientRect().top;
+  document.querySelectorAll('#fxGutter .fx-pad').forEach(b=>{
+    const sec=art.querySelector(`.fx-sec[data-k="${b.dataset.k}"]`); if(!sec) return;
+    const r=sec.getBoundingClientRect();
+    b.style.top=(r.top-top+r.height/2-22)+'px';
+  });
+}
+window.addEventListener('resize', fxPos);
 
-  $('copyBar').style.display = ORDER.every(k=>LOCKED[k]) ? 'flex' : 'none';
+/* ── the rail: tour state ── */
+function fxRailDraw(){
+  $('fixStage').classList.toggle('editing', !!FXEDIT);
+  $('fxEdit').classList.toggle('on', !!FXEDIT);
+
+  const beat=fxBeat(), card=$('fxTourCard');
+  if(beat){
+    const why=(WHY[beat]||'').trim()||FXFALLBACK_WHY[beat];
+    const extra =
+      (beat==='subject' && COPY.wants ? `<div class="small"><b style="color:var(--red)">The robot asks</b> — ${esc(COPY.wants)}</div>`:'') +
+      (beat==='subject' && FXFLAGS.length ? `<div class="small">Careful — ${esc(FXFLAGS[0])}</div>`:'');
+    const canTweak = beat!=='terms';
+    card.innerHTML=`<div class="k">${FXLBL[beat]}</div>
+      <div class="say">${esc(why)}</div>${extra}
+      <div class="fx-pair">
+        ${canTweak?`<button class="tweakit" onclick="fxStartEdit('${beat}')">Tweak it</button>`:''}
+        <button class="lockit" onclick="fxTogglePad('${beat}')">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><rect x="3" y="7" width="10" height="7" rx="2" fill="#fff"/></svg>
+          Lock it</button>
+      </div>`;
+  } else {
+    card.innerHTML=`<div class="k">All locked</div>
+      <div class="say" style="margin-bottom:0">That's the lot. Anything nagging, tap a padlock and go again. Otherwise — package it up.</div>`;
+  }
+
+  if(FXLIST.length){
+    $('fxReceipt').style.display='block';
+    $('fxRCount').textContent=FXLIST.length+' tweak'+(FXLIST.length>1?'s':'')+' made';
+    $('fxRList').innerHTML=FXLIST.map(t=>`<div class="fx-ritem"><div class="fx-rlbl">${esc(t.label)}</div><div class="fx-rwhy">${esc(t.note)}</div></div>`).join('');
+  } else $('fxReceipt').style.display='none';
+
+  const locks=FXORDER.filter(k=>FXLOCK[k]).length, all=locks===4;
+  $('fxGtg').classList.toggle('ready',all);
+  $('fxCap').textContent = all ? 'Four locks on. Take it.' : locks+' of 4 locked';
 }
 
-function lockIt(k){
-  LOCKED[k]=true;
-  OPENK = ORDER.find(x=>!LOCKED[x]) || null;
-  drawCopy();
+function fxTogglePad(k){
+  if(FXEDIT===k){ fxCloseEdit(); return; }
+  FXLOCK[k]=!FXLOCK[k];
+  if(FXEDIT && FXLOCK[FXEDIT]) FXEDIT=null;
+  drawFix();
 }
-function reopen(k){
-  LOCKED[k]=false; OPENK=k;
-  drawCopy();
+function fxPackage(){ if(FXORDER.every(k=>FXLOCK[k])) toReview(); }
+
+/* ── the edit state: the surgeon's chat ── */
+function fxSay(html,who){
+  const d=document.createElement('div');
+  d.className='fx-msg '+(who||'robot'); d.innerHTML=html;
+  $('fxEdBody').appendChild(d);
+  $('fxEdBody').scrollTop=$('fxEdBody').scrollHeight;
+}
+function fxStartEdit(k, hl){
+  if(k==='terms'){ $('fxShade').classList.add('on'); return; }
+  if(FXLOCK[k]) FXLOCK[k]=false;
+  FXEDIT=k; FXHL=hl||null;
+  $('fxEdPill').textContent=FXLBL[k];
+  const eb=$('fxEdBody'); eb.innerHTML='';
+  if(hl){
+    fxSay(`<mark class="fx-hl">${esc(hl)}</mark> — what's off about it?`);
+  } else if(k==='subject'){
+    fxSay(`Two more from the drawer — or say what's off.`);
+    COPY.subjects.forEach((opt,i)=>{
+      if(i===PICK) return;
+      const b=document.createElement('button');
+      b.className='fx-opt'; b.innerHTML=fillPh(opt);
+      b.onclick=()=>{ b.remove(); fxPickSubject(i); };
+      eb.appendChild(b);
+    });
+  } else {
+    fxSay(`What's off about it?`);
+  }
+  drawFix();
+  $('fxNote').focus();
+}
+function fxCloseEdit(){ FXEDIT=null; FXHL=null; drawFix(); }
+
+function fxPickSubject(i){
+  const old=fxText('subject');
+  PICK=i;
+  FXDIFF.subject={old, new:fxText('subject')};
+  FXLIST.push({label:FXLBL.subject, note:'From the drawer'}); TWEAKS++;
+  fxSay("Swapped. Keep talking if it\u2019s not it.");
+  fxApplyFx('subject');
+}
+function fxApplyFx(k){
+  drawFix();
+  const sec=document.querySelector(`#fxArt .fx-sec[data-k="${k}"]`);
+  if(sec){ sec.classList.remove('flash'); void sec.offsetWidth; sec.classList.add('flash'); }
 }
 
-/* tick it or tweak it */
-const blockText = k => k==='subject' ? COPY.subjects[PICK] : COPY[k];
-
-function openTweak(k){
-  const el=$('tw-'+k); el.classList.add('on');
-  el.innerHTML=`<div class="tw-msg">What's not working about it?</div>
-    <div class="tw-row"><input id="fb-${k}" placeholder="Too try-hard. Lose the second line."
-      onkeydown="if(event.key==='Enter')sendTweak('${k}')">
-      <button class="mini" onclick="sendTweak('${k}')">Send</button></div>`;
-  $('fb-'+k).focus();
-}
-
-async function sendTweak(k){
-  const note=$('fb-'+k).value.trim(); if(!note) return;
-  const el=$('tw-'+k), cur=blockText(k);
-  el.innerHTML=`<div class="tw-msg">${esc(note)}</div><div class="load"><div class="spin"></div>Having another go…</div>`;
+async function fxSend(){
+  const note=$('fxNote').value.trim();
+  if(!note || !FXEDIT) return;
+  $('fxNote').value='';
+  const k=FXEDIT, cur=fxText(k);
+  fxSay(esc(note),'me');
+  const th=document.createElement('div');
+  th.className='fx-think'; th.innerHTML='<span></span><span></span><span></span>';
+  $('fxEdBody').appendChild(th);
   HIST[k]=HIST[k]||[];
   try{
-    const d = await api('/api/tweak',{form:formData(),block:k,current:cur,note,history:HIST[k]});
-    HIST[k].push(`Human: ${note}`,`Robot: ${d.message}`); TWEAKS++;
-    let html=`<div class="tw-msg">${esc(note)}</div><div class="tw-msg">${esc(d.message)}</div>`;
-    if(d.proposal){
-      html += `<div class="tw-prop">${fillPh(d.proposal)}</div>`;
-      if(d.flags && d.flags.length)
-        html += `<div class="flags" style="margin:0 0 10px"><b>Careful</b><ul>${d.flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`;
-      html += `<div class="tw-row" style="justify-content:flex-end">
-        <button class="mini g" onclick="openTweak('${k}')">Not that either</button>
-        <button class="mini" onclick='accept("${k}",${JSON.stringify(d.proposal)})'>Use it</button></div>`;
+    const d=await api('/api/tweak',{form:formData(), block:k, current:cur, note,
+      highlight:FXHL, insight:val('storyCare'), history:HIST[k]});
+    th.remove();
+    HIST[k].push(`Human: ${note}`,`Robot: ${d.say||''}`);
+    if(d.declined || !d.copy){
+      fxSay(esc(d.say||"Can't do that one."));
     } else {
-      html += `<div class="tw-row" style="justify-content:flex-end">
-        <button class="mini" onclick="openTweak('${k}')">Do it anyway</button></div>`;
+      FXDIFF[k]={old:cur, new:d.copy};
+      if(k==='subject') COPY.subjects[PICK]=d.copy; else COPY[k]=d.copy;
+      FXLIST.push({label:FXLBL[k], note}); TWEAKS++;
+      fxSay(esc(d.say||'On the card.'));
+      if(d.flags && d.flags.length) fxSay('Careful — '+esc(d.flags[0]));
+      if(d.wants) fxSay(esc(d.wants));
+      fxApplyFx(k);
     }
-    el.innerHTML=html;
-  }catch(e){ el.innerHTML=`<div class="err">${esc(e.message)}</div>`; }
+  }catch(e){ th.remove(); fxSay(esc(e.message)); }
+  FXHL=null;
 }
 
-function accept(k,txt){
-  if(k==='subject') COPY.subjects[PICK]=txt; else COPY[k]=txt;
-  drawCopy();
+/* ── highlight-to-tweak: grab whole words; facts fire the modal ── */
+function fxSnap(full,part){
+  const i=full.indexOf(part); if(i===-1) return part;
+  let a=i,b=i+part.length;
+  while(a>0 && !/\s/.test(full[a-1])) a--;
+  while(b<full.length && !/\s/.test(full[b])) b++;
+  return full.slice(a,b).trim().replace(/[.,!?;:]+$/,'');
 }
+document.addEventListener('mouseup',()=>{
+  const sel=window.getSelection();
+  if(!sel || sel.isCollapsed) return;
+  const txt=sel.toString().trim();
+  if(!txt || txt.length<2) return;
+  const node=sel.anchorNode && sel.anchorNode.parentElement;
+  if(!node || !node.closest('#fxArt')) return;
+  if(node.closest('.ph')){ sel.removeAllRanges(); $('fxShade').classList.add('on'); return; }
+  const sec=node.closest('.fx-sec'); if(!sec) return;
+  const k=sec.dataset.k;
+  if(k==='terms'){ sel.removeAllRanges(); $('fxShade').classList.add('on'); return; }
+  sel.removeAllRanges();
+  const snapped=fxSnap(sec.textContent, txt);
+  fxStartEdit(k, snapped.length>60 ? snapped.slice(0,57)+'…' : snapped);
+});
 
 /* ---------------- 3 REVIEW ---------------- */
 async function toReview(){
@@ -984,6 +1423,60 @@ async function toReview(){
       <div class="file-d">The lot, ready to hand over${TWEAKS?` · ${TWEAKS} tweak${TWEAKS>1?'s':''} logged`:''}</div></div></div>`;
   }catch(e){ $('reviewOut').innerHTML=`<div class="err">${esc(e.message)}</div>`; }
 }
+
+/* ── the hamburger: ABOUT + FAQS ── */
+const HM_FAQS = [
+  ["How can I be sure the robot won't go off on one?",
+   "You're in the driver's seat at every turn. You feed it. You fix stuff. You press go on the finished outputs. Human in every loop."],
+  ["Isn't robot copy pretty average?",
+   "Straight from the machine, it can be. But great context and a smart prompt can get your robot to pretty damn good most days."],
+  ["How can I be sure it sounds like us?",
+   "That's all in the set up and the prompt. Your tone of voice, your best examples, your rules. So your robot should sound more like you than you do."],
+  ["What's a container and why does it matter?",
+   "Literally, it's the thing you put content in. The structure, the design, the word lengths, all that stuff. A smart container is the difference between consistent work and robots painting with beige."],
+  ["Will the robot spill my secrets?",
+   "Nope. Robot Sandwich runs on Anthropic's API. And there's clear rules that prevent the robots from grabbing stuff and running away. Your copy is yours. Stays yours. No worries."],
+  ["Why would Hunch give this away?",
+   "It's the easy bit. The fun work is solving the problems and designing smart solutions. Besides, you're already using robots to write stuff. Might as well make them good ones."]
+];
+(function(){
+  const list = $('faqList');
+  HM_FAQS.forEach(([q,a],i)=>{
+    const d=document.createElement('div');
+    d.className='faq'+(i===0?' open':'');
+    d.innerHTML=`<button class="faq-q" aria-expanded="${i===0}">${q}
+        <svg class="faq-chev" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 6.5 L9 12 L15 6.5"/></svg>
+      </button><div class="faq-a"><p>${a}</p></div>`;
+    d.querySelector('.faq-q').onclick=()=>{
+      const was=d.classList.contains('open');
+      list.querySelectorAll('.faq').forEach(f=>{f.classList.remove('open');
+        f.querySelector('.faq-q').setAttribute('aria-expanded','false')});
+      if(!was){d.classList.add('open');
+        d.querySelector('.faq-q').setAttribute('aria-expanded','true')}
+    };
+    list.appendChild(d);
+  });
+})();
+function hmMenu(){
+  const on=$('hmMenuBox').classList.toggle('on');
+  $('burger').classList.toggle('x',on);
+  $('burger').setAttribute('aria-expanded',on);
+}
+function hmOpen(id){ hmMenu(); $('hm-'+id).classList.add('on'); }
+function hmClose(id){ $('hm-'+id).classList.remove('on'); }
+document.querySelectorAll('.hm-shade').forEach(s=>{
+  s.addEventListener('click',e=>{ if(e.target===s) s.classList.remove('on'); });
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    document.querySelectorAll('.hm-shade.on').forEach(s=>s.classList.remove('on'));
+    if($('hmMenuBox').classList.contains('on')) hmMenu();
+  }
+});
+document.addEventListener('click',e=>{
+  const m=$('hmMenuBox'),b=$('burger');
+  if(m.classList.contains('on') && !m.contains(e.target) && !b.contains(e.target)) hmMenu();
+});
 </script>
 </body>
 </html>

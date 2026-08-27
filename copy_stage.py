@@ -33,7 +33,42 @@ MODEL = os.environ.get("ROBOT_MODEL", "claude-opus-4-8")
 
 
 
-VOICE = """You write customer emails for One NZ, a New Zealand telco, for their
+CONTAINER = "prize_draw"
+
+# ---------------------------------------------------------------------------
+# THE PROMPTS live in /prompts as markdown — findable, editable, diffable
+# without touching this file. Engine prompts sit flat (spine, tweak_it,
+# extract); container prompts sit in folders by family (write_it/,
+# feed_it/). The folder structure is the §5 diagram.
+# Files are re-read when they change on disk, so a prompt edit lands on the
+# next call — no restart. If a file goes missing, the embedded fallback
+# keeps the lights on and complains in the log.
+# ---------------------------------------------------------------------------
+
+PROMPTS_DIR = os.environ.get(
+    "ROBOT_PROMPTS", os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts"))
+_PROMPT_CACHE = {}
+
+def prompt(name, fallback=""):
+    path = os.path.join(PROMPTS_DIR, name + ".md")
+    try:
+        mtime = os.path.getmtime(path)
+        cached = _PROMPT_CACHE.get(name)
+        if cached and cached[0] == mtime:
+            return cached[1]
+        with open(path) as f:
+            text = f.read().strip()
+        _PROMPT_CACHE[name] = (mtime, text)
+        return text
+    except OSError:
+        if fallback:
+            print(f"[robot/prompts] {name}.md missing — using embedded fallback")
+            return fallback
+        raise
+
+# Embedded fallbacks: the prompts as they stood when the folder was cut.
+# The files are the truth; these only exist so a bad deploy fails soft.
+_VOICE_FALLBACK = """You write customer emails for One NZ, a New Zealand telco, for their
 Rewards programme. You're giving away exclusive prizes to One NZ customers —
 sometimes a concert, sometimes movies, always exciting, always customers-only.
 The reader is an existing customer who might fancy winning something.
@@ -68,7 +103,7 @@ Write "one of {winners_word} double passes", never "one of five".
 Write "closes {closes_day}", never "closes Sunday".
 A bare digit or a written-out month is a failure and will be rejected."""
 
-GENERATE = """
+_GENERATE_FALLBACK = """
 Return ONLY this JSON, nothing else, no code fences:
 {"subjects":["...","...","..."],"headline":"...","body":"...","wants":null}
 
@@ -81,7 +116,7 @@ wants: null, or one short line asking for the info that would let you write
 this better ("Any reviews or word of mouth on this one?"). Ask only if it
 would genuinely change the copy."""
 
-TWEAK = """
+_TWEAK_FALLBACK = """
 You wrote the block below and the human has a note on it. Rewrite it to answer
 their note, keeping the same placeholder discipline.
 
@@ -92,7 +127,7 @@ insisting, do what they asked.
 Return ONLY this JSON, nothing else, no code fences:
 {"message":"one short line to them","proposal":"the new text, or null if you're pushing back","pushback":true|false}"""
 
-EXTRACT = """You read a promo brief written by a human and pull out the hard
+_EXTRACT_FALLBACK = """You read a promo brief written by a human and pull out the hard
 facts so a form can be pre-filled. Extract ONLY what is actually stated or
 unmistakable — never guess, never invent. Missing means null.
 
@@ -170,7 +205,7 @@ def _examples():
 def _voice_now():
     """The system prompt, assembled fresh each call: the pillars, then the
     gold examples, then recent human corrections."""
-    parts = [VOICE]
+    parts = [prompt("spine", _VOICE_FALLBACK)]
     ex = _examples()
     if ex:
         lines = "\n".join(f'- "{e["text"]}"' + (f' — {e["why"]}' if e["why"] else "")
@@ -178,6 +213,11 @@ def _voice_now():
         parts.append("COPY THE HUMANS RATED — match this standard and register:\n" + lines)
     notes = []
     for t in reversed(TWEAK_LOG):
+        # container-tagged so Prize Draw corrections never leak into the
+        # next format's prompts; untagged entries predate the tag and are
+        # Prize Draw by birth
+        if t.get("container", CONTAINER) != CONTAINER:
+            continue
         n = (t.get("note") or "").strip()
         if n and n not in notes:
             notes.append(n)
@@ -247,7 +287,8 @@ don't echo it):
 {(data.get('source') or '(nothing supplied)').strip()[:4000]}"""
 
     try:
-        result = _json_from(_call(_voice_now() + GENERATE, brief))
+        result = _json_from(_call(
+            _voice_now() + "\n\n" + prompt("write_it/prize_draw", _GENERATE_FALLBACK), brief))
     except Exception as e:
         print(f"[robot/copy] generate failed: {e}")
         return jsonify({"error": "The robot fell over. Try again?"}), 500
@@ -288,7 +329,7 @@ def extract():
         return jsonify({"success": True, "found": {}})
 
     try:
-        result = _json_from(_call(EXTRACT, text, 300)) or {}
+        result = _json_from(_call(prompt("extract", _EXTRACT_FALLBACK), text, 300)) or {}
     except Exception as e:
         print(f"[robot/extract] failed: {e}")
         return jsonify({"success": True, "found": {}})  # extraction is a favour, not a gate
@@ -306,6 +347,9 @@ def extract():
 @copy_bp.route("/api/tweak", methods=["POST"])
 @require_auth
 def tweak():
+    """The surgeon. Smallest change that honours the note — the new copy
+    goes straight back to the card, changes marked client-side. declined
+    covers both the locked-fact refusal and the one allowed pushback."""
     data = request.get_json() or {}
     if not ANTHROPIC_API_KEY:
         return jsonify({"error": "No API key configured on the server."}), 500
@@ -321,12 +365,19 @@ def tweak():
     except TermsError as e:
         return jsonify({"error": str(e)}), 400
 
-    user = f"BLOCK: {block}\n\nCURRENT:\n{current}\n\nTHEIR NOTE:\n{note}"
+    user = f"THE BLOCK: {block}\n\nCURRENT:\n{current}\n\nTHE NOTE:\n{note}"
+    hl = (data.get("highlight") or "").strip()
+    if hl:
+        user += f"\n\nTHE HIGHLIGHT (operate here):\n{hl[:300]}"
+    insight = (data.get("insight") or "").strip()
+    if insight:
+        user += f"\n\nTHE INSIGHT (the copy must still carry this):\n{insight[:600]}"
     if data.get("history"):
         user += "\n\nEARLIER IN THIS EXCHANGE:\n" + "\n".join(data["history"])[:2000]
 
     try:
-        result = _json_from(_call(_voice_now() + TWEAK, user, 700))
+        result = _json_from(_call(
+            _voice_now() + "\n\n" + prompt("tweak_it", _TWEAK_FALLBACK), user, 700))
     except Exception as e:
         print(f"[robot/tweak] failed: {e}")
         return jsonify({"error": "The robot fell over. Try again?"}), 500
@@ -334,25 +385,33 @@ def tweak():
     if not result:
         return jsonify({"error": "The robot said something we couldn't read."}), 500
 
-    proposal = result.get("proposal")
-    flags = check_copy(proposal, facts) if proposal else []
+    # The surgeon speaks say/copy/declined; tolerate the old dialect too.
+    say = result.get("say") or result.get("message") or ""
+    new_copy = result.get("copy") if "copy" in result else result.get("proposal")
+    declined = bool(result.get("declined", result.get("pushback", False)))
+    if declined:
+        new_copy = None
+    flags = check_copy(new_copy, facts) if new_copy else []
 
     entry = {
         "at": datetime.utcnow().isoformat(),
         "who": session.get("email"),
+        "container": CONTAINER,
         "prize": facts["prize_name"],
         "block": block,
         "note": note,
         "before": current,
-        "after": proposal,
-        "pushback": bool(result.get("pushback")),
+        "after": new_copy,
+        "declined": declined,
     }
     TWEAK_LOG.append(entry)
     _persist(entry)
 
-    return jsonify({"success": True, "message": result.get("message", ""),
-                    "proposal": proposal, "pushback": bool(result.get("pushback")),
-                    "flags": flags})
+    return jsonify({"success": True, "say": say, "copy": new_copy,
+                    "declined": declined, "wants": result.get("wants"),
+                    "flags": flags,
+                    # legacy mirrors, one release of grace
+                    "message": say, "proposal": new_copy, "pushback": declined})
 
 
 @copy_bp.route("/api/log")
