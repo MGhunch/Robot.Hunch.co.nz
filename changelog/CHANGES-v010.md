@@ -35,11 +35,14 @@ already did it.
 GOOD TO GO pushed clear of the working cards (margin-top 26). Two
 pieces of furniture, not a stack.
 
-## Housekeeping flag, not actioned
-The repo still carries what CHANGES-v009 said was deleted:
-robot-v007.zip, "Robot.Hunch.co.nz-main (3).zip", robot_store.jsonl,
-prompts/spine.md, prompts/tweak_it.md, prompts/write_it/. File-by-file
-replacement adds but never removes. Delete on GitHub when ready.
+## Housekeeping — the v009 deletions, actually done
+Gone: robot-v007.zip, "Robot.Hunch.co.nz-main (3).zip", __pycache__/,
+robot_store.jsonl (runtime data — the real store lives on the Railway
+volume), and the pre-v009 prompt files (spine.md, tweak_it.md,
+write_it/, feed_it/ — all superseded; feeder.md holds the FEED IT
+reservation). A .gitignore now stops the junk creeping back. The
+changelog folder is lowercase; delete the capital-C duplicate on
+GitHub, since an upload adds but never removes.
 
 *Honest.*
 
