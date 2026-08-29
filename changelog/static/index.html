@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="en-NZ">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROBOT — Ticket giveaways</title>
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--body);color:var(--ink);background:#fff;min-height:100vh;
+  display:flex;flex-direction:column;font-weight:300;line-height:1.6}
+.beb{font-family:var(--display);letter-spacing:0;line-height:.95}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid var(--red);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.topbar{background:#fff;padding:13px var(--g);display:flex;align-items:center;
+  justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+.mark{font-size:22px}
+.mark span{color:var(--red)}
+.who{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--mid);font-weight:600}
+.top-r{display:flex;align-items:center;gap:12px}
+
+/* ---------------- hamburger + house pages ---------------- */
+.burger{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;
+  transition:background .15s}
+.burger:hover{background:var(--paper)}
+.burger svg{width:19px;height:19px;display:block}
+.burger line{stroke:var(--ink);stroke-width:2;stroke-linecap:round;transition:transform .2s ease,opacity .2s ease}
+.burger.x .bl1{transform:translateY(4.5px) rotate(45deg);transform-origin:center}
+.burger.x .bl2{opacity:0}
+.burger.x .bl3{transform:translateY(-4.5px) rotate(-45deg);transform-origin:center}
+.hm-menu{position:absolute;top:54px;right:14px;background:#fff;border:1px solid var(--border);
+  border-radius:14px;padding:6px;min-width:148px;box-shadow:0 10px 30px rgba(26,25,23,.14);
+  display:none;z-index:60}
+.hm-menu.on{display:block}
+.hm-menu button{display:block;width:100%;text-align:left;padding:10px 14px;border-radius:9px;
+  font-family:var(--display);font-size:16px;letter-spacing:1.2px}
+.hm-menu button:hover{background:var(--paper);color:var(--red)}
+.hm-shade{position:fixed;inset:0;background:rgba(26,25,23,.55);display:none;
+  align-items:center;justify-content:center;z-index:70;padding:20px}
+.hm-shade.on{display:flex}
+.hm-card{background:var(--paper);border-radius:var(--r-lg);width:100%;max-width:560px;
+  max-height:min(84vh,700px);display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.35);text-align:left}
+.hm-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 0 26px}
+.hm-title{font-family:var(--display);font-size:34px;letter-spacing:1px;line-height:.95}
+.hm-title span{color:var(--red)}
+.hm-x{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
+.hm-x:hover{background:#fff}
+.hm-x svg{width:15px;height:15px}
+.hm-x line{stroke:var(--red);stroke-width:2.4;stroke-linecap:round}
+.hm-body{padding:12px 26px 26px;overflow-y:auto}
+.hm-body.about p{font-size:15px;line-height:1.65;margin-bottom:14px;font-weight:400}
+.hm-body.about p:last-child{margin-bottom:0}
+.faq{border-top:1px solid var(--border)}
+.faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;
+  text-align:left;padding:14px 2px;font-family:var(--display);font-size:18px;
+  letter-spacing:.8px;line-height:1.05;transition:color .15s}
+.faq-q:hover{color:var(--red)}
+.faq.open .faq-q{color:var(--red)}
+.faq-chev{flex-shrink:0;width:17px;height:17px;transition:transform .22s ease}
+.faq-chev path{stroke:var(--red);stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.faq.open .faq-chev{transform:rotate(180deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .26s ease}
+.faq.open .faq-a{max-height:240px}
+.faq-a p{font-size:13.5px;line-height:1.6;font-weight:400;padding:0 2px 16px;max-width:54ch}
+
+/* ---------------- door ---------------- */
+#door{flex:1;background:var(--red);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:var(--g);text-align:center}
+.greet{position:relative;width:100%;display:flex;align-items:center;justify-content:center;
+  min-height:min(46vw,250px);margin-bottom:34px;transition:min-height .4s ease,margin-bottom .4s ease}
+/* Once the bubble's gone the box hands its land back — the greeting doesn't
+   need a bubble-sized paddock, just enough room to say HELLO YOU. */
+.greet.settled{min-height:90px;margin-bottom:18px}
+.bub{position:absolute;width:min(56vw,300px);animation:pop .45s cubic-bezier(.2,1.4,.4,1) both;
+  transition:transform .35s ease,opacity .35s ease}
+@keyframes pop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+.bub svg{display:block;width:100%;height:auto}
+.bub-word{position:absolute;inset:0 0 12% 0;display:flex;align-items:center;justify-content:center}
+.bub-word span{color:var(--red);font-size:clamp(52px,11vw,88px)}
+/* .gone must kill the entry animation — its fill-mode (`both`) otherwise
+   pins opacity:1 forever and beats the class in the cascade. That was the
+   ghost: bubble staying put with the echo mangled behind it. */
+.bub.gone{animation:none;transform:scale(.86);opacity:0;pointer-events:none;
+  visibility:hidden;transition:transform .35s ease,opacity .35s ease,visibility 0s .35s}
+.echo{position:absolute;color:#fff;font-size:62px;white-space:nowrap;opacity:0}
+.echo.on{opacity:1;animation:pop .4s cubic-bezier(.2,1.4,.4,1) both}
+/* The sandwich: sticker-cut art (black line, solid white body, transparent
+   outside the outline) so it sits on the red like a sticker, not a picture.
+   The 4% nudge optically centres the *sandwich* — the head-left / legs-right
+   sprawl otherwise makes a mathematically centred image look drifted left. */
+.sando{display:none;width:min(230px,48%);height:auto;margin:0 auto 8px;
+  transform:translateX(4%)}
+.sando.on{display:block;animation:pop .45s cubic-bezier(.2,1.4,.4,1) both}
+/* The question drops a weight, not a voice: same condensed caps family
+   feel as the HELLO, one notch quieter. Oswald 500 is Bebas's next weight
+   down in spirit — Bebas itself only comes in one. */
+.q{color:#fff;font-family:'Oswald',var(--display),sans-serif;font-weight:500;
+  font-size:clamp(17px,2.8vw,24px);letter-spacing:2.5px;margin:-4px 0 28px;
+  display:none;animation:up .3s .1s ease both}
+.q.on{display:block}
+
+.signin{width:100%;max-width:360px;margin:0 auto}
+.si-row{display:flex;gap:8px}
+.si-row input{flex:1;min-width:0;background:#fff;border:none;border-radius:var(--pill);
+  padding:13px 20px;font-size:14px;font-family:inherit;color:var(--ink);outline:none;
+  text-align:center}
+.si-row input::placeholder{color:var(--mid)}
+.si-go{width:46px;height:46px;border-radius:50%;background:var(--ink);color:#fff;flex-shrink:0;
+  display:grid;place-items:center}
+.si-go:hover{background:#000}
+.si-go:disabled{opacity:.5}
+.si-go svg{width:24px;height:24px;overflow:visible}
+.shackle{transform-origin:4.5px 7px;transition:transform .3s ease}
+.si-go.open .shackle{transform:rotate(-38deg) translateY(-1px)}
+.si-note{font-size:12px;color:var(--white-hi);margin-top:11px;line-height:1.55;min-height:18px}
+.si-note.bad{color:#fff;font-weight:500}
+
+.rooms{margin:0 auto;display:none;flex-direction:column;gap:10px;width:100%;max-width:360px;
+  animation:up .3s .18s ease both}
+.room{background:#fff;border-radius:var(--r-lg);padding:16px 18px;display:flex;align-items:center;
+  justify-content:space-between;gap:14px;text-align:left;width:100%;transition:transform .15s}
+.room:hover{transform:translateY(-2px)}
+.room-t{font-size:17px;font-family:'Oswald',var(--display),sans-serif;font-weight:500;letter-spacing:2px}
+.room-d{font-size:12px;color:var(--mid);margin-top:1px}
+.room-go{width:30px;height:30px;border-radius:50%;background:var(--red);color:#fff;
+  display:grid;place-items:center;flex-shrink:0;font-size:15px}
+.room.soon{opacity:.45;cursor:default}
+.room.soon:hover{transform:none}
+.room.soon .room-go{background:var(--mid)}
+
+/* ---------------- room ---------------- */
+#room{flex:1;display:none;flex-direction:column;padding:0 var(--g) 64px}
+#room.on{display:flex}
+.wrap{max-width:680px;width:100%;margin:0 auto}
+
+.rail{display:flex;margin:26px 0 30px;border-bottom:1px solid var(--border)}
+.step{flex:1;padding:0 0 10px;font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  font-weight:600;color:var(--mid);border-bottom:2px solid transparent;margin-bottom:-1px;
+  font-family:inherit;transition:color .15s}
+.step:hover{color:var(--ink)}
+.step.on{color:var(--ink);border-bottom-color:var(--red)}
+.step.done{color:var(--ink)}
+.step.locked{opacity:.4;cursor:default}
+.step.locked:hover{color:var(--mid)}
+.step i{font-style:normal;color:var(--red);margin-right:5px}
+
+.pane{display:none;animation:up .3s ease}
+.pane.on{display:block}
+@keyframes up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+h2.hed{font-size:34px;margin-bottom:6px}
+.lede{font-size:14px;color:var(--mid);margin-bottom:24px;max-width:54ch}
+
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:22px}
+.field{margin-bottom:16px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;
+  margin-bottom:6px}
+input,select,textarea{width:100%;background:var(--paper);border:1px solid var(--border);
+  border-radius:var(--r-sm);padding:10px 12px;font-size:14px;font-family:inherit;color:var(--ink);
+  font-weight:300;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--red)}
+textarea{resize:vertical;min-height:90px;line-height:1.6}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.three{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:560px){.two,.three{grid-template-columns:1fr}}
+.hint{font-size:11px;color:var(--mid);margin-top:5px}
+
+.btn{background:var(--red);color:#fff;border-radius:var(--pill);padding:14px 34px;
+  font-family:var(--display);font-size:21px;letter-spacing:1px;transition:background .15s}
+.btn:hover{background:var(--red-dark)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--border)}
+.btn.ghost:hover{background:#fff}
+.bar{display:flex;gap:10px;align-items:center;margin-top:22px;flex-wrap:wrap}
+
+/* copy blocks */
+.block{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;
+  margin-bottom:12px;transition:border-color .15s}
+.block:hover{border-color:#d6d2cc}
+.block-h{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.block-l{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--mid)}
+.tweak{background:var(--paper);border:1px solid var(--border);border-radius:var(--pill);
+  padding:4px 13px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
+.tweak:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.block-b{font-size:15px;line-height:1.65}
+.block-b.big{font-family:var(--display);font-size:30px;letter-spacing:1.5px;line-height:1.05}
+.ph{background:var(--delta);border-radius:3px;padding:0 3px;color:var(--red-dark);font-weight:500}
+
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{background:var(--paper);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:11px 14px;font-size:14.5px;text-align:left;display:flex;gap:11px;align-items:flex-start;
+  line-height:1.5;width:100%}
+.opt:hover{border-color:var(--mid)}
+.opt.pick{border-color:var(--red);background:#fff;box-shadow:inset 0 0 0 1px var(--red)}
+.dot{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;margin-top:3px}
+.opt.pick .dot{border-color:var(--red);background:var(--red);box-shadow:inset 0 0 0 2.5px #fff}
+
+.flags{background:var(--yellow);border-radius:var(--r-md);padding:14px 16px;margin-bottom:14px;font-size:13px}
+.flags b{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.flags li{margin-left:16px;margin-bottom:3px;line-height:1.5}
+.clean{font-size:12px;color:var(--mid);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.clean::before{content:'✓';color:var(--red);font-weight:700}
+.wants{background:var(--paper);border-radius:12px 12px 12px 4px;padding:10px 14px;
+  margin-bottom:14px;font-size:13px;line-height:1.55}
+.wants b{color:var(--red);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+  margin-right:6px}
+
+.tw{border-top:1px solid var(--border);margin-top:14px;padding-top:14px;display:none}
+.tw.on{display:block}
+.tw-row{display:flex;gap:8px}
+.tw-row input{flex:1}
+.tw-msg{background:var(--paper);border-radius:12px 12px 12px 4px;padding:11px 14px;font-size:13px;
+  margin-bottom:10px;line-height:1.6}
+.tw-prop{background:#fff;border:1px solid var(--red);border-radius:var(--r-sm);padding:12px 14px;
+  font-size:14px;margin:10px 0;line-height:1.6}
+.mini{background:var(--red);color:#fff;border-radius:var(--pill);padding:7px 16px;font-size:10px;
+  letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
+.mini.g{background:var(--paper);color:var(--ink);border:1px solid var(--border)}
+
+
+/* ---------------- FIX IT — the Wrangler split ----------------
+   The whole email on the table, white on red. Tools on the right.
+   Padlocks in the gutter between: open / pencil / shut, and they're
+   the buttons. The artefact wears the client; the chrome stays ours. */
+.fixstage{margin-left:calc(50% - 50vw);width:100vw;background:var(--red);
+  padding:36px 24px 60px;margin-top:8px;}
+.fx-grid{display:grid;grid-template-columns:minmax(0,560px) 360px;
+  gap:150px;justify-content:center;align-items:start;max-width:1200px;margin:0 auto;}
+.fx-room{font-size:52px;line-height:.85;color:#fff;margin:0 0 18px;letter-spacing:1px;}
+
+/* the tabs — furniture for now; go live with the second artefact (12b) */
+.fx-tabs{display:flex;gap:7px;}
+.fx-tab{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;
+  padding:10px 18px 8px;border-radius:9px 9px 0 0;user-select:none;}
+.fx-tab.on{background:#fff;color:var(--red);}
+.fx-tab.dead{background:rgba(255,255,255,.24);color:rgba(255,255,255,.8);}
+.fx-art{border-top-left-radius:0;}
+.fx-artwrap{position:relative;}
+.fx-art{box-shadow:0 14px 44px rgba(0,0,0,.2);}
+.fx-sec{position:relative;transition:background .25s;}
+.fx-sec.editing{background:rgba(237,28,36,.04);}
+.fx-sec.flash{animation:fxlanded .7s ease-out;}
+@keyframes fxlanded{0%{background:rgba(237,28,36,.14);}100%{background:transparent;}}
+.fx-art .ph{cursor:not-allowed;}
+mark.fx-ch{background:var(--yellow);color:inherit;border-radius:2px;padding:0 1px;
+  box-shadow:none;}
+.fx-tcs.locked-look{background:var(--paper);}
+
+/* the gutter — the locks belong to THE WORK: one rail, fixed x, a dotted
+   stub tying each lock to the artefact edge. Vertical comes from the
+   section; horizontal comes from the card. */
+.fx-gutter{position:absolute;top:0;right:-70px;width:44px;height:100%;pointer-events:none;}
+.fx-pad{position:absolute;left:0;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
+  pointer-events:auto;background:#fff;color:var(--red);box-shadow:0 4px 14px rgba(0,0,0,.24);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .15s,box-shadow .25s,background .2s,color .2s,top .3s;}
+.fx-pad::before{content:'';position:absolute;right:100%;width:26px;
+  border-top:2px dotted rgba(255,255,255,.85);}
+.fx-pad svg{width:19px;height:19px;overflow:visible;}
+.fx-pad:hover{transform:scale(1.12);}
+.fx-pad.locked{background:var(--ink);color:#fff;}
+/* the bar spins around its hinge leg and hangs as a hook off the side */
+.fx-pad .shackle{transform-origin:4.5px 8px;transform:rotateY(180deg);
+  transition:transform .4s cubic-bezier(.34,1.4,.64,1);}
+.fx-pad.locked .shackle{transform:rotateY(0deg);}
+.fx-pad.here{box-shadow:0 4px 14px rgba(0,0,0,.24),0 0 0 5px rgba(255,255,255,.35);transform:scale(1.06);}
+
+/* the rail */
+.fx-rail{position:sticky;top:16px;display:flex;flex-direction:column;gap:13px;}
+
+/* ── the conversation. The robot talks; the human answers. The what
+   lives in the pill; the why lives in the chat; the input bar is the
+   pencil; locking is a thing the robot reports, not a thing you press. */
+.fx-topic{align-self:flex-start;background:var(--paper);color:var(--red);
+  font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  border-radius:20px;padding:5px 12px;margin-left:46px;}
+.fx-chat{display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow-y:auto;
+  padding-bottom:2px;scroll-behavior:smooth;}
+.fx-chatrow{display:flex;gap:10px;align-items:flex-end;}
+.fx-cav{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:#fff;
+  display:flex;align-items:center;justify-content:center;}
+.fx-cav img{width:24px;height:24px;object-fit:contain;}
+.fx-cav.ghost{visibility:hidden;}
+.fx-msg{background:#fff;border-radius:14px;border-bottom-left-radius:4px;
+  padding:10px 14px;font-size:12.5px;line-height:1.55;max-width:268px;}
+.fx-msg .small{display:block;font-size:11px;color:var(--mid);margin-top:5px;}
+.fx-chatrow.me{justify-content:flex-end;}
+.fx-chatrow.me .fx-msg{background:var(--ink);color:#fff;
+  border-radius:14px;border-bottom-right-radius:4px;}
+mark.fx-hl{background:var(--yellow);color:var(--ink);border-radius:2px;padding:0 2px;}
+.fx-opt{margin-left:46px;align-self:flex-start;max-width:280px;background:transparent;
+  border:1.5px solid rgba(255,255,255,.75);color:#fff;border-radius:14px;padding:9px 13px;
+  font-size:12.5px;line-height:1.5;cursor:pointer;text-align:left;font-family:inherit;
+  transition:background .15s,color .15s;}
+.fx-opt:hover{background:#fff;color:var(--red);border-color:#fff;}
+.fx-think{display:flex;gap:4px;align-self:flex-start;margin-left:46px;padding:9px 12px;}
+.fx-think span{width:6px;height:6px;border-radius:50%;background:#fff;
+  animation:fxblink 1.2s infinite;}
+.fx-think span:nth-child(2){animation-delay:.2s;}.fx-think span:nth-child(3){animation-delay:.4s;}
+@keyframes fxblink{0%,80%,100%{opacity:.25;}40%{opacity:1;}}
+.fx-answer{margin-left:46px;}
+.fx-say{display:flex;align-items:center;background:#fff;border-radius:24px;padding:4px 4px 4px 16px;}
+.fx-say input{flex:1;border:none;outline:none;background:none;font-family:inherit;
+  font-size:12.5px;color:var(--ink);border-radius:0;padding:6px 0;}
+.fx-say input::placeholder{color:var(--mid);}
+.fx-sendgo{width:32px;height:32px;border-radius:50%;border:none;background:var(--red);
+  color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.fx-sendgo svg{width:14px;height:14px;}
+.fx-sendgo:hover{background:var(--red-dark);}
+
+.fx-receipt{background:#fff;border-radius:var(--r-lg);overflow:hidden;}
+.fx-rchead{display:flex;align-items:center;justify-content:space-between;width:100%;
+  background:none;border:none;cursor:pointer;padding:11px 15px;font-family:inherit;}
+.fx-rcount{font-size:12px;font-weight:600;display:flex;gap:7px;}
+.fx-rcount b{color:var(--red);}
+.fx-rchev{font-size:10px;color:var(--mid);transition:transform .2s;}
+.fx-receipt.open .fx-rchev{transform:rotate(180deg);}
+.fx-rlist{display:none;border-top:1px solid var(--border);}
+.fx-receipt.open .fx-rlist{display:block;}
+.fx-ritem{padding:9px 15px;border-bottom:1px solid var(--border);}
+.fx-ritem:last-child{border-bottom:none;}
+.fx-rlbl{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--red);margin-bottom:2px;}
+.fx-rwhy{font-size:11px;line-height:1.5;color:var(--ink);}
+
+/* the exit */
+.fx-gtg{background:#fff;border-radius:var(--r-lg);padding:14px 15px 12px;margin-top:26px;}
+.fx-gtgtop{display:flex;align-items:center;gap:11px;margin-bottom:11px;}
+.fx-gtgico{flex:0 0 auto;width:38px;height:38px;border-radius:50%;background:#fff;color:var(--red);
+  box-shadow:0 2px 10px rgba(0,0,0,.16);display:flex;align-items:center;justify-content:center;
+  transition:background .25s;}
+.fx-gtgico svg{width:17px;height:17px;}
+.fx-gtgico .i-tick{display:none;}
+.fx-gtg.ready .fx-gtgico{background:var(--red);color:#fff;}
+.fx-gtg.ready .fx-gtgico .i-open{display:none;}
+.fx-gtg.ready .fx-gtgico .i-tick{display:block;}
+.fx-gtghed{font-family:var(--display);font-size:22px;letter-spacing:1px;padding-top:3px;}
+.fx-pkg{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
+  background:none;color:var(--red);border:1.5px solid var(--red);border-radius:var(--pill);
+  padding:12px 18px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  cursor:default;opacity:.55;transition:all .2s;font-family:inherit;}
+.fx-gtg.ready .fx-pkg{background:var(--red);color:#fff;opacity:1;cursor:pointer;}
+.fx-gtg.ready .fx-pkg:hover{background:var(--red-dark);}
+.fx-cap{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid);
+  margin-top:8px;text-align:center;}
+.fx-gtg.ready .fx-cap{color:var(--red);}
+
+/* don't touch */
+
+@media(max-width:920px){
+  .fx-grid{grid-template-columns:1fr;gap:22px;}
+  .fx-rail{position:static;}
+  .fx-artwrap{padding-right:56px;}
+  .fx-gutter{right:0;}
+  .fx-room{font-size:42px;}
+}
+
+/* fall into place: locked receipts, the open block, the waiting queue.
+   Same padlock as the door — it pops open to let you in, it snaps shut as
+   you commit copy. */
+.receipt{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:12px 18px;margin-bottom:10px;display:flex;align-items:center;gap:13px;width:100%;
+  text-align:left;font-family:inherit;transition:border-color .15s;animation:up .25s ease}
+.receipt:hover{border-color:var(--red)}
+.receipt svg{width:15px;height:15px;flex-shrink:0}
+.receipt-m{flex:1;min-width:0}
+.receipt-l{font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--mid)}
+.receipt-t{font-size:14px;color:var(--ink);margin-top:2px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.receipt-tw{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;
+  color:var(--red);flex-shrink:0}
+.waiting{background:transparent;border:1px dashed var(--border);border-radius:var(--r-lg);
+  padding:12px 18px;margin-bottom:10px;font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  font-weight:600;color:var(--mid);opacity:.6}
+.pair{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+.factnote{font-size:11px;color:var(--mid);margin-top:10px;display:flex;align-items:center;gap:6px}
+.factnote::before{content:'✓';color:var(--red);font-weight:700}
+
+/* legals */
+.always{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:6px 20px 16px;margin-top:6px}
+.always summary{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;
+  color:var(--mid);cursor:pointer;padding:12px 0}
+.always li{font-size:12.5px;line-height:1.65;margin-bottom:8px;list-style:none;position:relative;padding-left:16px}
+.always li::before{content:'';position:absolute;left:2px;top:8px;width:4px;height:4px;
+  border-radius:50%;background:var(--mid)}
+
+/* email preview */
+.mail{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.mail-bar{background:var(--paper);border-bottom:1px solid var(--border);padding:12px 18px}
+.mail-from{font-size:12px;color:var(--mid);margin-bottom:3px}
+.mail-subj{font-size:14.5px;font-weight:600}
+.mail-body{padding:26px 24px 30px;text-align:center}
+.mail-img{background:var(--paper);border:1px dashed var(--border);border-radius:var(--r-sm);
+  height:150px;display:grid;place-items:center;color:var(--mid);font-size:10px;letter-spacing:2px;
+  text-transform:uppercase;margin-bottom:22px}
+.mail-h{font-family:var(--display);font-size:31px;letter-spacing:1.5px;line-height:1.05;margin-bottom:13px}
+.mail-p{font-size:14.5px;line-height:1.65;color:#3a3835;margin:0 auto 22px;max-width:44ch}
+.mail-cta{display:inline-block;background:var(--red);color:#fff;border-radius:var(--pill);
+  padding:12px 30px;font-size:14px;font-weight:600}
+.mail-tcs{border-top:1px solid var(--border);padding:16px 24px;font-size:10.5px;color:var(--mid);
+  line-height:1.6;text-align:left;white-space:pre-wrap}
+
+.file{display:flex;align-items:center;gap:13px;background:#fff;border:1px solid var(--border);
+  border-radius:var(--r-sm);padding:13px 15px;margin-bottom:8px}
+.file-i{width:32px;height:32px;border-radius:var(--r-sm);background:var(--red);color:#fff;
+  display:grid;place-items:center;font-size:9px;letter-spacing:1px;font-weight:700;flex-shrink:0}
+.file-n{font-size:13.5px;font-weight:500}
+.file-d{font-size:11px;color:var(--mid)}
+
+.load{display:flex;align-items:center;gap:11px;color:var(--mid);font-size:13px;padding:14px 0}
+.spin{width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--red);
+  border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err{background:#fff;border:1px solid var(--red);border-radius:var(--r-md);padding:13px 15px;
+  font-size:13px;color:var(--red-dark);margin-bottom:14px}
+.sect{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--mid);
+  margin:26px 0 10px}
+.robotwork{width:130px;margin:0 auto 10px;display:block;animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@media(prefers-reduced-motion:reduce){.robotwork{animation:none}}
+
+/* ================= THE BRIEF LADDER =================
+   Fill-in-the-blanks. The connective words whisper in grey;
+   the answers shout in Bebas on fat red lines. */
+.redword{color:var(--red)}
+.shead{font-family:var(--display);font-size:26px;letter-spacing:0;line-height:1;margin-bottom:3px}
+.slede{font-size:13px;color:var(--mid);margin-bottom:22px}
+
+.ladder{display:flex;flex-direction:column;gap:18px;margin-bottom:36px}
+.rung{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.join{font-family:var(--display);font-size:24px;letter-spacing:0;color:#B7B2AC;
+  line-height:1;white-space:nowrap}
+
+.blank{position:relative;display:inline-block;border-bottom:4px solid var(--red);
+  padding:0 9px 2px;cursor:pointer;font-family:var(--display);font-size:42px;
+  letter-spacing:0;line-height:1;white-space:nowrap;transition:background .12s}
+.blank:hover{background:#FFF3F3}
+.blank .caret{font-size:.4em;color:#B7B2AC;margin-left:7px;vertical-align:6px;pointer-events:none}
+
+/* typed answers sit on the same red line */
+.ladderInput{font-family:var(--display);font-size:42px;letter-spacing:0;line-height:1;
+  color:var(--ink);border:none;border-bottom:4px solid var(--red);border-radius:0;
+  padding:0 9px 2px;background:transparent;width:auto;min-width:100px;font-weight:400}
+.ladderInput:focus{outline:none;background:#FFF3F3;border-color:var(--red)}
+.ladderInput::placeholder{color:#D8D4CF}
+input.ladderInput[type=number]::-webkit-outer-spin-button,
+input.ladderInput[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input.ladderInput[type=number]{-moz-appearance:textfield}
+
+/* prize type: a real <select>, wearing the blank's clothes */
+.selwrap{position:relative;display:inline-block;border-bottom:4px solid var(--red);
+  padding:0 9px 2px;transition:background .12s}
+.selwrap:hover{background:#FFF3F3}
+.selwrap select{appearance:none;-webkit-appearance:none;border:none;background:transparent;
+  font-family:var(--display);font-size:42px;letter-spacing:0;line-height:1.05;color:var(--ink);
+  padding:0 30px 0 0;cursor:pointer;width:auto;font-weight:400;border-radius:0}
+.selwrap select:focus{outline:none}
+.selwrap .caret{position:absolute;right:8px;top:10px;font-size:17px;color:#B7B2AC;pointer-events:none}
+
+/* number chips */
+.pop{position:absolute;top:calc(100% + 12px);left:0;z-index:20;background:#fff;
+  border:1px solid var(--ink);border-radius:16px;padding:13px 15px;display:none;
+  box-shadow:0 8px 24px rgba(0,0,0,.08);white-space:nowrap}
+.pop.open{display:flex;gap:8px}
+.chip{font-family:var(--display);font-size:20px;letter-spacing:0;border:1px solid var(--ink);
+  border-radius:50%;width:41px;height:41px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--ink)}
+.chip:hover{border-color:var(--red);color:var(--red)}
+.chip.sel{background:var(--red);border-color:var(--red);color:#fff}
+.chip.plus{font-size:25px;line-height:0}
+
+/* dates: Bebas labels, calendar pills */
+.dates{display:flex;gap:48px;margin-bottom:40px;flex-wrap:wrap;align-items:flex-start}
+.dlabel{font-family:var(--display);font-size:21px;letter-spacing:0;margin-bottom:8px}
+label.dchip{display:inline-flex;align-items:center;gap:11px;border:1.5px solid var(--ink);
+  border-radius:var(--pill);padding:9px 20px;cursor:pointer;font-family:var(--display);
+  font-size:22px;letter-spacing:0;text-transform:none;font-weight:400;line-height:1;
+  margin-bottom:0;color:var(--ink);position:relative;transition:border-color .12s}
+label.dchip:hover{border-color:var(--red)}
+label.dchip svg{display:block;flex-shrink:0}
+label.dchip input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+  padding:0;border:none}
+label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
+.tquiet{margin-top:7px}
+.tquiet input{width:78px;background:transparent;border:none;border-radius:0;padding:0 2px;
+  font-size:12px;color:var(--mid);font-family:var(--body);font-weight:400}
+.tquiet input:focus{color:var(--ink);border-bottom:1px solid var(--red)}
+
+/* what do we know */
+.paste textarea{background:#fff;border:1.5px solid var(--ink);border-radius:16px;
+  padding:15px 17px;font-size:14px;min-height:105px}
+.paste textarea:focus{border-color:var(--red)}
+.paste .slede{margin-bottom:12px}
+
+@media(max-width:560px){
+  .blank,.ladderInput,.selwrap select{font-size:31px}
+  .selwrap .caret{top:7px}
+  .join{font-size:19px}
+  .dates{gap:22px}
+}
+
+/* ---------------- the red brief ---------------- */
+/* Red is the tool's talking voice: the Brief is a conversation, so it happens
+   on red with white cards. The working rooms (copy, review) stay on paper. */
+.redpane{background:var(--red);border-radius:18px;padding:28px 20px 32px;text-align:center}
+.rhed{color:#fff;font-size:clamp(30px,5vw,38px);line-height:.95}
+.rlede{font-size:12.5px;color:var(--white-hi);margin:8px 0 22px}
+.qcard{background:#fff;border-radius:var(--r-lg);padding:18px 20px;text-align:left;
+  margin:0 auto 10px;max-width:520px}
+.qhead{font-family:var(--display);font-size:22px;color:var(--ink);line-height:1;margin-bottom:4px}
+.qhead .redword{color:var(--red)}
+.qta{background:var(--paper);border:1px solid var(--border);border-radius:10px;
+  padding:11px 14px;font-size:13px;min-height:58px;margin-top:9px;resize:vertical}
+.qta:focus{border-color:var(--red)}
+.btnw{background:transparent;color:#fff;border:2px solid #fff;border-radius:var(--pill);
+  padding:12px 34px;font-family:var(--display);font-size:17px;letter-spacing:1.5px;
+  transition:background .2s,color .2s}
+.btnw:hover{background:#fff;color:var(--red)}
+.btnw:disabled{opacity:.55}
+.subhide{display:none}
+
+/* ---------------- THE CHECKLIST (FEED IT page two) ----------------
+   Ported from checklist-mock.html — the mock is the spec. One dumb
+   renderer; CL_CONFIG deals the screen. One awake device: red text
+   where the fact should be. The tick circle is the control. */
+.cl-cards{width:100%;max-width:540px;margin:0 auto;display:flex;flex-direction:column;gap:14px;text-align:left}
+.cl-card{background:#fff;border-radius:10px;padding:20px 20px 8px}
+.cl-card.legals{padding-bottom:12px}
+.cl-title{font-family:var(--display);font-size:24px;letter-spacing:.04em;color:var(--ink);margin-bottom:6px}
+.cl-title em{font-style:normal;color:var(--red)}
+.cl-sub{font-size:13px;color:var(--mid);margin:-2px 0 12px}
+.cl-sub a{color:var(--red);cursor:pointer}
+.cl-row{border-top:.5px solid #ECEAE3;padding:11px 0}
+.cl-main{display:flex;align-items:center;gap:12px}
+.cl-label{flex:none;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mid);font-weight:500}
+.cl-value{flex:1;min-width:0;text-align:right;cursor:pointer}
+.cl-fact{font-size:15px;color:var(--ink)}
+.cl-fact.date{font-family:var(--display);font-size:17px;letter-spacing:.05em;text-transform:uppercase}
+.cl-factsub{font-size:12.5px;color:var(--mid);border-bottom:1px dashed var(--border);margin-right:10px}
+.cl-ask{font-size:15px;font-weight:500;color:var(--red)}
+.cl-prov{font-size:11.5px;color:var(--mid);margin-top:2px}
+.cl-prov b{font-weight:500;color:var(--red)}
+.cl-tick{flex:none;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;border:2px solid #C4C0B6;background:#fff;color:#C4C0B6;
+  transition:transform .12s,background .15s,border-color .15s;padding:0}
+.cl-tick svg{width:16px;height:16px}
+.cl-tick:active{transform:scale(.9)}
+.cl-tick.on{border-color:var(--red);background:var(--red);color:#fff}
+.cl-row input,.cl-row select{font-family:'Inter',sans-serif;font-size:15px;color:var(--ink);
+  background:#fff;border:1px solid var(--red);border-radius:6px;padding:6px 10px;outline:none;
+  text-align:right;width:70%;max-width:260px}
+.cl-row input[type=date]{width:175px}
+.cl-row .cl-subin{width:74px;max-width:none;font-size:12.5px;color:var(--mid);border:none;
+  border-bottom:1px dashed var(--border);border-radius:0;padding:2px 0;text-align:center;margin-right:8px}
+.cl-notsure{display:inline-block;margin-top:6px;font-size:12.5px;color:var(--mid);
+  border-bottom:1px dashed var(--border);cursor:pointer}
+.cl-doors{margin-top:10px;background:var(--red);border-radius:8px;padding:14px 16px;text-align:left}
+.cl-doorline{display:flex;gap:10px;align-items:flex-start;color:#fff;font-size:14px;line-height:1.5}
+.cl-doorbot{flex:none;width:26px;height:26px;border-radius:50%;background:#fff;
+  display:flex;align-items:center;justify-content:center}
+.cl-doorbot img{width:17px;height:17px}
+.cl-doorbtns{display:flex;gap:10px;margin:12px 0 0 36px}
+.cl-doorbtns button{font-family:var(--display);font-size:14px;letter-spacing:.08em;
+  padding:8px 16px;border-radius:6px;border:1.5px solid #fff;background:transparent;color:#fff;cursor:pointer}
+.cl-doorbtns button.primary{background:#fff;color:var(--red)}
+.cl-clause{display:flex;gap:12px;align-items:flex-start;border:.5px solid #DAD6CB;border-radius:8px;
+  padding:12px 14px;margin-bottom:10px;cursor:pointer}
+.cl-clause.on{border:1.5px solid var(--red);padding:11.5px 13.5px}
+.cl-clbox{flex:none;width:20px;height:20px;border-radius:5px;margin-top:1px;display:flex;
+  align-items:center;justify-content:center;border:1.5px solid #C4C0B6;background:#fff;color:#fff}
+.cl-clause.on .cl-clbox{border-color:var(--red);background:var(--red)}
+.cl-clbox svg{width:12px;height:12px}
+.cl-cltext{font-size:13.5px;line-height:1.5;color:var(--mid)}
+.cl-clause.on .cl-cltext{color:var(--ink)}
+.cl-cltext b{font-weight:600}
+.cl-legwait{font-size:12.5px;color:var(--mid);padding:4px 0 8px}
+.cl-door{font-family:var(--display);font-size:16px;letter-spacing:.1em;padding:12px 34px;
+  border-radius:var(--pill);border:none;background:var(--red-dark);color:#F0A9A5;cursor:default;
+  transition:background .2s,color .2s}
+.cl-door.live{background:#fff;color:var(--red);cursor:pointer}
+
+/* ---------------- the pics page (FEED IT page three) ----------------
+   The robot's writing; the human fills the window with pictures.
+   Optional by design — the exit works empty or full, only the label flips. */
+.picdrop{border:2px dashed var(--border);border-radius:10px;padding:34px 20px;
+  text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.picdrop:hover,.picdrop:focus-visible{border-color:var(--red);outline:none}
+.picdrop.dragover{border-color:var(--red);background:rgba(237,28,36,.05)}
+.picdrop svg{width:44px;height:44px;margin:0 auto 12px;display:block}
+.pichead{font-family:var(--display);font-size:24px;color:var(--ink);line-height:1;letter-spacing:.5px}
+.picsub{margin-top:8px;font-size:11.5px;color:var(--mid)}
+.picsub a{color:var(--red);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.picgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:9px;margin-top:12px}
+.picgrid:empty{margin-top:0}
+.pic{position:relative;border-radius:7px;overflow:hidden;border:1px solid var(--border);aspect-ratio:1}
+.pic img{width:100%;height:100%;object-fit:cover;display:block}
+.pic.hold img{opacity:.45}
+.pic button{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;
+  border:none;background:var(--ink);color:#fff;font-size:12px;line-height:1;cursor:pointer;padding:0}
+.pic button:hover{background:var(--red)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <img src="ai2-logo.png" alt="Hunch ai2" style="height:22px;display:block">
+  <div class="top-r">
+    <div class="who" id="who"></div>
+    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false" onclick="hmMenu()">
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <line class="bl1" x1="2" y1="5.5" x2="18" y2="5.5"/>
+        <line class="bl2" x1="2" y1="10" x2="18" y2="10"/>
+        <line class="bl3" x1="2" y1="14.5" x2="18" y2="14.5"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<nav class="hm-menu" id="hmMenuBox">
+  <button onclick="hmOpen('about')">ABOUT</button>
+  <button onclick="hmOpen('faqs')">FAQS</button>
+</nav>
+
+<!-- ABOUT -->
+<div class="hm-shade" id="hm-about">
+  <div class="hm-card" role="dialog" aria-modal="true" aria-label="About">
+    <div class="hm-head">
+      <div class="hm-title">ABOUT<span>.</span></div>
+      <button class="hm-x" aria-label="Close" onclick="hmClose('about')">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><line x1="2" y1="2" x2="14" y2="14"/><line x1="14" y1="2" x2="2" y2="14"/></svg>
+      </button>
+    </div>
+    <div class="hm-body about">
+      <p>Robots are brilliant at squirting words into well designed containers. So if you have a good story (and good containers) this should work really well.</p>
+      <p>If you need help deciding what to say or designing great containers, humans are the way to go. Hunch is pretty good at both.</p>
+      <p>Once you've nailed those, you can roll with a robot every day of the week. Just feed it, fix it and you'll be finished in a flash. Happy days.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FAQS -->
+<div class="hm-shade" id="hm-faqs">
+  <div class="hm-card" role="dialog" aria-modal="true" aria-label="FAQs">
+    <div class="hm-head">
+      <div class="hm-title">FAQS<span>.</span></div>
+      <button class="hm-x" aria-label="Close" onclick="hmClose('faqs')">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><line x1="2" y1="2" x2="14" y2="14"/><line x1="14" y1="2" x2="2" y2="14"/></svg>
+      </button>
+    </div>
+    <div class="hm-body" id="faqList"></div>
+  </div>
+</div>
+
+<!-- ===================== DOOR ===================== -->
+<section id="door">
+
+  <img class="sando" id="sando" src="robot-sandwich-sticker.png" alt="A robot tucked happily into a sandwich">
+
+  <div class="greet">
+    <div class="bub" id="bub">
+      <svg viewBox="0 0 1092 941" aria-hidden="true"><g transform="translate(0,941) scale(0.1,-0.1)" fill="#FFFFFF"><path d="M6529 9406 c-2 -2 -89 -7 -194 -11 -104 -3 -206 -8 -225 -10 -19 -2 -91 -6 -160 -10 -69 -4 -150 -9 -180 -11 -30 -2 -370 -6 -755 -9 -385 -2 -745 -6 -800 -9 -55 -3 -147 -8 -205 -11 -58 -3 -125 -7 -150 -10 -25 -2 -76 -7 -115 -10 -38 -3 -81 -8 -95 -10 -14 -2 -50 -6 -81 -10 -31 -3 -67 -8 -79 -10 -12 -2 -48 -7 -79 -11 -31 -3 -58 -8 -61 -9 -3 -2 -26 -6 -50 -10 -25 -4 -76 -13 -115 -22 -38 -8 -81 -17 -95 -19 -76 -14 -306 -80 -445 -127 -327 -112 -602 -244 -865 -418 -192 -126 -327 -235 -488 -393 -477 -467 -836 -1048 -1058 -1711 -59 -178 -135 -460 -149 -557 -4 -23 -8 -45 -10 -48 -1 -3 -6 -25 -9 -50 -3 -25 -8 -54 -10 -66 -2 -12 -7 -45 -11 -74 -4 -29 -8 -60 -10 -69 -1 -9 -6 -47 -9 -86 -3 -38 -9 -99 -12 -135 -12 -139 -5 -549 11 -660 2 -14 7 -54 10 -90 4 -36 8 -72 10 -80 1 -8 6 -35 10 -60 11 -70 14 -93 20 -120 3 -14 8 -38 10 -53 12 -61 76 -298 105 -385 97 -294 255 -609 428 -857 52 -74 143 -195 167 -221 5 -6 30 -36 55 -65 77 -94 281 -291 395 -382 265 -213 457 -324 875 -507 289 -127 517 -252 660 -362 96 -75 295 -280 376 -388 39 -52 123 -167 187 -256 201 -279 363 -472 568 -675 257 -255 450 -355 569 -294 52 27 58 108 19 260 -9 35 -101 314 -116 355 -12 31 -15 47 -20 130 -6 94 13 190 49 248 11 17 16 32 11 32 -4 0 -3 4 2 8 6 4 26 27 45 52 19 25 50 58 69 75 47 42 105 80 96 64 -5 -8 1 -6 12 4 12 10 27 19 35 21 7 1 18 4 23 8 12 7 117 35 160 42 78 12 199 21 430 31 72 3 150 8 175 10 25 2 117 7 205 10 88 3 185 8 215 10 30 2 107 7 170 10 63 3 131 8 150 10 62 6 153 15 215 20 33 3 69 7 80 9 11 2 54 7 95 11 41 4 84 9 95 11 18 3 42 7 135 20 20 2 45 6 56 8 12 2 45 7 74 11 29 4 62 9 74 11 12 2 55 11 96 19 41 8 86 17 100 20 23 5 38 8 100 20 14 2 99 23 190 46 192 47 191 47 208 48 7 1 11 5 8 9 -3 5 5 8 17 7 12 -1 29 1 38 6 9 4 27 10 40 13 13 2 50 14 82 25 31 11 57 17 57 14 0 -3 7 0 15 7 8 7 15 10 15 6 0 -4 13 0 30 9 16 8 32 15 35 15 22 -1 25 1 19 12 -4 6 -3 8 4 4 10 -6 269 86 382 137 30 13 60 25 65 27 6 1 93 43 195 92 102 50 188 90 193 90 4 -1 7 3 7 9 0 5 5 7 10 4 6 -3 10 -3 10 2 0 4 26 21 58 38 31 16 65 36 75 44 9 8 17 11 17 7 0 -4 6 -2 13 4 6 6 59 41 117 78 58 36 107 69 110 72 3 3 39 29 80 58 239 164 522 424 715 657 22 26 45 53 50 59 58 61 185 247 178 259 -3 5 -2 7 4 4 13 -8 145 214 224 378 81 170 194 471 214 575 2 8 11 44 20 80 9 36 19 74 21 85 2 11 6 31 9 45 8 40 14 72 20 110 3 20 7 47 10 60 44 227 55 786 20 1013 -2 12 -6 45 -10 72 -14 104 -16 122 -31 210 -9 50 -18 104 -20 120 -12 74 -80 353 -119 490 -155 536 -395 1027 -710 1450 -351 474 -739 786 -1223 984 -230 94 -437 153 -762 216 -14 3 -45 8 -70 11 -25 3 -52 7 -60 9 -8 2 -37 7 -65 10 -27 4 -61 8 -75 10 -14 2 -56 7 -95 11 -38 3 -77 8 -85 9 -9 2 -60 6 -115 10 -55 4 -116 9 -135 12 -43 5 -786 14 -791 9z"/></g></svg>
+      <div class="bub-word"><span class="beb">HELLO</span></div>
+    </div>
+    <div class="echo beb" id="echo" aria-live="polite"></div>
+  </div>
+
+  <div class="q" id="q">WHAT SHALL WE ROBOT TODAY?</div>
+
+  <div class="signin" id="signin">
+    <div class="si-row">
+      <input id="siWord" placeholder="What's the magic word?" autocomplete="off"
+        onkeydown="if(event.key==='Enter')sayWord()">
+      <button class="si-go" id="siGo" onclick="sayWord()" aria-label="Unlock">
+        <svg viewBox="0 0 16 16" fill="none">
+          <path class="shackle" d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+          <rect x="3" y="7" width="10" height="7" rx="2" fill="#fff"/>
+          <circle cx="8" cy="10.5" r="1.2" fill="#1A1917"/>
+        </svg>
+      </button>
+    </div>
+    <div class="si-note" id="siNote"></div>
+  </div>
+
+  <div class="rooms" id="rooms">
+    <button class="room" onclick="enterRoom()">
+      <div><div class="room-t">TICKET GIVEAWAYS</div>
+      <div class="room-d">Competitions and prize draws for Rewards</div></div>
+      <div class="room-go">&rarr;</div>
+    </button>
+    <div class="room soon">
+      <div><div class="room-t">YOUR NEXT PROJECT</div>
+      <div class="room-d">Coming soon</div></div>
+      <div class="room-go">&rarr;</div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ===================== ROOM ===================== -->
+<section id="room">
+<div class="wrap">
+
+  <div class="rail">
+    <button class="step on"     data-s="0" onclick="go(0)"><i>1</i>Feed it</button>
+    <button class="step locked" data-s="1" onclick="go(1)"><i>2</i>Fix it</button>
+    <button class="step locked" data-s="2" onclick="go(2)"><i>3</i>Finished</button>
+  </div>
+
+  <!-- 1 BRIEF — the story, then the detail -->
+  <div class="pane on" data-p="0">
+
+    <!-- page one: the story. Feels first. -->
+    <div class="redpane" id="storyView">
+      <h2 class="rhed beb">WHAT'S THE <span style="color:#fff">STORY?</span></h2>
+      <p class="rlede">Fill in the blanks. The robot does the rest.</p>
+
+      <div class="qcard">
+        <div class="qhead beb">WHAT'S THE <span class="redword">PRIZE?</span></div>
+        <textarea class="qta" id="storyPrize" rows="2" oninput="dirty()"
+          placeholder="Tickets to Fleetwood Mac's last-ever NZ show. Name it like you'd tell a mate."></textarea>
+      </div>
+
+      <div class="qcard">
+        <div class="qhead beb">WHY WILL ANYONE <span class="redword">CARE?</span></div>
+        <textarea class="qta" id="storyCare" rows="2" oninput="dirty()"
+          placeholder="First show here in twelve years. One night. That's it."></textarea>
+      </div>
+
+      <div class="qcard">
+        <div class="qhead beb">WHAT DOES THE ROBOT NEED TO <span class="redword">KNOW?</span></div>
+        <textarea class="qta" id="blurb" rows="4" oninput="dirty()"
+          placeholder="Cut and paste anything you know about the prize."></textarea>
+      </div>
+
+      <button class="btnw" id="toDetailBtn" onclick="toDetail()">NOW THE DETAIL</button>
+    </div>
+
+    <!-- page two: THE CHECKLIST. One dumb renderer; the container's config
+         deals the screen (see CL_CONFIG below). Nothing flies without a tick. -->
+    <div class="redpane subhide" id="detailView">
+      <h2 class="rhed beb">CHECKLIST</h2>
+      <p class="rlede">Got all the facts in a straight line?</p>
+
+      <div class="cl-cards" id="clCards"></div>
+
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center;margin-top:16px">
+        <button class="btnw" style="opacity:.85" onclick="backToStory()">THE STORY</button>
+        <button class="cl-door" id="clDoor" onclick="toPics()">WRITE THE WORDS</button>
+      </div>
+    </div>
+
+    <!-- page three: the pics. The robot's already writing — this page fills
+         the window. Optional by design; the exit label flips with the grid. -->
+    <div class="redpane subhide" id="picsView">
+      <h2 class="rhed beb">WORKING ON THE WORDS.<br>GOT ANY PICTURES?</h2>
+      <p class="rlede">Drag or upload your images here.</p>
+
+      <div class="qcard">
+        <div class="picdrop" id="picDrop" tabindex="0" role="button" aria-label="Pop your pics in here">
+          <svg viewBox="0 0 56 56" fill="none" aria-hidden="true">
+            <rect x="6" y="10" width="44" height="36" rx="4" stroke="#1D1D1B" stroke-width="2.5"/>
+            <circle cx="19" cy="22" r="4" stroke="#1D1D1B" stroke-width="2.5"/>
+            <path d="M10 42 L24 28 L34 38 L41 31 L50 40" stroke="#1D1D1B" stroke-width="2.5"
+              stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+          </svg>
+          <div class="pichead">POP YOUR PICS IN HERE</div>
+          <div class="picsub"><a id="picBrowse">Browse files</a> or drag and drop. JPG or PNG.</div>
+        </div>
+        <input type="file" id="picFile" accept="image/jpeg,image/png" multiple style="display:none">
+        <div class="picgrid" id="picGrid"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btnw" style="opacity:.85" onclick="subView('detail')">THE DETAIL</button>
+        <button class="btnw" id="picsGo" onclick="buildIt()">NO IMAGES? NO WORRIES.</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 FIX IT — the whole email on the table, tools on the right,
+       padlocks in the gutter between. Tweak it or lock it. -->
+  <div class="pane" data-p="1">
+    <div class="fixstage" id="fixStage">
+      <div class="fx-grid">
+        <div>
+          <h2 class="fx-room beb">THE WORK</h2>
+          <div class="fx-tabs">
+            <span class="fx-tab on">#1: Email</span>
+            <span class="fx-tab dead">#2: Webtile</span>
+          </div>
+          <div class="fx-artwrap">
+            <div class="mail fx-art" id="fxArt"></div>
+            <div class="fx-gutter" id="fxGutter"></div>
+          </div>
+        </div>
+        <div class="fx-rail">
+          <h2 class="fx-room beb">THE WORKINGS</h2>
+          <div class="fx-topic" id="fxTopic"></div>
+          <div class="fx-chat" id="fxChat"></div>
+          <div class="fx-answer">
+            <div class="fx-say">
+              <input id="fxNote" placeholder="Say what you'd change&hellip;"
+                onkeydown="if(event.key==='Enter')fxSend()">
+              <button class="fx-sendgo" onclick="fxSend()" aria-label="Send">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M2 8h11M9 4l4 4-4 4" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="fx-receipt" id="fxReceipt" style="display:none">
+            <button class="fx-rchead" onclick="$('fxReceipt').classList.toggle('open')">
+              <span class="fx-rcount"><b>&#10003;</b><span id="fxRCount"></span></span>
+              <span class="fx-rchev">&#9662;</span>
+            </button>
+            <div class="fx-rlist" id="fxRList"></div>
+          </div>
+          <div class="fx-gtg" id="fxGtg">
+            <div class="fx-gtgtop">
+              <div class="fx-gtgico">
+                <svg class="i-open" viewBox="0 0 16 16" fill="none"><path d="M11.5 7V5a3.5 3.5 0 0 0-7 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="3" y="7" width="10" height="7" rx="2" stroke="currentColor" stroke-width="1.7" fill="none"/><circle cx="8" cy="10.5" r="1.15" fill="currentColor"/></svg>
+                <svg class="i-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="fx-gtghed">GOOD TO GO?</div>
+            </div>
+            <button class="fx-pkg" onclick="fxPackage()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Package it up
+            </button>
+            <div class="fx-cap" id="fxCap">Lock everything first</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <!-- 3 REVIEW -->
+  <div class="pane" data-p="2">
+    <h2 class="hed beb">HERE'S THE EMAIL</h2>
+    <p class="lede">What the customer sees, and what the specialist gets. Anything wrong, go back and fix it — nothing's gone anywhere yet.</p>
+    <div id="reviewOut"></div>
+    <div class="bar">
+      <button class="btn ghost" onclick="go(1)">CHANGE THE WORDS</button>
+      <button class="btn ghost" onclick="go(0)">CHANGE THE FACTS</button>
+      <button class="btn" onclick="location.reload()">DO ANOTHER ONE</button>
+    </div>
+  </div>
+
+</div>
+</section>
+
+<script>
+/* =====================================================================
+   ROBOT — frontend
+   All the thinking happens server-side: the terms engine and the API key
+   both live in Flask where nobody can read them.
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* The copy keeps its {slots} underneath — that's the bulletproof rule — but
+   the room shows the filled facts, marked so you know the robot can't have
+   got them wrong. CTX is copy_context(facts), straight off /api/copy. */
+const fillPh = t => esc(t).replace(/\{(\w+)\}/g,(m,k)=>`<span class="ph">${esc(CTX[k]??k)}</span>`);
+const fillPlain = t => String(t??'').replace(/\{(\w+)\}/g,(m,k)=>String(CTX[k]??k));
+const hasPh = t => /\{\w+\}/.test(String(t??''));
+
+async function api(path, body){
+  const r = await fetch(path, body ? {method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)} : {});
+  const d = await r.json().catch(()=>({error:'The server said something odd.'}));
+  if(!r.ok) throw new Error(d.error || 'Something went wrong.');
+  return d;
+}
+
+/* ---------------- the door ---------------- */
+async function sayWord(){
+  const note=$('siNote'), go=$('siGo'), w=$('siWord').value.trim();
+  if(!w){ note.className='si-note bad'; note.textContent='Needs a word.'; return; }
+  go.disabled=true; note.className='si-note'; note.textContent='Checking…';
+  try{
+    const d = await api('/api/auth/word',{word:w});
+    go.classList.add('open');                       // the padlock pops
+    setTimeout(()=>signedIn(d), 430);
+  }
+  catch(e){
+    note.className='si-note bad'; note.textContent=e.message;
+    $('siWord').value=''; $('siWord').focus(); go.disabled=false;
+  }
+}
+/* The echo: the door said HELLO, the tool says it back with your name on it.
+   The type fits itself to the name — capped at 62px so SUZ lands big, not
+   billboard, and stepped down only as far as a long name forces it. */
+function fitEcho(){
+  const e=$('echo'); if(!e.textContent) return;
+  const target=$('door').clientWidth-48;
+  let size=62;
+  e.style.fontSize=size+'px';
+  while(e.scrollWidth>target && size>28){ size-=2; e.style.fontSize=size+'px'; }
+}
+window.addEventListener('resize', fitEcho);
+
+function signedIn(d){
+  $('signin').style.display='none';
+  $('bub').classList.add('gone');
+  $('bub').closest('.greet').classList.add('settled');
+  $('sando').classList.add('on');
+  const first=(d.name||'').split(' ')[0];
+  $('echo').textContent = (first && first!=='there')
+    ? `HELLO ${first.toUpperCase()}` : 'HELLO YOU';
+  fitEcho();
+  $('echo').classList.add('on');
+  $('q').classList.add('on');
+  $('rooms').style.display='flex';
+  $('who').textContent = d.tenant || '';
+}
+(async()=>{ try{ const d=await api('/api/auth/me'); if(d.authed) signedIn(d); }catch(e){} })();
+
+/* ---------------- state + nav ---------------- */
+let FACTS=null, COPY=null, PICK=0, MENU=[], CHOSEN=null, TWEAKS=0;
+let CTX={};                                    // slot -> value, from the brief
+const ORDER=['subject','headline','body'];
+let LOCKED={subject:false,headline:false,body:false};
+let OPENK='subject';                           // the one section that's open
+let REACHED = 0;                 // furthest step unlocked
+const HIST = {};
+
+const val = id => ($(id) ? $(id).value : '');
+
+/* ============================================================
+   CONTAINER CONFIG — prize_draw's checklist. This is the container
+   speaking: the chrome below renders whatever it's handed and knows
+   nothing about prizes. Moves behind the container definition when
+   the abstraction lands (hit list 17); it's the needs list wearing
+   a UI (hit list 20).
+   ============================================================ */
+const CL_CONFIG = {
+  groups: [
+    { title:"The prize", accent:"prize", rows: [
+      { id:'ptype',  label:'Prize', type:'select', value:'movie',
+        options:[['movie','Movie passes'],['gig','Gig tickets'],['sport','Sports tickets'],['other','Other…']],
+        otherAsk:'What is it?' },
+      { id:'pname',  label:'Show', type:'text', ask:"What's the show?",
+        labelBy:{ row:'ptype', map:{movie:'Film', gig:'Show', sport:'Match', other:'Prize name'} },
+        askBy:{ row:'ptype', map:{movie:"What's the film?", gig:"Who's playing?",
+                                  sport:"What's the match?", other:"What's it called?"} } },
+      { id:'venue',  label:'Venue', type:'text', ask:'Where is it?',
+        showIf:{ row:'ptype', in:['gig','sport'] },
+        notsure:'I can hunt for the venue myself.' },
+      { id:'edate',  label:'Event date', type:'date', ask:'When is it?',
+        showIf:{ row:'ptype', in:['gig','sport'] } },
+      { id:'winners', label:'Prizes', type:'number', ask:'How many?' }
+    ]},
+    { title:"The dates", accent:"dates", rows: [
+      { id:'opens',  label:'Draw opens',  type:'date', value:'2026-08-24', sub:'12:00am' },
+      { id:'closes', label:'Draw closes', type:'date', value:'2026-09-06', sub:'11:59pm' },
+      { id:'drawn',  label:'Winners drawn', type:'date', ask:'When?', derive:'nextWorkday:closes' }
+    ]}
+  ],
+  legals: { title:"The legals", accent:"legals",
+    sub:'<a onclick="toggleFixed()">Standard legals</a> are locked in. Tick the extras this one needs.' }
+};
+
+/* ============================================================
+   CHECKLIST CHROME — one dumb renderer. Everything below is engine.
+   Rules, from the spec: an edited fact is an unconfirmed fact; a
+   robot-found fact never arrives ticked; nothing flies without a tick.
+   ============================================================ */
+const CL_CHECK  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>';
+const CL_PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3"/><path d="M13.5 6.5l3 3"/></svg>';
+
+let CLS = {};                 // id -> {value, sub, other, ticked, mode, found}
+CL_CONFIG.groups.forEach(g => g.rows.forEach(r => {
+  CLS[r.id] = { value:r.value||'', sub:r.sub||'', other:'', ticked:false, mode:'view', found:null };
+}));
+
+const clRows = () => CL_CONFIG.groups.flatMap(g=>g.rows);
+const clRow  = id => clRows().find(r=>r.id===id);
+const clShown = r => !r.showIf || r.showIf.in.includes(CLS[r.showIf.row].value);
+const clLabel = r => r.labelBy ? (r.labelBy.map[CLS[r.labelBy.row].value]||r.label) : r.label;
+const clAsk   = r => r.askBy ? (r.askBy.map[CLS[r.askBy.row].value]||r.ask) : (r.ask||'');
+
+const MONTHS=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const clFmtDate = v => { if(!v) return '';
+  const d=new Date(v+'T00:00'); return d.getDate()+' '+MONTHS[d.getMonth()]; };
+
+/* WINNERS DRAWN: derived as a suggestion — next working day after close,
+   nobody draws on a Sunday — but human-editable and human-ticked. */
+function clDerive(r){
+  if(r.derive!=='nextWorkday:closes') return;
+  const s=CLS[r.id]; if(s.touched) return;
+  const c=CLS.closes.value; if(!c){ s.value=''; return; }
+  const d=new Date(c+'T00:00'); d.setDate(d.getDate()+1);
+  while(d.getDay()===0||d.getDay()===6) d.setDate(d.getDate()+1);
+  const v=d.toISOString().slice(0,10);
+  if(v!==s.value){ s.value=v; s.ticked=false; }
+}
+
+function clRender(){
+  const wrap=$('clCards'); wrap.innerHTML='';
+  CL_CONFIG.groups.forEach(g=>{
+    const card=document.createElement('div'); card.className='cl-card';
+    card.innerHTML=`<div class="cl-title">${clTitle(g.title,g.accent)}</div>`;
+    g.rows.forEach(r=>{ if(!clShown(r)) return;
+      clDerive(r); card.appendChild(clRowEl(r)); });
+    wrap.appendChild(card);
+  });
+  wrap.appendChild(clLegalsCard());
+  const ready=detailReady();
+  $('clDoor').classList.toggle('live', ready);
+}
+
+function clTitle(t,accent){
+  return esc(t).replace(new RegExp('('+accent+')','i'),'<em>$1</em>');
+}
+
+function clRowEl(r){
+  const s=CLS[r.id];
+  const row=document.createElement('div'); row.className='cl-row';
+  const main=document.createElement('div'); main.className='cl-main'; row.appendChild(main);
+  const label=document.createElement('div'); label.className='cl-label';
+  label.textContent=clLabel(r); main.appendChild(label);
+  const valEl=document.createElement('div'); valEl.className='cl-value'; main.appendChild(valEl);
+  const tick=document.createElement('button'); tick.className='cl-tick';
+  tick.setAttribute('aria-label','Confirm '+clLabel(r)); main.appendChild(tick);
+
+  if(s.mode==='view'){
+    tick.innerHTML=CL_CHECK; if(s.ticked) tick.classList.add('on');
+    const shown = r.id==='ptype'
+      ? (s.value==='other' ? (s.other||'') : (r.options.find(o=>o[0]===s.value)||[])[1])
+      : s.value;
+    if(!shown){
+      valEl.innerHTML=`<span class="cl-ask">${esc(clAsk(r))}</span>`;
+    } else if(r.type==='date'){
+      valEl.innerHTML=(s.sub?`<span class="cl-factsub">${esc(s.sub)}</span>`:'')
+        +`<span class="cl-fact date">${clFmtDate(s.value)}</span>`+clProv(s);
+    } else {
+      valEl.innerHTML=`<span class="cl-fact">${esc(shown)}</span>`+clProv(s);
+    }
+    valEl.onclick=()=>{ s.mode='edit'; clRender(); };
+    tick.onclick=()=>{
+      if(!shown){ s.mode='edit'; clRender(); return; }
+      s.ticked=!s.ticked; clArm(); clRender();
+    };
+  }
+  else if(s.mode==='edit'){
+    tick.innerHTML=CL_PENCIL;
+    let inp;
+    if(r.type==='select'){
+      inp=document.createElement('select');
+      inp.innerHTML=r.options.map(o=>`<option value="${o[0]}" ${o[0]===s.value?'selected':''}>${o[1]}</option>`).join('');
+    } else {
+      inp=document.createElement('input');
+      inp.type = r.type==='date'?'date':(r.type==='number'?'number':'text');
+      if(r.type==='number') inp.min=1;
+      inp.value=s.value; inp.placeholder=clAsk(r);
+    }
+    if(s.sub!=='' && r.sub!==undefined){
+      const si=document.createElement('input'); si.className='cl-subin';
+      si.value=s.sub; si.setAttribute('aria-label','At');
+      si.oninput=()=>{ s.sub=si.value; };
+      valEl.appendChild(si);
+    }
+    valEl.appendChild(inp); valEl.onclick=null;
+    let otherIn=null;
+    if(r.id==='ptype'){
+      otherIn=document.createElement('input');
+      otherIn.placeholder=r.otherAsk; otherIn.value=s.other;
+      otherIn.style.display = s.value==='other'?'inline-block':'none';
+      otherIn.style.marginTop='6px';
+      valEl.appendChild(document.createElement('br')); valEl.appendChild(otherIn);
+      inp.onchange=()=>{ otherIn.style.display = inp.value==='other'?'inline-block':'none';
+        if(inp.value==='other') otherIn.focus(); };
+    }
+    if(clAsk(r) && clRow(r.id).notsure){
+      const ns=document.createElement('span'); ns.className='cl-notsure';
+      ns.textContent='Not sure?';
+      ns.onmousedown=e=>{ e.preventDefault(); s.mode='doors'; clRender(); };
+      valEl.appendChild(document.createElement('br')); valEl.appendChild(ns);
+    }
+    setTimeout(()=>{ inp.focus();
+      if(r.type==='date' && inp.showPicker) try{ inp.showPicker(); }catch(e){} },0);
+    const save=()=>{
+      if(s.mode!=='edit') return;
+      if(otherIn && document.activeElement===otherIn) return;
+      const nv = inp.value.trim ? inp.value.trim() : inp.value;
+      const changed = nv!==s.value || (otherIn && otherIn.value.trim()!==s.other);
+      s.value=nv; if(otherIn) s.other=otherIn.value.trim();
+      if(changed){ s.ticked=false; s.found=null; s.touched=true; dirty(); }
+      s.mode='view'; clRender();
+    };
+    inp.onblur=()=>setTimeout(save,80);
+    if(otherIn) otherIn.onblur=()=>setTimeout(save,80);
+    inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
+    if(otherIn) otherIn.onkeydown=e=>{ if(e.key==='Enter') otherIn.blur(); };
+  }
+
+  if(s.mode==='doors'){
+    tick.innerHTML=CL_PENCIL;
+    valEl.innerHTML='';
+    const panel=document.createElement('div'); panel.className='cl-doors';
+    panel.innerHTML=`<div class="cl-doorline"><span class="cl-doorbot"><img src="robot-face.svg" alt=""></span>
+      <span>No sweat &mdash; ${esc(r.notsure)} Your call:</span></div>`;
+    const btns=document.createElement('div'); btns.className='cl-doorbtns';
+    const tell=document.createElement('button'); tell.textContent="I'll tell it";
+    tell.onclick=()=>{ s.mode='edit'; clRender(); };
+    const dig=document.createElement('button'); dig.className='primary'; dig.textContent='Let it dig';
+    /* SEARCH (hit list 9) isn't built. The honest answer, in character. */
+    dig.onclick=()=>{
+      panel.querySelector('.cl-doorline span:last-child').innerHTML=
+        "Can't dig yet &mdash; that bit of me is still being built. Tell me for now?";
+      btns.remove();
+      setTimeout(()=>{ s.mode='edit'; clRender(); },1600);
+    };
+    btns.appendChild(tell); btns.appendChild(dig);
+    panel.appendChild(btns); row.appendChild(panel);
+  }
+  return row;
+}
+
+function clProv(s){
+  return s.found
+    ? `<div class="cl-prov">the robot found this &mdash; check it before you tick <b>${esc(s.found)}</b></div>`
+    : '';
+}
+
+/* the legals card — selection, not confirmation. Square boxes from the
+   live clause menu; no circle ticks on clauses. */
+let FIXED_OPEN=false;
+function toggleFixed(){ FIXED_OPEN=!FIXED_OPEN; clRender(); }
+function clLegalsCard(){
+  const card=document.createElement('div'); card.className='cl-card legals';
+  card.innerHTML=`<div class="cl-title">${clTitle(CL_CONFIG.legals.title,CL_CONFIG.legals.accent)}</div>
+    <div class="cl-sub">${CL_CONFIG.legals.sub}</div>`;
+  if(!MENU.length){
+    const w=document.createElement('div'); w.className='cl-legwait';
+    w.textContent='Finish the facts above and the legals sort themselves.';
+    card.appendChild(w); return card;
+  }
+  MENU.filter(c=>!c.fixed).forEach(c=>{
+    const el=document.createElement('div');
+    el.className='cl-clause'+(CHOSEN&&CHOSEN.includes(c.id)?' on':'');
+    el.innerHTML=`<span class="cl-clbox">${CHOSEN&&CHOSEN.includes(c.id)?CL_CHECK:''}</span>
+      <span class="cl-cltext"><b>${esc(c.label)}</b> ${esc(c.text)}</span>`;
+    el.onclick=()=>{ toggleClause(c.id); };
+    card.appendChild(el);
+  });
+  if(FIXED_OPEN){
+    const ul=document.createElement('ul');
+    ul.style.cssText='font-size:11.5px;color:var(--mid);padding-left:18px;line-height:1.6;margin:8px 0 4px';
+    ul.innerHTML=MENU.filter(c=>c.fixed&&!c.sub).map(c=>`<li>${esc(c.text)}</li>`).join('');
+    card.appendChild(ul);
+  }
+  return card;
+}
+
+const formData = () => ({
+  /* OTHER sends whatever they typed — the terms engine names it back in its
+     "we don't know that prize type yet" message, which is the honest answer. */
+  prize_type: CLS.ptype.value==='other' ? (CLS.ptype.other.toLowerCase()||'other') : CLS.ptype.value,
+  prize_name: CLS.pname.value, winners: CLS.winners.value,
+  opens: CLS.opens.value, closes: CLS.closes.value,
+  opens_time: CLS.opens.sub, closes_time: CLS.closes.sub,
+  venue: clShown(clRow('venue')) ? CLS.venue.value : '',
+  event_date: clShown(clRow('edate')) ? CLS.edate.value : '',
+  drawn: CLS.drawn.value
+});
+
+function enterRoom(){ $('door').style.display='none'; $('room').classList.add('on'); clRender(); }
+
+/* ---------------- story -> detail ---------------- */
+const storyData = () => ({prize:val('storyPrize'), care:val('storyCare'), source:val('blurb')});
+
+function subView(v){
+  $('storyView').classList.toggle('subhide', v!=='story');
+  $('detailView').classList.toggle('subhide', v!=='detail');
+  $('picsView').classList.toggle('subhide', v!=='pics');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function backToStory(){ subView('story'); }
+
+let EXTRACTED = false;
+async function toDetail(){
+  const btn=$('toDetailBtn');
+  const s=storyData();
+  if(!EXTRACTED && (s.prize||s.care||s.source).trim()){
+    btn.disabled=true; btn.textContent='READING THAT…';
+    try{
+      const d = await api('/api/extract', s);
+      const f = d.found || {};
+      /* dug or extracted, the rule holds: a robot-found fact never
+         arrives ticked. Provenance line, grey tick, human judges. */
+      const land=(id,v)=>{ if(v && !CLS[id].value){
+        CLS[id].value=v; CLS[id].found='from your docs'; CLS[id].ticked=false; } };
+      if(f.prize_type && !CLS.pname.value) CLS.ptype.value=f.prize_type;
+      land('pname', f.prize_name);
+      land('venue', f.venue);
+      land('edate', f.event_date);
+      EXTRACTED = true;
+    }catch(e){ /* extraction is a favour, not a gate */ }
+    btn.disabled=false; btn.textContent='NOW THE DETAIL';
+  }
+  clRender(); subView('detail'); armDetail();
+}
+
+/* ---------------- nothing flies without a tick ---------------- */
+const detailReady = () => clRows().every(r=>{
+  if(!clShown(r)) return true;
+  const s=CLS[r.id];
+  const has = r.id==='ptype' ? (s.value!=='other'||s.other) : !!s.value;
+  return has && s.ticked;
+});
+
+let ARM=null, CRAFT=null, CRAFT_KEY='';
+
+async function refreshLegals(){
+  if(!clRows().every(r=>!clShown(r)||CLS[r.id].value||(r.id==='ptype'))){ MENU=[]; clRender(); return; }
+  if(!formData().prize_name || !formData().opens || !formData().closes) { MENU=[]; return; }
+  try{
+    const d = await api('/api/terms',{form:formData()});
+    MENU=d.menu; FACTS=d.facts;
+    if(CHOSEN===null) CHOSEN = MENU.filter(c=>!c.fixed && c.default).map(c=>c.id);
+    clRender();
+  }catch(e){ MENU=[]; }
+}
+
+function toggleClause(id){
+  CHOSEN = CHOSEN.includes(id) ? CHOSEN.filter(x=>x!==id) : CHOSEN.concat([id]);
+  clRender();
+}
+
+/* ---------------- background crafting ----------------
+   The robot starts writing the moment every fact is ticked, while the
+   human is still choosing legals. By the copy room, it's usually done. */
+function clArm(){ armDetail(); }
+function armDetail(){
+  clearTimeout(ARM);
+  ARM = setTimeout(()=>{ refreshLegals(); armCraft(); }, 700);
+}
+
+function craftKey(){ return JSON.stringify([formData(), storyData()]); }
+
+function armCraft(){
+  if(!detailReady()) return;
+  const key = craftKey();
+  if(key===CRAFT_KEY) return;             // already writing (or written) this one
+  CRAFT_KEY = key;
+  CRAFT = api('/api/copy',{form:formData(), story:storyData(), source:val('blurb')})
+    .catch(e=>({__err:e.message}));
+}
+
+/* Changing a fact invalidates everything downstream. The copy was written
+   against the old facts, so keeping it would be exactly the drift the whole
+   tool exists to prevent. */
+function dirty(){
+  if(REACHED>0){ COPY=null; REACHED=0; unlock(); }
+  CRAFT=null; CRAFT_KEY='';
+  armDetail();
+}
+
+function unlock(){
+  document.querySelectorAll('.step').forEach(s=>{
+    s.classList.toggle('locked', +s.dataset.s > REACHED);
+  });
+}
+
+function go(n){
+  if(n>REACHED) return;                       // can't skip ahead
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',+p.dataset.p===n));
+  document.querySelectorAll('.step').forEach(s=>{const i=+s.dataset.s;
+    s.classList.toggle('on',i===n); s.classList.toggle('done',i<n);});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function reach(n){ if(n>REACHED){REACHED=n; unlock();} go(n); }
+
+/* ---------------- the pics page ----------------
+   WRITE THE WORDS lands here, not in the copy room: the robot's already
+   writing (armCraft fired when the facts were complete), so the human
+   fills the window with pictures. The exit does the old job — and the
+   robot-is-writing moment only appears if the writing's genuinely not
+   done, which after an upload or two it usually is. */
+const RUN = (crypto.randomUUID ? crypto.randomUUID()
+             : Date.now()+'-'+Math.random().toString(36).slice(2)).replace(/[^a-z0-9-]/gi,'');
+
+function toPics(){
+  if(!detailReady()){ armDetail();
+    alert("A couple of facts still need a tick."); return; }
+  armCraft();
+  subView('pics');
+}
+
+function flipPicsGo(){
+  $('picsGo').textContent = $('picGrid').children.length
+    ? "LET'S GO BUILD" : "NO IMAGES? NO WORRIES.";
+}
+
+function addPics(files){
+  [...files].filter(f=>f.type==='image/jpeg'||f.type==='image/png').forEach(f=>{
+    const cell=document.createElement('div'); cell.className='pic hold';
+    const r=new FileReader();
+    r.onload=()=>{ cell.innerHTML=`<img src="${r.result}" alt="">
+      <button aria-label="Remove ${esc(f.name)}">&times;</button>`;
+      cell.querySelector('button').onclick=()=>{ cell.remove(); flipPicsGo();
+        if(cell.dataset.id) fetch(`/api/images/${RUN}/${cell.dataset.id}`,{method:'DELETE'}); };
+    };
+    r.readAsDataURL(f);
+    $('picGrid').appendChild(cell); flipPicsGo();
+    const fd=new FormData(); fd.append('run',RUN); fd.append('file',f);
+    fetch('/api/images',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+      if(d.id){ cell.dataset.id=d.id; cell.classList.remove('hold'); }
+      else { cell.remove(); flipPicsGo(); }
+    }).catch(()=>{ cell.remove(); flipPicsGo(); });
+  });
+}
+
+{
+  const dz=$('picDrop'), fi=$('picFile');
+  const pick=e=>{ e.stopPropagation(); fi.click(); };
+  dz.addEventListener('click', pick);
+  $('picBrowse').addEventListener('click', pick);
+  dz.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click();} });
+  ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('dragover');}));
+  ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('dragover');}));
+  dz.addEventListener('drop', e=>addPics(e.dataTransfer.files));
+  fi.addEventListener('change', ()=>{ addPics(fi.files); fi.value=''; });
+}
+
+/* ---------------- 2 COPY ---------------- */
+async function buildIt(){
+  if(!detailReady()){ subView('detail'); armDetail();
+    alert("A couple of facts still need a tick."); return; }
+  reach(1);
+  if(COPY) return;
+  const key = craftKey();
+  if(CRAFT && key===CRAFT_KEY){
+    $('fxArt').innerHTML='<div class="load" style="margin:40px auto"><img class="robotwork" src="robot-sandwich.png" alt="">The robot is writing…</div>';
+    $('fxGutter').innerHTML=''; $('fxChat').innerHTML=''; $('fxTopic').textContent='';
+    const d = await CRAFT;
+    if(d.__err){ genCopy(); return; }       // the background try failed; go live
+    fxInit(d);
+  } else genCopy();
+}
+
+async function genCopy(){
+  $('fxArt').innerHTML='<div class="load" style="margin:40px auto"><img class="robotwork" src="robot-sandwich.png" alt="">The robot is writing…</div>';
+  $('fxGutter').innerHTML=''; $('fxChat').innerHTML=''; $('fxTopic').textContent='';
+  try{
+    const d = await api('/api/copy',{form:formData(), story:storyData(), source:val('blurb')});
+    fxInit(d);
+  }catch(e){
+    $('fxArt').innerHTML=`<div class="err" style="margin:20px">${esc(e.message)}</div>`;
+  }
+}
+
+/* =====================================================================
+   FIX IT — the Wrangler split.
+   The whole email sits on the table as the artefact. Padlocks live in
+   the gutter and they are the buttons: open / pencil / shut. The rail
+   is the robot's side of the desk — the tour in one state, the fixer
+   chat in the other. Rewrites land straight on the card, changes
+   marked. The card is the proposal.
+   ===================================================================== */
+const FXORDER=['subject','headline','body','terms'];
+const FXLBL={subject:'Subject line',headline:'Headline',body:'Body',terms:'Terms'};
+let FXLOCK={}, FXHL=null, FXDIFF={}, FXLIST=[], FXFLAGS=[], WHY={};
+
+const FXFALLBACK_WHY={
+  subject:'The pick of three — two more wait in the drawer.',
+  headline:'Plain about what you win — the rule up here.',
+  body:'The story, three short lines, ends with what to do.',
+  terms:"Suze's clauses, assembled from the brief. Read it and nod."
+};
+
+function fxInit(d){
+  COPY=d.copy; FACTS=d.facts; CTX=d.context||{}; PICK=0; TWEAKS=0;
+  WHY=(COPY.why&&typeof COPY.why==='object')?COPY.why:{};
+  FXLOCK={subject:false,headline:false,body:false,terms:false};
+  FXHL=null; FXDIFF={}; FXLIST=[]; FXFLAGS=d.flags||[];
+  LOCKED=FXLOCK;
+  $('fxChat').innerHTML='';
+  drawFix();
+  fxOpenBeat('subject', false);
+}
+
+const fxDiffWords=(o,n)=>{
+  const tok=x=>String(x??'').split(/(\s+)/); const a=tok(o),b=tok(n);
+  const m=a.length,k=b.length;
+  const dp=Array.from({length:m+1},()=>new Array(k+1).fill(0));
+  for(let i=m-1;i>=0;i--)for(let j=k-1;j>=0;j--)
+    dp[i][j]=a[i]===b[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+  let i=0,j=0,out='';
+  while(j<k){
+    if(i<m&&a[i]===b[j]){out+=fillPh(b[j]);i++;j++;}
+    else if(i<m&&dp[i+1][j]>=dp[i][j+1]){i++;}
+    else{out+=b[j].trim()===''?esc(b[j]):'<mark class="fx-ch">'+fillPh(b[j])+'</mark>';j++;}
+  }
+  return out;
+};
+const fxText = k => k==='subject' ? COPY.subjects[PICK] : COPY[k];
+const fxShow = k => FXDIFF[k] ? fxDiffWords(FXDIFF[k].old, FXDIFF[k].new) : fillPh(fxText(k));
+
+function fxTermsText(){
+  if(!MENU || !MENU.length) return 'Terms assemble from the brief once the facts are in.';
+  return MENU.filter(c=>c.fixed || (CHOSEN||[]).includes(c.id)).map(c=>c.text).join(' ');
+}
+
+function fxBeat(){ return FXORDER.find(k=>!FXLOCK[k]) || null; }
+
+function drawFix(){
+  /* the artefact — the email itself, sections wrapped for the gutter */
+  $('fxArt').innerHTML = `
+    <div class="mail-bar fx-sec " data-k="subject">
+      <div class="mail-from">One NZ Rewards &lt;rewards@one.nz&gt;</div>
+      <div class="mail-subj">${fxShow('subject')}</div>
+    </div>
+    <div class="mail-body" style="padding-bottom:6px">
+      <div class="mail-img">Hero image goes here</div>
+      <div class="fx-sec " data-k="headline" style="padding:4px 0 10px">
+        <div class="mail-h" style="margin-bottom:0">${fxShow('headline')}</div>
+      </div>
+      <div class="fx-sec " data-k="body" style="padding:2px 0 8px">
+        <div class="mail-p" style="margin-bottom:16px">${fxShow('body')}</div>
+        <span class="mail-cta" style="margin-bottom:22px">Enter now</span>
+      </div>
+    </div>
+    <div class="mail-tcs fx-sec fx-tcs ${FXLOCK.terms?'locked-look':''}" data-k="terms">${esc(fxTermsText())}</div>`;
+
+  fxGutterDraw();
+  fxRailDraw();
+  requestAnimationFrame(fxPos);
+}
+
+/* ── the gutter: the padlock is furniture now — quiet confirmation in
+   the background, flipped by the conversation, still tappable for the
+   direct movers. One lock; the bar spins to a side hook when open. ── */
+const FXI_LOCK='<svg viewBox="0 0 16 16" fill="none"><path class="shackle" d="M4.5 8V5a3.5 3.5 0 0 1 7 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="3" y="7.5" width="10" height="7" rx="2" fill="currentColor"/></svg>';
+
+function fxGutterDraw(){
+  const beat=fxBeat();
+  $('fxGutter').innerHTML = FXORDER.map(k=>{
+    const locked=FXLOCK[k];
+    const tip = locked?'Locked — click to reopen':'Open — click to lock';
+    return `<button class="fx-pad ${locked?'locked':''} ${(!locked&&beat===k)?'here':''}"
+      data-k="${k}" onclick="fxTogglePad('${k}')" title="${tip}" aria-label="${tip}: ${FXLBL[k]}">
+      ${FXI_LOCK}</button>`;
+  }).join('');
+}
+function fxPos(){
+  const art=$('fxArt'); if(!art) return;
+  const top=art.getBoundingClientRect().top;
+  document.querySelectorAll('#fxGutter .fx-pad').forEach(b=>{
+    const sec=art.querySelector(`.fx-sec[data-k="${b.dataset.k}"]`); if(!sec) return;
+    const r=sec.getBoundingClientRect();
+    b.style.top=(r.top-top+r.height/2-22)+'px';
+  });
+}
+window.addEventListener('resize', fxPos);
+
+/* ── the conversation. The robot presents its choice and closes seeking
+   confirmation. The human types; the FIXER reads the reply — yes locks,
+   a note tweaks, unclear asks. The lock is announced, not operated. ── */
+const FX_ASKS=['What do you reckon?','Sound good to you?','Happy with it?','Good to lock?'];
+let FX_ASK_I=0;
+const fxAsk=()=>FX_ASKS[(FX_ASK_I++)%FX_ASKS.length];
+const fxNextLine=k=>({subject:'happy with the subject line?',headline:'happy with the headline?',
+  body:'how\u2019s the body reading?',terms:'give the terms a once-over?'}[k]);
+
+function fxSay(html,who,withAv){
+  const row=document.createElement('div');
+  row.className='fx-chatrow'+(who==='me'?' me':'');
+  row.innerHTML = who==='me'
+    ? `<div class="fx-msg">${html}</div>`
+    : `<div class="fx-cav ${withAv?'':'ghost'}"><img src="robot-face.svg" alt=""></div><div class="fx-msg">${html}</div>`;
+  $('fxChat').appendChild(row);
+  $('fxChat').scrollTop=$('fxChat').scrollHeight;
+  return row;
+}
+function fxThink(){
+  const t=document.createElement('div');
+  t.className='fx-think'; t.innerHTML='<span></span><span></span><span></span>';
+  $('fxChat').appendChild(t); $('fxChat').scrollTop=$('fxChat').scrollHeight;
+  return t;
+}
+function fxClearOpts(){ document.querySelectorAll('#fxChat .fx-opt').forEach(o=>o.remove()); }
+
+/* open a beat: the robot owns its choice, then hands it back */
+function fxOpenBeat(k, reopened){
+  $('fxTopic').textContent=FXLBL[k];
+  if(reopened){
+    fxSay(`Reopened the ${FXLBL[k].toLowerCase()} — what\u2019s off?`,'robot',true);
+  } else {
+    const why=(WHY[k]||'').trim()||FXFALLBACK_WHY[k];
+    fxSay(esc(why),'robot',true);
+    let extra='';
+    if(k==='subject' && FXFLAGS.length) extra+=`<span class="small">Careful — ${esc(FXFLAGS[0])}</span>`;
+    if(k==='subject' && COPY.wants) extra+=`<span class="small">${esc(COPY.wants)}</span>`;
+    fxSay(esc(fxAsk())+extra,'robot',false);
+    if(k==='subject') COPY.subjects.forEach((opt,i)=>{
+      if(i===PICK) return;
+      const b=document.createElement('button');
+      b.className='fx-opt'; b.innerHTML='Or from the drawer: '+fillPh(opt);
+      b.onclick=()=>{ fxPickSubject(i); };
+      $('fxChat').appendChild(b);
+    });
+  }
+  $('fxChat').scrollTop=$('fxChat').scrollHeight;
+  drawFix();
+}
+
+/* a lock is a report: close the beat, open the next, one breath */
+function fxAnnounceLock(k){
+  fxClearOpts();
+  const next=fxBeat();
+  if(next){
+    fxSay(`${FXLBL[k]} locked — ${fxNextLine(next)}`,'robot',true);
+    $('fxTopic').textContent=FXLBL[next];
+    fxOpenBody(next);
+  } else {
+    fxSay(`${FXLBL[k]} locked. That\u2019s the lot — anything nagging, tap a padlock and go again. Otherwise, package it up.`,'robot',true);
+    $('fxTopic').textContent='All locked';
+  }
+  drawFix();
+}
+/* the body of a beat opening, without the announce (used after a bridge) */
+function fxOpenBody(k){
+  const why=(WHY[k]||'').trim()||FXFALLBACK_WHY[k];
+  fxSay(esc(why),'robot',false);
+  if(k==='subject') COPY.subjects.forEach((opt,i)=>{
+    if(i===PICK) return;
+    const b=document.createElement('button');
+    b.className='fx-opt'; b.innerHTML='Or from the drawer: '+fillPh(opt);
+    b.onclick=()=>{ fxPickSubject(i); };
+    $('fxChat').appendChild(b);
+  });
+  $('fxChat').scrollTop=$('fxChat').scrollHeight;
+}
+
+function fxRailDraw(){
+  if(FXLIST.length){
+    $('fxReceipt').style.display='block';
+    $('fxRCount').textContent=FXLIST.length+' tweak'+(FXLIST.length>1?'s':'')+' made';
+    $('fxRList').innerHTML=FXLIST.map(t=>`<div class="fx-ritem"><div class="fx-rlbl">${esc(t.label)}</div><div class="fx-rwhy">${esc(t.note)}</div></div>`).join('');
+  } else $('fxReceipt').style.display='none';
+
+  const locks=FXORDER.filter(k=>FXLOCK[k]).length, all=locks===4;
+  $('fxGtg').classList.toggle('ready',all);
+  $('fxCap').textContent = all ? 'Four locks on. Take it.' : locks+' of 4 locked';
+}
+
+/* the padlocks still work by hand — background furniture, quiet lines */
+function fxTogglePad(k){
+  const was=FXLOCK[k];
+  FXLOCK[k]=!was;
+  if(!was){                       // locked by hand
+    fxAnnounceLock(k);
+  } else {                        // reopened by hand
+    fxOpenBeat(k, true);
+  }
+  drawFix();
+}
+function fxPackage(){ if(FXORDER.every(k=>FXLOCK[k])) toReview(); }
+
+function fxPickSubject(i){
+  const old=fxText('subject');
+  PICK=i;
+  FXDIFF.subject={old, new:fxText('subject')};
+  FXLIST.push({label:FXLBL.subject, note:'From the drawer'}); TWEAKS++;
+  fxClearOpts();
+  fxSay('Swapped. '+esc(fxAsk()),'robot',true);
+  fxApplyFx('subject');
+}
+function fxApplyFx(k){
+  drawFix();
+  const sec=document.querySelector(`#fxArt .fx-sec[data-k="${k}"]`);
+  if(sec){ sec.classList.remove('flash'); void sec.offsetWidth; sec.classList.add('flash'); }
+}
+
+async function fxSend(){
+  const note=$('fxNote').value.trim();
+  if(!note || !COPY) return;
+  const k=fxBeat();
+  $('fxNote').value='';
+  fxSay(FXHL?`<mark class="fx-hl">${esc(FXHL)}</mark> — ${esc(note)}`:esc(note),'me');
+  if(!k){ fxSay('All four are locked — tap a padlock to reopen one and keep talking.','robot',true); return; }
+  const cur = k==='terms' ? fxTermsText() : fxText(k);
+  const th=fxThink();
+  HIST[k]=HIST[k]||[];
+  try{
+    const d=await api('/api/tweak',{form:formData(), block:k, current:cur, note,
+      highlight:FXHL, insight:val('storyCare'), history:HIST[k]});
+    th.remove();
+    HIST[k].push(`Human: ${note}`,`Robot: ${d.say||d.action||''}`);
+    if(d.action==='lock'){
+      if(d.say) fxSay(esc(d.say),'robot',true);
+      FXLOCK[k]=true;
+      fxAnnounceLock(k);
+    } else if(d.action==='change' && d.copy){
+      FXDIFF[k]={old:cur, new:d.copy};
+      if(k==='subject') COPY.subjects[PICK]=d.copy; else COPY[k]=d.copy;
+      FXLIST.push({label:FXLBL[k], note}); TWEAKS++;
+      fxClearOpts();
+      fxSay(esc(d.say||'On the card. '+fxAsk()),'robot',true);
+      if(d.flags && d.flags.length) fxSay('Careful — '+esc(d.flags[0]),'robot',false);
+      if(d.wants) fxSay(esc(d.wants),'robot',false);
+      fxApplyFx(k);
+    } else {
+      fxSay(esc(d.say||"Can\u2019t do that one."),'robot',true);
+    }
+  }catch(e){ th.remove(); fxSay(esc(e.message),'robot',true); }
+  FXHL=null;
+}
+
+/* ── highlight-to-tweak: grab whole words; the quote rides the reply.
+   Locked facts get the answer in chat voice — no modal. ── */
+const FX_LOCKED_LINE='That\u2019s from the brief — dates, numbers and legals travel locked. Change it back in FEED IT and I\u2019ll rewrite around it.';
+function fxSnap(full,part){
+  const i=full.indexOf(part); if(i===-1) return part;
+  let a=i,b=i+part.length;
+  while(a>0 && !/\s/.test(full[a-1])) a--;
+  while(b<full.length && !/\s/.test(full[b])) b++;
+  return full.slice(a,b).trim().replace(/[.,!?;:]+$/,'');
+}
+document.addEventListener('mouseup',()=>{
+  const sel=window.getSelection();
+  if(!sel || sel.isCollapsed) return;
+  const txt=sel.toString().trim();
+  if(!txt || txt.length<2) return;
+  const node=sel.anchorNode && sel.anchorNode.parentElement;
+  if(!node || !node.closest('#fxArt')) return;
+  if(node.closest('.ph')){ sel.removeAllRanges(); fxSay(FX_LOCKED_LINE,'robot',true); return; }
+  const sec=node.closest('.fx-sec'); if(!sec) return;
+  const k=sec.dataset.k;
+  if(k==='terms'){ sel.removeAllRanges(); fxSay(FX_LOCKED_LINE,'robot',true); return; }
+  sel.removeAllRanges();
+  const snapped=fxSnap(sec.textContent, txt);
+  FXHL = snapped.length>60 ? snapped.slice(0,57)+'\u2026' : snapped;
+  $('fxNote').placeholder='About \u201c'+(FXHL.length>26?FXHL.slice(0,24)+'\u2026':FXHL)+'\u201d\u2026';
+  $('fxNote').focus();
+});
+
+/* ---------------- 3 REVIEW ---------------- */
+async function toReview(){
+  reach(2);
+  $('reviewOut').innerHTML='<div class="load"><div class="spin"></div>Putting it together…</div>';
+  try{
+    const d = await api('/api/parcel',{form:formData(), chosen:CHOSEN,
+      copy:{subject:COPY.subjects[PICK], headline:COPY.headline, body:COPY.body}});
+    $('reviewOut').innerHTML = `
+    <div class="mail">
+      <div class="mail-bar">
+        <div class="mail-from">One NZ Rewards &lt;rewards@one.nz&gt;</div>
+        <div class="mail-subj">${esc(d.subject)}</div>
+      </div>
+      <div class="mail-body">
+        <div class="mail-img">Hero image goes here</div>
+        <div class="mail-h">${esc(d.headline)}</div>
+        <div class="mail-p">${esc(d.body)}</div>
+        <span class="mail-cta">Enter now</span>
+      </div>
+      <div class="mail-tcs">${esc(d.terms)}</div>
+    </div>
+
+    <div class="sect">For the specialist</div>
+    <div class="file"><div class="file-i">HTML</div>
+      <div><div class="file-n">content-block.html</div>
+      <div class="file-d">Paste into Content Builder. Hero image and URL still to slot in.</div></div></div>
+    <div class="file"><div class="file-i">DOC</div>
+      <div><div class="file-n">copy-deck.docx</div>
+      <div class="file-d">Subject, headline and body — numbers already filled in</div></div></div>
+    <div class="file"><div class="file-i">DOC</div>
+      <div><div class="file-n">terms.docx</div>
+      <div class="file-d">${d.clause_count} clauses, built from the brief</div></div></div>
+    <div class="file"><div class="file-i">ZIP</div>
+      <div><div class="file-n">${esc(d.slug)}.zip</div>
+      <div class="file-d">The lot, ready to hand over${TWEAKS?` · ${TWEAKS} tweak${TWEAKS>1?'s':''} logged`:''}</div></div></div>`;
+  }catch(e){ $('reviewOut').innerHTML=`<div class="err">${esc(e.message)}</div>`; }
+}
+
+/* ── the hamburger: ABOUT + FAQS ── */
+const HM_FAQS = [
+  ["How can I be sure the robot won't go off on one?",
+   "You're in the driver's seat at every turn. You feed it. You fix stuff. You press go on the finished outputs. Human in every loop."],
+  ["Isn't robot copy pretty average?",
+   "Straight from the machine, it can be. But great context and a smart prompt can get your robot to pretty damn good most days."],
+  ["How can I be sure it sounds like us?",
+   "That's all in the set up and the prompt. Your tone of voice, your best examples, your rules. So your robot should sound more like you than you do."],
+  ["What's a container and why does it matter?",
+   "Literally, it's the thing you put content in. The structure, the design, the word lengths, all that stuff. A smart container is the difference between consistent work and robots painting with beige."],
+  ["Will the robot spill my secrets?",
+   "Nope. Robot Sandwich runs on Anthropic's API. And there's clear rules that prevent the robots from grabbing stuff and running away. Your copy is yours. Stays yours. No worries."],
+  ["Why would Hunch give this away?",
+   "It's the easy bit. The fun work is solving the problems and designing smart solutions. Besides, you're already using robots to write stuff. Might as well make them good ones."]
+];
+(function(){
+  const list = $('faqList');
+  HM_FAQS.forEach(([q,a],i)=>{
+    const d=document.createElement('div');
+    d.className='faq'+(i===0?' open':'');
+    d.innerHTML=`<button class="faq-q" aria-expanded="${i===0}">${q}
+        <svg class="faq-chev" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 6.5 L9 12 L15 6.5"/></svg>
+      </button><div class="faq-a"><p>${a}</p></div>`;
+    d.querySelector('.faq-q').onclick=()=>{
+      const was=d.classList.contains('open');
+      list.querySelectorAll('.faq').forEach(f=>{f.classList.remove('open');
+        f.querySelector('.faq-q').setAttribute('aria-expanded','false')});
+      if(!was){d.classList.add('open');
+        d.querySelector('.faq-q').setAttribute('aria-expanded','true')}
+    };
+    list.appendChild(d);
+  });
+})();
+function hmMenu(){
+  const on=$('hmMenuBox').classList.toggle('on');
+  $('burger').classList.toggle('x',on);
+  $('burger').setAttribute('aria-expanded',on);
+}
+function hmOpen(id){ hmMenu(); $('hm-'+id).classList.add('on'); }
+function hmClose(id){ $('hm-'+id).classList.remove('on'); }
+document.querySelectorAll('.hm-shade').forEach(s=>{
+  s.addEventListener('click',e=>{ if(e.target===s) s.classList.remove('on'); });
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    document.querySelectorAll('.hm-shade.on').forEach(s=>s.classList.remove('on'));
+    if($('hmMenuBox').classList.contains('on')) hmMenu();
+  }
+});
+document.addEventListener('click',e=>{
+  const m=$('hmMenuBox'),b=$('burger');
+  if(m.classList.contains('on') && !m.contains(e.target) && !b.contains(e.target)) hmMenu();
+});
+</script>
+</body>
+</html>
