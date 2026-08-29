@@ -294,6 +294,7 @@ mark.fx-ch{background:var(--yellow);color:inherit;border-radius:2px;padding:0 1p
 .fx-cav{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:#fff;
   display:flex;align-items:center;justify-content:center;}
 .fx-cav img{width:24px;height:24px;object-fit:contain;}
+.fx-cav .botdisc img{width:19px;height:19px;}
 .fx-cav.ghost{visibility:hidden;}
 .fx-msg{background:#fff;border-radius:14px;border-bottom-left-radius:4px;
   padding:10px 14px;font-size:12.5px;line-height:1.55;max-width:268px;}
@@ -552,14 +553,21 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
   letter-spacing:2px;text-transform:uppercase;border-radius:20px;padding:5px 12px;
   margin-bottom:14px;display:inline-block}
 .fd-chat{display:flex;flex-direction:column;gap:10px;max-height:52vh;overflow-y:auto;
-  padding-top:14px;scroll-behavior:smooth;
+  padding-top:14px;scroll-behavior:smooth}
+/* the fade only wakes once something's actually scrolled beneath the pill —
+   at rest the top bubble sits crisp and aligned */
+.fd-chat.scrolled{
   mask-image:linear-gradient(to bottom,transparent 0,#000 44px);
   -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 44px)}
 .fd-row{display:flex;gap:10px;align-items:flex-end;margin-right:34px}
 .fd-row.me{justify-content:flex-end;margin-right:0;margin-left:80px}
 .fd-cav{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:#fff;
   display:flex;align-items:center;justify-content:center}
-.fd-cav img{width:24px;height:24px;object-fit:contain}
+/* the constant: the white face rides its red disc everywhere the robot
+   speaks. The disc is the mark; the white chip is just the seat. */
+.botdisc{width:27px;height:27px;border-radius:50%;background:var(--red);
+  display:flex;align-items:center;justify-content:center}
+.botdisc img{width:19px;height:19px;object-fit:contain;display:block}
 .fd-msg{background:#fff;border-radius:14px;border-bottom-left-radius:4px;
   padding:13px 16px;font-size:13.5px;line-height:1.55;max-width:340px}
 .fd-row.me .fd-msg{background:var(--paper);color:var(--ink);border-radius:14px;
@@ -1212,7 +1220,7 @@ function clRowEl(r){
     tick.innerHTML=CL_PENCIL;
     valEl.innerHTML='';
     const panel=document.createElement('div'); panel.className='cl-doors';
-    panel.innerHTML=`<div class="cl-doorline"><span class="cl-doorbot"><img src="robot-face.svg" alt=""></span>
+    panel.innerHTML=`<div class="cl-doorline"><span class="cl-doorbot">${BOT_AV}</span>
       <span>No sweat &mdash; ${esc(r.notsure)} Your call:</span></div>`;
     const btns=document.createElement('div'); btns.className='cl-doorbtns';
     const tell=document.createElement('button'); tell.textContent="I'll tell it";
@@ -1298,7 +1306,8 @@ function backToStory(){ subView('story'); }
    Answers write into the hidden story slots the rest of the tool reads. */
 let QZ=null, QN=0, QANS={};          // config, current question n, answers by key
 const FD_SLOT={prize:'storyPrize', source:'blurb', care:'storyCare'};
-const FD_ROBOT='<div class="fd-cav"><img src="robot-face.svg" alt=""></div>';
+const BOT_AV='<span class="botdisc"><img src="robot-face.svg" alt=""></span>';
+const FD_ROBOT='<div class="fd-cav">'+BOT_AV+'</div>';
 
 async function quizInit(){
   if(QZ) return;
@@ -1352,6 +1361,8 @@ function fdToolsDraw(t){
 }
 
 const fdScroll=()=>{ const c=$('fdChat'); c.scrollTop=c.scrollHeight; };
+$('fdChat').addEventListener('scroll', e=>
+  e.target.classList.toggle('scrolled', e.target.scrollTop>6));
 function fdBubble(html, me){
   const row=document.createElement('div');
   row.className='fd-row'+(me?' me':'');
@@ -1717,7 +1728,7 @@ function fxSay(html,who,withAv){
   row.className='fx-chatrow'+(who==='me'?' me':'');
   row.innerHTML = who==='me'
     ? `<div class="fx-msg">${html}</div>`
-    : `<div class="fx-cav ${withAv?'':'ghost'}"><img src="robot-face.svg" alt=""></div><div class="fx-msg">${html}</div>`;
+    : `<div class="fx-cav ${withAv?'':'ghost'}">${BOT_AV}</div><div class="fx-msg">${html}</div>`;
   $('fxChat').appendChild(row);
   $('fxChat').scrollTop=$('fxChat').scrollHeight;
   return row;
