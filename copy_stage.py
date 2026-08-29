@@ -310,10 +310,14 @@ def tweak():
         return jsonify({"error": "The robot said something we couldn't read."}), 500
 
     say = result.get("say") or ""
-    new_copy = result.get("copy")
-    declined = bool(result.get("declined", False))
-    if declined:
-        new_copy = None
+    action = result.get("action")
+    if action not in ("lock", "change", "ask", "decline"):
+        # older shape: declined -> decline, copy -> change, else ask
+        action = "decline" if result.get("declined") else \
+                 ("change" if result.get("copy") else "ask")
+    new_copy = result.get("copy") if action == "change" else None
+    if action == "change" and not new_copy:
+        action = "ask"          # a change with no copy is just a question
     flags = check_copy(new_copy, facts) if new_copy else []
 
     entry = {
@@ -325,14 +329,15 @@ def tweak():
         "note": note,
         "before": current,
         "after": new_copy,
-        "declined": declined,
+        "action": action,
+        "declined": action == "decline",
     }
     TWEAK_LOG.append(entry)
     _persist(entry)
 
-    return jsonify({"success": True, "say": say, "copy": new_copy,
-                    "declined": declined, "wants": result.get("wants"),
-                    "flags": flags})
+    return jsonify({"success": True, "action": action, "say": say,
+                    "copy": new_copy, "declined": action == "decline",
+                    "wants": result.get("wants"), "flags": flags})
 
 
 @copy_bp.route("/api/log")
@@ -340,3 +345,84 @@ def tweak():
 def log():
     """The asset, such as it is. Move this to a real store before volume."""
     return jsonify({"count": len(TWEAK_LOG), "entries": TWEAK_LOG[-200:]})
+
+
+# ---------------------------------------------------------------------------
+# THE QUIZ — the front of FEED IT (hit list 2).
+# The quiz definition lives in the container (quiz.json): the fixed rail of
+# three questions, the ghost's shape, the tool flags. Hand-authored today;
+# SET UP (hit list 22) generates it tomorrow, so the engine reads it blind.
+# The FEEDER dresses the rail live between questions — and falls back to the
+# config's standing patter on any stumble, so the robot never breaks
+# character and the front end never sees the difference. One failure surface.
+# ---------------------------------------------------------------------------
+
+_QUIZ_CACHE = {}
+
+def quiz_config():
+    """containers/<name>/quiz.json, re-read when it changes on disk —
+    same freshness rule as prompt(). Missing file fails loud, same as a
+    missing prompt: better a crash on deploy than a quiz from nowhere."""
+    path = os.path.join(PROMPTS_DIR, "containers", CONTAINER, "quiz.json")
+    mtime = os.path.getmtime(path)
+    cached = _QUIZ_CACHE.get(path)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    with open(path) as f:
+        cfg = json.load(f)
+    _QUIZ_CACHE[path] = (mtime, cfg)
+    return cfg
+
+
+@copy_bp.route("/api/quiz")
+@require_auth
+def quiz():
+    """The quiz definition, minus the plumbing comments. Free and instant."""
+    cfg = quiz_config()
+    return jsonify({k: v for k, v in cfg.items() if not k.startswith("_")})
+
+
+@copy_bp.route("/api/feeder", methods=["POST"])
+@require_auth
+def feeder():
+    """Between-questions patter. In: the answers so far and which question
+    comes next. Out: {ack, ask}. The rail is fixed — the FEEDER only
+    dresses the next fixed question to fit what's already in hand."""
+    data = request.get_json() or {}
+    cfg = quiz_config()
+    questions = cfg.get("questions", [])
+    nxt = data.get("next")
+    q = next((x for x in questions if x.get("n") == nxt), None)
+    if not q:
+        return jsonify({"error": "No such question."}), 400
+
+    # the fallback is the config's own words — used on any stumble
+    fallback = {"success": True, "ack": "", "ask": q.get("patter", ""),
+                "live": False}
+
+    if not ANTHROPIC_API_KEY:
+        return jsonify(fallback)
+
+    answers = data.get("answers") or {}
+    got = []
+    for x in questions:
+        a = (answers.get(x["key"]) or "").strip()
+        if a:
+            got.append(f"Q{x['n']} — {x['title']}\nTHEY SAID: {a[:2500]}")
+    user = ("THE FIXED RAIL:\n"
+            + "\n".join(f"Q{x['n']}: {x['title']} — {x['patter']}"
+                        for x in questions)
+            + "\n\nANSWERS SO FAR:\n" + ("\n\n".join(got) or "(nothing yet)")
+            + f"\n\nNEXT UP: Q{q['n']} — {q['title']}")
+
+    try:
+        result = _json_from(_call(prompt("feeder"), user, 300))
+    except Exception as e:
+        print(f"[robot/feeder] fell back to config patter: {e}")
+        return jsonify(fallback)
+
+    if not result or not (result.get("ask") or "").strip():
+        return jsonify(fallback)
+
+    return jsonify({"success": True, "ack": (result.get("ack") or "").strip(),
+                    "ask": result["ask"].strip(), "live": True})

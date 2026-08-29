@@ -26,6 +26,8 @@ nothing that already works.
 from flask import Flask, jsonify, request, session, send_from_directory
 from datetime import timedelta
 import os
+import re
+import time
 
 from auth import auth_bp, require_auth
 from copy_stage import copy_bp
@@ -84,6 +86,63 @@ def parcel():
         "slug": "".join(ch if ch.isalnum() else "-"
                         for ch in facts["prize_name"].lower()).strip("-"),
     })
+
+
+# ---------------------------------------------------------------------------
+# IMAGES — the uploads page (FEED IT page three).
+# Deterministic storage, no model. Files land under ROBOT_IMAGES/<run>/,
+# which should live on the Railway volume (ROBOT_IMAGES=/data/images) so the
+# pics survive a redeploy alongside the tweak log. FINISHED (hit list 5) will
+# zip them; the respec (hit list 6) will cut them. For now they just wait.
+# ---------------------------------------------------------------------------
+
+IMAGES_DIR = os.environ.get("ROBOT_IMAGES", os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "images"))
+IMAGE_TYPES = {"image/jpeg": ".jpg", "image/png": ".png"}
+IMAGE_MAX = 10 * 1024 * 1024          # 10MB a picture is plenty for email
+app.config["MAX_CONTENT_LENGTH"] = IMAGE_MAX + 1024 * 1024
+
+_SAFE = re.compile(r"[^a-z0-9-]")
+
+def _clean(s, n=40):
+    """One rule for anything that becomes a path segment: lowercase,
+    alphanumerics and dashes only, capped. Empty means reject."""
+    return _SAFE.sub("", (s or "").lower().replace(" ", "-"))[:n]
+
+
+@app.route("/api/images", methods=["POST"])
+@require_auth
+def images_upload():
+    """One file per call. The run id groups a session's pics so FINISHED
+    can find them later. JPG or PNG, nothing else, no matter the name."""
+    run = _clean(request.form.get("run"))
+    if not run:
+        return jsonify({"error": "No run id."}), 400
+    f = request.files.get("file")
+    if not f:
+        return jsonify({"error": "No file."}), 400
+    ext = IMAGE_TYPES.get(f.mimetype)
+    if not ext:
+        return jsonify({"error": "JPG or PNG only."}), 400
+    stem = _clean(os.path.splitext(f.filename or "")[0], 60) or "pic"
+    name = f"{int(time.time()*1000)}-{stem}{ext}"
+    folder = os.path.join(IMAGES_DIR, run)
+    os.makedirs(folder, exist_ok=True)
+    f.save(os.path.join(folder, name))
+    return jsonify({"success": True, "id": name})
+
+
+@app.route("/api/images/<run>/<name>", methods=["DELETE"])
+@require_auth
+def images_remove(run, name):
+    """The x on a thumbnail. Only touches inside IMAGES_DIR: the run goes
+    through the cleaner and the name must match the pattern we generate."""
+    run = _clean(run)
+    if run and re.fullmatch(r"\d+-[a-z0-9-]+\.(jpg|png)", name or ""):
+        path = os.path.join(IMAGES_DIR, run, name)
+        if os.path.isfile(path):
+            os.remove(path)
+    return jsonify({"success": True})
 
 
 @app.route("/api/types")

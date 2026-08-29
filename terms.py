@@ -245,9 +245,16 @@ def build_facts(form: dict) -> dict:
         raise TermsError("The competition closes before it opens.")
 
     # Draw is the next working day after close. Nobody draws on a Sunday.
+    # The checklist can hand us a human-set date instead — human in the
+    # loop beats derivable — but it can't land before the close.
     draw = closes + timedelta(days=1)
     while draw.weekday() >= 5:
         draw += timedelta(days=1)
+    if form.get("drawn"):
+        drawn = _parse(form["drawn"], "The draw date")
+        if drawn < closes:
+            raise TermsError("Winners can't be drawn before the draw closes.")
+        draw = drawn
 
     plural = winners > 1
     facts = {

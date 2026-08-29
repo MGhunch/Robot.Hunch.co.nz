@@ -1,0 +1,53 @@
+{
+  "_comment": "The quiz block of the container definition. Hand-authored for now; SET UP (hit list 22) will generate this file one day, so nothing in here should be something a generator couldn't write. The engine reads it via /api/quiz and the FEEDER dresses it live — the rail is fixed, the dressing is live. The patter fields are the fallback: if the FEEDER call fails, the robot asks the plain version, in character, and nobody can tell.",
+
+  "artefact": "Prize Draw email",
+  "pill": "Three question quiz",
+  "tagline": "Fill in the blanks. The robot does the rest.",
+
+  "tools": {
+    "upload": true,
+    "dig": false,
+    "dig_why": "Search lands with hit list 9. Flip this true when the engine exists — the circle simply doesn't render until then."
+  },
+
+  "questions": [
+    {
+      "n": 1,
+      "key": "prize",
+      "title": "What's this all about?",
+      "patter": "The story in your words. Don't sweat the details.",
+      "placeholder": "'Coldplay tickets, gold circle, our members would lose their minds...' Or just dump in a brief.",
+      "why": "Your story here sets the feel of the whole email — the headline and the body grow out of how you tell it. The boring facts I'll chase at the checklist."
+    },
+    {
+      "n": 2,
+      "key": "source",
+      "title": "Dump your docs",
+      "patter": "What have you got lying around? Paste it, drop it, whatever exists.",
+      "placeholder": "Paste anything — the brief, the T&Cs, last year's email...",
+      "why": "I read whatever you drop and pull the facts out myself — dates, venues, prize names — so you don't have to type them. Rough is fine. Nothing is fine too."
+    },
+    {
+      "n": 3,
+      "key": "care",
+      "title": "Why will anyone care?",
+      "patter": "The human hook. What makes this one matter?",
+      "placeholder": "'First show here in twelve years. One night. That's it.'",
+      "why": "This is the difference between an email and a reason to enter. One honest line beats three polished ones."
+    }
+  ],
+
+  "closing": "That's the three. Off to check the facts —",
+
+  "shape": {
+    "modules": [
+      { "type": "subject", "label": "Subject line" },
+      { "type": "image" },
+      { "type": "header", "label": "Header" },
+      { "type": "lines", "count": 3 },
+      { "type": "button", "label": "Button" },
+      { "type": "terms", "count": 3 }
+    ]
+  }
+}
