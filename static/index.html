@@ -233,40 +233,30 @@
         </div>
         <div class="fx-rail">
           <h2 class="fx-room beb">THE WORKINGS</h2>
-          <!-- the conversation wears FEED IT's chat card: same bubbles,
-               same dashed box with a cursor, Enter sends. One chat, one look. -->
+          <!-- one card: the lozenge names the thread, the thread is the
+               section's conversation, the composer is a box, a ? and an
+               arrow. No SEND, no dashed box, no LOCK IT. -->
           <div class="fx-card">
-            <div class="fx-topic" id="fxTopic"></div>
+            <div class="fx-topic empty" id="fxTopic">Get started</div>
             <div class="fx-chat" id="fxChat"></div>
-            <div class="fx-answer">
-              <div class="fx-say">
-                <textarea id="fxNote" rows="2"
-                  onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fxSend();}"></textarea>
-                <div class="fd-foot"><div></div><button class="fd-go" onclick="fxSend()">SEND</button></div>
+            <div class="fx-compose">
+              <div class="fx-quote" id="fxQuote"></div>
+              <textarea id="fxNote" rows="2" placeholder="Tap a padlock or highlight some words."
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fxSend();}"></textarea>
+              <div class="fx-tip" id="fxTip"></div>
+              <div class="fx-crow">
+                <button class="fx-q" onclick="fxTipToggle()" aria-label="Stuck?">?</button>
+                <button class="fx-arrow" id="fxSendBtn" onclick="fxSend()" aria-label="Send" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                </button>
               </div>
             </div>
           </div>
-          <div class="fx-receipt" id="fxReceipt" style="display:none">
-            <button class="fx-rchead" onclick="$('fxReceipt').classList.toggle('open')">
-              <span class="fx-rcount"><b>&#10003;</b><span id="fxRCount"></span></span>
-              <span class="fx-rchev">&#9662;</span>
-            </button>
-            <div class="fx-rlist" id="fxRList"></div>
-          </div>
-          <div class="fx-gtg" id="fxGtg">
-            <div class="fx-gtgtop">
-              <div class="fx-gtgico">
-                <svg class="i-open" viewBox="0 0 16 16" fill="none"><path d="M11.5 7V5a3.5 3.5 0 0 0-7 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="3" y="7" width="10" height="7" rx="2" stroke="currentColor" stroke-width="1.7" fill="none"/><circle cx="8" cy="10.5" r="1.15" fill="currentColor"/></svg>
-                <svg class="i-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-              <div class="fx-gtghed">GOOD TO GO?</div>
-            </div>
-            <button class="fx-pkg" onclick="fxPackage()">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Package it up
-            </button>
-            <div class="fx-cap" id="fxCap">Lock everything first</div>
-          </div>
+          <!-- the seventh padlock: counts down, never disabled, press it
+               early and it takes you to what's open -->
+          <button class="fx-wrap" id="fxWrap" onclick="fxWrapGo()">
+            <span class="fx-wrapico" id="fxWrapIco"></span><span id="fxWrapLbl"></span>
+          </button>
         </div>
       </div>
     </div>
@@ -926,12 +916,12 @@ function fdBubble(html, me){
   if(me) row.querySelector('.fd-msg').textContent=html;
   $('fdChat').appendChild(row); fdScroll();
 }
-/* the bouncing dots — the robot's thinking face, every time it reads */
+/* thinking — the face does it, same pool as FIX IT (thinkFace) */
 function fdThink(on){
   $('fdChat').querySelectorAll('.fd-think').forEach((x,i)=>{ if(!on||i>0) x.remove(); });
   let t=$('fdChat').querySelector('.fd-think');
-  if(on&&!t){ t=document.createElement('div'); t.className='fd-think';
-    t.innerHTML='<span></span><span></span><span></span>';
+  if(on&&!t){ t=document.createElement('div'); t.className='fd-row fd-think';
+    t.innerHTML=`<div class="fd-cav">${thinkFace()}</div>`;
     $('fdChat').appendChild(t); fdScroll(); }
   if(!on&&t) t.remove();
 }
@@ -1118,7 +1108,7 @@ async function buildIt(){
 }
 function fxLoading(){
   $('fxArt').innerHTML='<div class="load" style="margin:40px auto"><img class="robotwork" src="robot-sandwich.png" alt="">The robot is writing…</div>';
-  $('fxGutter').innerHTML=''; $('fxChat').innerHTML=''; $('fxTopic').textContent='';
+  $('fxGutter').innerHTML=''; $('fxChat').innerHTML=''; fxTopicSet(null);
 }
 async function genCopy(){
   fxLoading();
@@ -1136,6 +1126,7 @@ async function genCopy(){
    copy store is what the WRITER returned — top modules by name (an
    options module is a list, PICK chooses), repeats under "<module>s". */
 let FXORDER=[], FXLBL={}, FXLOCK={}, FXHL=null, FXDIFF={}, FXLIST=[], FXFLAGS=[], WHY={};
+let FXFOCUS=null, FXTHREAD={};                     // the pencil, and one thread per section
 let FXDOC=null;                                   // the artefact's document (iframe)
 const fxMod = k => k.split('#')[0];
 const fxN   = k => +(k.split('#')[1]||0);
@@ -1176,17 +1167,19 @@ function fxTermsText(){
   if(!MENU || !MENU.length) return 'Terms assemble from the brief once the facts are in.';
   return MENU.filter(c=>c.fixed || (CHOSEN||[]).includes(c.id)).map(c=>c.text).join(' ');
 }
-function fxBeat(){ return FXORDER.find(k=>!FXLOCK[k]) || null; }
+const fxLockable = k => k!=='terms';
+function fxBeat(){ return FXORDER.find(k=>fxLockable(k) && !FXLOCK[k] && k!==FXFOCUS) || null; }
 
 function fxInit(d){
   COPY=d.copy; FACTS=d.facts; CTX=d.context||{}; PICK=0; TWEAKS=0;
   WHY=(COPY.why&&typeof COPY.why==='object')?COPY.why:{};
   fxOrderBuild();
-  FXLOCK={}; FXORDER.forEach(k=>FXLOCK[k]=false);
+  FXLOCK={}; FXORDER.forEach(k=>FXLOCK[k]=(k==='terms'));   // terms travel locked
   FXHL=null; FXDIFF={}; FXLIST=[]; FXFLAGS=d.flags||[];
+  FXFOCUS=null; FXTHREAD={};
   LOCKED=FXLOCK;
-  $('fxChat').innerHTML='';
-  fxMount(()=>{ drawFix(); if(FXORDER.length) fxOpenBeat(FXORDER[0], false); });
+  $('fxChat').innerHTML=''; fxTopicSet(null); fxQuoteSet(null);
+  fxMount(()=>{ drawFix(); });
 }
 
 const fxDiffWords=(o,n)=>{
@@ -1208,10 +1201,13 @@ const fxDiffWords=(o,n)=>{
    bleed into the engine and the engine's can't bleed into it. The engine
    adds one stylesheet inside for its marks (changes, highlights, the
    editing tint) and pours the copy into the data-module tags. */
-const FX_INNER_CSS=`.fx-sec{position:relative;transition:background .25s}.fx-sec.editing{background:rgba(237,28,36,.06)}
+const FX_INNER_CSS=`.fx-sec{position:relative;transition:transform .18s ease,box-shadow .18s ease}
+.fx-sec.editing{transform:scale(1.025);z-index:2;box-shadow:0 14px 34px rgba(120,10,14,.35);border-radius:10px;background:inherit}
+body.fx-editing .email,body.fx-editing .precopy{overflow:visible!important}
+.email,.precopy{box-shadow:0 14px 44px rgba(0,0,0,.2)}
 .fx-sec.flash{animation:fxlanded .7s ease-out}@keyframes fxlanded{0%{background:rgba(237,28,36,.18)}100%{background:transparent}}
 mark.fx-ch{background:#FFE96B;color:inherit;border-radius:2px;padding:0 1px}.ph{cursor:not-allowed}
-body{padding:0!important;background:transparent!important}`;
+body{padding:0 22px 26px!important;background:transparent!important}`;
 function fxMount(then){
   const host=$('fxArt'); host.innerHTML='<iframe class="fx-frame" title="The work" scrolling="no"></iframe>';
   const fr=host.querySelector('iframe');
@@ -1225,6 +1221,9 @@ function fxWrite(fr, html){
 }
 function fxSizeFrame(){
   const fr=$('fxArt').querySelector('iframe'); if(!fr||!FXDOC) return;
+  const art=FXDOC.querySelector('.email,.precopy,[data-artefact]');
+  const w=art ? art.getBoundingClientRect().width : 600;
+  document.documentElement.style.setProperty('--fx-w', Math.round(w+44)+'px');
   fr.style.height=Math.max(200, FXDOC.documentElement.scrollHeight)+'px';
 }
 /* first pass on the doc: clone or cull repeated items to match the copy,
@@ -1266,10 +1265,10 @@ function fxPour(){
       if(k==='terms'){ el.innerHTML=esc(fxTermsText()).replace(/\n/g,'<br>'); if(FXLOCK.terms) el.classList.add('locked-look'); return; }
       const raw=fxShow(k);
       el.innerHTML = raw.includes('\n') ? raw.replace(/\n/g,'<br>') : raw;
-      el.classList.toggle('editing', fxBeat()===k);
+      el.classList.toggle('editing', FXFOCUS===k);
     });
   });
-  D.querySelectorAll('[data-variant="B"]').forEach(el=>{ const m=el.dataset.module; if(fxOpts(m)===2) return; });
+  D.body.classList.toggle('fx-editing', !!FXFOCUS);
   fxSizeFrame();
 }
 function fxSelect(){
@@ -1278,15 +1277,13 @@ function fxSelect(){
   const txt=sel.toString().trim();
   if(!txt || txt.length<2) return;
   const node=sel.anchorNode && sel.anchorNode.parentElement; if(!node) return;
-  if(node.closest('.ph')){ sel.removeAllRanges(); fxSay(FX_LOCKED_LINE,'robot',true); return; }
+  if(node.closest('.ph')){ sel.removeAllRanges(); fxDeflect(); return; }
   const sec=node.closest('.fx-sec'); if(!sec) return;
   const k=sec.dataset.k;
-  if(k==='terms'){ sel.removeAllRanges(); fxSay(FX_LOCKED_LINE,'robot',true); return; }
+  if(k==='terms'){ sel.removeAllRanges(); fxDeflect(); return; }
   sel.removeAllRanges();
   const snapped=fxSnap(sec.textContent, txt);
-  FXHL = snapped.length>60 ? snapped.slice(0,57)+'\u2026' : snapped;
-  $('fxNote').placeholder='About \u201c'+(FXHL.length>26?FXHL.slice(0,24)+'\u2026':FXHL)+'\u201d';
-  $('fxNote').focus();
+  fxFocus(k, snapped.length>60 ? snapped.slice(0,57)+'\u2026' : snapped);
 }
 
 function drawFix(){
@@ -1296,18 +1293,31 @@ function drawFix(){
   requestAnimationFrame(fxPos);
 }
 
-/* ── the gutter: the padlock is furniture — quiet confirmation in the
-   background, flipped by the conversation, still tappable. ── */
-const FXI_LOCK='<svg viewBox="0 0 16 16" fill="none"><path class="shackle" d="M4.5 8V5a3.5 3.5 0 0 1 7 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="3" y="7.5" width="10" height="7" rx="2" fill="currentColor"/></svg>';
+/* ── the gutter: one padlock per section, one loop — open → pencil →
+   shut → pencil → shut. Tap open or shut: the pencil. Tap the pencil:
+   keep it. Leave any other way: it shuts behind you. Terms travel
+   locked and deflect. ── */
+const FXI={
+  open:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0"/></svg>',
+  shut:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M13 8l3 3"/></svg>'
+};
+function fxPadState(k){
+  if(!fxLockable(k)) return 'fixed';
+  if(FXFOCUS===k) return 'edit';
+  return FXLOCK[k] ? 'locked' : 'open';
+}
 function fxGutterDraw(){
-  const beat=fxBeat();
   $('fxGutter').innerHTML = FXORDER.map(k=>{
-    const locked=FXLOCK[k];
-    const tip = locked?'Locked — click to reopen':'Open — click to lock';
-    return `<button class="fx-pad ${locked?'locked':''} ${(!locked&&beat===k)?'here':''}"
-      data-k="${k}" onclick="fxTogglePad('${k}')" title="${tip}" aria-label="${tip}: ${FXLBL[k]}">
-      ${FXI_LOCK}</button>`;
+    const st=fxPadState(k);
+    const tip={open:'Open — tap to have a look',edit:'Tweaking — tap to keep it',locked:'Locked — tap to reopen',fixed:'From the brief'}[st];
+    return `<button class="fx-pad ${st}" data-k="${k}" onclick="fxPadTap('${k}')" title="${tip}" aria-label="${tip}: ${FXLBL[k]}">
+      ${st==='edit'?FXI.edit:(st==='open'?FXI.open:FXI.shut)}</button>`;
   }).join('');
+}
+function fxPadTap(k){
+  if(!fxLockable(k)){ fxDeflect(); return; }
+  if(FXFOCUS===k) fxKeep(); else fxFocus(k);
 }
 function fxPos(){
   const fr=$('fxArt').querySelector('iframe'); if(!fr||!FXDOC) return;
@@ -1320,113 +1330,99 @@ function fxPos(){
 }
 window.addEventListener('resize', ()=>{ fxSizeFrame(); fxPos(); });
 
-/* ── the conversation. The robot presents its choice and closes seeking
-   confirmation. The human types; the FIXER reads the reply — yes locks,
-   a note tweaks, unclear asks. The lock is announced, not operated. ── */
-const FX_ASKS=['What do you reckon?','Sound good to you?','Happy with it?','Good to lock?'];
-let FX_ASK_I=0;
-const fxAsk=()=>FX_ASKS[(FX_ASK_I++)%FX_ASKS.length];
-const fxNextLine=k=>k==='terms'?'give the terms a once-over?':`happy with the ${FXLBL[k].toLowerCase()}?`;
+/* ── focus: one section at a time, seen three ways — the pencil in the
+   gutter, the lift on the artefact, the lozenge on the chat. ── */
+const FX_ASK='Keep it or tweak it?';
+const FX_KEPT=['Locked.','Good.','Onward.','That one stays.'];
+let FX_LAST='';
+function fxPick(a){ let l; do{ l=a[Math.floor(Math.random()*a.length)]; }while(l===FX_LAST&&a.length>1); FX_LAST=l; return l; }
 
-function fxSay(html,who,withAv){
-  const row=document.createElement('div');
-  row.className='fx-chatrow'+(who==='me'?' me':'');
-  row.innerHTML = who==='me'
-    ? `<div class="fx-msg">${html}</div>`
-    : `<div class="fx-cav ${withAv?'':'ghost'}">${BOT_AV}</div><div class="fx-msg">${html}</div>`;
-  $('fxChat').appendChild(row);
-  $('fxChat').scrollTop=$('fxChat').scrollHeight;
-  return row;
+function fxTopicSet(k){
+  const t=$('fxTopic');
+  if(k){ t.textContent='Tweaking: '+FXLBL[k]; t.classList.remove('empty'); }
+  else { t.textContent = (FXORDER.length && !fxBeat() && FXFOCUS===null && Object.keys(FXLOCK).length) ? 'All locked' : 'Get started'; t.classList.add('empty'); }
 }
+function fxQuoteSet(q){
+  FXHL=q||null;
+  const el=$('fxQuote'); el.textContent=q?'\u201c'+q+'\u201d':''; el.classList.toggle('on',!!q);
+  $('fxNote').placeholder = FXFOCUS ? (q?'What are you thinking here?':'What are you thinking?') : 'Tap a padlock or highlight some words.';
+}
+function fxFocus(k, quote){
+  if(FXFOCUS && FXFOCUS!==k) FXLOCK[FXFOCUS]=true;        // leaving locks
+  FXFOCUS=k;
+  $('fxNote').value='';
+  fxTopicSet(k); fxQuoteSet(quote||null);
+  $('fxSendBtn').disabled=false;
+  if(!FXTHREAD[k]){ FXTHREAD[k]=[]; fxSay(FX_ASK,'robot',true); fxDrawer(k); }
+  else fxThreadRender();
+  drawFix();
+  $('fxNote').focus();
+}
+function fxUnfocus(){
+  if(FXFOCUS) FXLOCK[FXFOCUS]=true;
+  FXFOCUS=null;
+  $('fxNote').value=''; fxQuoteSet(null); fxTopicSet(null);
+  $('fxSendBtn').disabled=true;
+  $('fxChat').innerHTML='';
+  drawFix();
+}
+/* keep it — a state change, no model call. The robot says one word and
+   moves you on; when there's nothing left, WRAP IT UP is ready. */
+function fxKeep(say){
+  if(!FXFOCUS) return;
+  fxSay(esc(say||fxPick(FX_KEPT)),'robot',true);
+  const next=fxBeat();
+  setTimeout(()=>{ fxUnfocus(); if(next) fxFocus(next); }, 420);
+}
+
+/* ── the thread. Each section's conversation is kept and re-shown when
+   you come back. Rows are stored as html; the drawer's buttons rebind. ── */
+function fxThreadRender(){
+  const c=$('fxChat'); c.innerHTML=(FXTHREAD[FXFOCUS]||[]).join('');
+  c.querySelectorAll('.fx-opt').forEach(b=>{ b.onclick=()=>fxPickOption(b.dataset.k,+b.dataset.i); });
+  c.scrollTop=c.scrollHeight;
+}
+function fxSay(html,who,withAv){
+  const row = who==='me'
+    ? `<div class="fx-chatrow me"><div class="fx-msg">${html}</div></div>`
+    : `<div class="fx-chatrow"><div class="fx-cav ${withAv?'':'ghost'}">${BOT_AV}</div><div class="fx-msg">${html}</div></div>`;
+  if(FXFOCUS){ (FXTHREAD[FXFOCUS]=FXTHREAD[FXFOCUS]||[]).push(row); fxThreadRender(); }
+  else { $('fxChat').insertAdjacentHTML('beforeend',row); $('fxChat').scrollTop=$('fxChat').scrollHeight; }
+}
+/* thinking: the face does it — one behaviour from the pool per wait,
+   never the same twice running, and a 1.2s floor so a quick answer
+   still reads as the robot reading. The bubble stays empty. */
+const BOT_FACE='<svg viewBox="0 0 34 32" fill="none"><line x1="17" y1="4" x2="17" y2="8.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle class="bulb" cx="17" cy="3.5" r="1.8" fill="#fff"/><rect x="6" y="8" width="22" height="16" rx="5" fill="#fff"/><circle class="eye" cx="13" cy="16" r="2.2" fill="#ED1C24"/><circle class="eye" cx="21" cy="16" r="2.2" fill="#ED1C24"/><rect x="11" y="26" width="12" height="3.4" rx="1.7" fill="#fff"/></svg>';
+const THINK_POOL=['eyeroll','rollboth','rock','blink']; let THINK_LAST='';
+function thinkFace(){ let p; do{ p=THINK_POOL[Math.floor(Math.random()*THINK_POOL.length)]; }while(p===THINK_LAST); THINK_LAST=p;
+  return `<span class="botdisc think ${p}">${BOT_FACE}</span>`; }
 function fxThink(){
   const t=document.createElement('div');
-  t.className='fx-think'; t.innerHTML='<span></span><span></span><span></span>';
+  t.className='fx-chatrow fx-thinkrow'; t.innerHTML=`<div class="fx-cav">${thinkFace()}</div>`;
   $('fxChat').appendChild(t); $('fxChat').scrollTop=$('fxChat').scrollHeight;
+  const t0=Date.now();
+  t.done = ()=>new Promise(r=>setTimeout(()=>{ t.remove(); r(); }, Math.max(0,1200-(Date.now()-t0))));
   return t;
 }
-function fxClearOpts(){ document.querySelectorAll('#fxChat .fx-opt').forEach(o=>o.remove()); }
+function fxClearOpts(){ if(FXFOCUS&&FXTHREAD[FXFOCUS]) FXTHREAD[FXFOCUS]=FXTHREAD[FXFOCUS].filter(r=>!r.startsWith('<button class="fx-opt"')); fxThreadRender(); }
 
-/* the why-beat: the WRITER's, else the spec's fallback, else a plain line */
-function fxWhy(k){
-  const m=fxMod(k), g=CONT.modules.groups[0];
-  const w=(WHY[m]||(g&&fxN(k)?WHY[g.module]:'')||'').trim();
-  return w || CONT.modules.why[m] || (g&&fxN(k)?CONT.modules.why[g.module]:'') || 'Read it and say.';
-}
+/* the drawer: a three-option module offers its other two */
 function fxDrawer(k){
   const m=fxMod(k); const v=COPY[m];
   if(fxN(k)||!Array.isArray(v)||fxOpts(m)!==3) return;
   v.forEach((opt,i)=>{
     if(i===PICK) return;
-    const b=document.createElement('button');
-    b.className='fx-opt'; b.innerHTML='Or from the drawer: '+fillPh(opt);
-    b.onclick=()=>{ fxPickOption(k,i); };
-    $('fxChat').appendChild(b);
+    FXTHREAD[k].push(`<button class="fx-opt" data-k="${k}" data-i="${i}">Or from the drawer: ${fillPh(opt)}</button>`);
   });
+  fxThreadRender();
 }
-
-/* open a beat: the robot owns its choice, then hands it back */
-function fxOpenBeat(k, reopened){
-  $('fxTopic').textContent=FXLBL[k];
-  if(reopened){
-    fxSay(`Reopened the ${FXLBL[k].toLowerCase()} — what\u2019s off?`,'robot',true);
-  } else {
-    fxSay(esc(fxWhy(k)),'robot',true);
-    let extra='';
-    if(k===FXORDER[0] && FXFLAGS.length) extra+=`<span class="small">Careful — ${esc(FXFLAGS[0])}</span>`;
-    if(k===FXORDER[0] && COPY.wants) extra+=`<span class="small">${esc(COPY.wants)}</span>`;
-    fxSay(esc(fxAsk())+extra,'robot',false);
-    fxDrawer(k);
-  }
-  $('fxChat').scrollTop=$('fxChat').scrollHeight;
-  drawFix();
-}
-
-/* a lock is a report: close the beat, open the next, one breath */
-function fxAnnounceLock(k){
-  fxClearOpts();
-  const next=fxBeat();
-  if(next){
-    fxSay(`${FXLBL[k]} locked — ${fxNextLine(next)}`,'robot',true);
-    $('fxTopic').textContent=FXLBL[next];
-    fxOpenBody(next);
-  } else {
-    fxSay(`${FXLBL[k]} locked. That\u2019s the lot — anything nagging, tap a padlock and go again. Otherwise, package it up.`,'robot',true);
-    $('fxTopic').textContent='All locked';
-  }
-  drawFix();
-}
-function fxOpenBody(k){
-  fxSay(esc(fxWhy(k)),'robot',false);
-  fxDrawer(k);
-  $('fxChat').scrollTop=$('fxChat').scrollHeight;
-}
-
-function fxRailDraw(){
-  if(FXLIST.length){
-    $('fxReceipt').style.display='block';
-    $('fxRCount').textContent=FXLIST.length+' tweak'+(FXLIST.length>1?'s':'')+' made';
-    $('fxRList').innerHTML=FXLIST.map(t=>`<div class="fx-ritem"><div class="fx-rlbl">${esc(t.label)}</div><div class="fx-rwhy">${esc(t.note)}</div></div>`).join('');
-  } else $('fxReceipt').style.display='none';
-  const locks=FXORDER.filter(k=>FXLOCK[k]).length, n=FXORDER.length, all=n>0&&locks===n;
-  $('fxGtg').classList.toggle('ready',all);
-  $('fxCap').textContent = all ? `${n} locks on. Take it.` : `${locks} of ${n} locked`;
-}
-
-function fxTogglePad(k){
-  const was=FXLOCK[k];
-  FXLOCK[k]=!was;
-  if(!was) fxAnnounceLock(k); else fxOpenBeat(k, true);
-  drawFix();
-}
-function fxPackage(){ if(FXORDER.length && FXORDER.every(k=>FXLOCK[k])) toReview(); }
-
 function fxPickOption(k,i){
   const old=fxText(k);
   PICK=i;
   FXDIFF[k]={old, new:fxText(k)};
   FXLIST.push({label:FXLBL[k], note:'From the drawer'}); TWEAKS++;
   fxClearOpts();
-  fxSay('Swapped. '+esc(fxAsk()),'robot',true);
+  fxSay('Swapped. Like this?','robot',true);
   fxApplyFx(k);
 }
 function fxApplyFx(k){
@@ -1435,42 +1431,75 @@ function fxApplyFx(k){
   if(sec){ sec.classList.remove('flash'); void sec.offsetWidth; sec.classList.add('flash'); }
 }
 
+/* ── WRAP IT UP: counts what's open, never disabled. Early press takes
+   you to the first open bit; the last press goes to FINISHED. ── */
+function fxOpenBits(){ return FXORDER.filter(k=>fxLockable(k) && (!FXLOCK[k] || k===FXFOCUS)); }
+function fxRailDraw(){
+  const left=fxOpenBits(), w=$('fxWrap'), L=$('fxWrapLbl'), I=$('fxWrapIco');
+  if(!FXORDER.length){ w.style.visibility='hidden'; return; }
+  w.style.visibility='';
+  if(left.length===0){ w.classList.add('ready'); I.innerHTML=FXI.shut; L.textContent='WRAP IT UP'; }
+  else if(left.length===1){ w.classList.remove('ready'); I.innerHTML=FXI.open;
+    const n=FXLBL[left[0]].toUpperCase(); L.textContent = n.length<=14 ? 'LOCK THE '+n : '1 BIT TO LOCK'; }
+  else { w.classList.remove('ready'); I.innerHTML=FXI.open; L.textContent=left.length+' BITS TO LOCK'; }
+}
+function fxWrapGo(){
+  const left=fxOpenBits();
+  if(left.length===0){ fxUnfocus(); toReview(); return; }
+  const n=left.find(k=>k!==FXFOCUS)||left[0];
+  fxFocus(n);
+  const sec=FXDOC&&FXDOC.querySelector(`.fx-sec[data-k="${n}"]`);
+  if(sec&&sec.scrollIntoView) sec.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+/* ── ? — for "I'm stuck", nothing more. One line, state-aware. ── */
+function fxTipToggle(){
+  const tip=$('fxTip');
+  let msg='Tap a padlock to open a bit, or highlight the words you want changed.';
+  if(FXFOCUS && FXHL) msg='The robot will only touch the highlighted words. Tell it what you\u2019re after.';
+  else if(FXFOCUS) msg='Tell it what you\u2019re thinking, in your words. Say \u201ckeep it\u201d \u2014 or tap the pencil \u2014 and it moves you on.';
+  tip.textContent=msg; tip.classList.toggle('on');
+  clearTimeout(tip._t); tip._t=setTimeout(()=>tip.classList.remove('on'),4500);
+}
+
+/* ── the note. A clear keep is a state change and never leaves the
+   browser; everything else goes to the FIXER, who reads the reply. ── */
+const FX_KEEP_RE=/^(keep( it)?|yep|yes|yeah|fine|good|great|love it|ok|okay|done|lock it|that'?s the one|perfect)[.!\s]*$/i;
 async function fxSend(){
   const note=$('fxNote').value.trim();
-  if(!note || !COPY) return;
-  const k=fxBeat();
-  $('fxNote').value=''; $('fxNote').placeholder='';
-  fxSay(FXHL?`<mark class="fx-hl">${esc(FXHL)}</mark> — ${esc(note)}`:esc(note),'me');
-  if(!k){ fxSay('Everything\u2019s locked — tap a padlock to reopen one and keep talking.','robot',true); return; }
-  const cur = fxText(k);
+  if(!note || !COPY || !FXFOCUS) return;
+  const k=FXFOCUS;
+  $('fxNote').value='';
+  fxSay(FXHL?`<i class="fx-hlq">\u201c${esc(FXHL)}\u201d</i>${esc(note)}`:esc(note),'me');
+  if(FX_KEEP_RE.test(note)){ fxQuoteSet(null); fxKeep(); return; }
+  const cur = fxText(k), hl=FXHL;
+  fxQuoteSet(null);
   const th=fxThink();
   HIST[k]=HIST[k]||[];
   try{
     const d=await api('/api/tweak',{container:CID, run:RUN, form:formData(), block:k, current:cur, note,
-      highlight:FXHL, insight:val('storyCare'), history:HIST[k]});
-    th.remove();
+      highlight:hl, insight:val('storyCare'), history:HIST[k]});
+    await th.done();
     HIST[k].push(`Human: ${note}`,`Robot: ${d.say||d.action||''}`);
     if(d.action==='lock'){
-      if(d.say) fxSay(esc(d.say),'robot',true);
-      FXLOCK[k]=true;
-      fxAnnounceLock(k);
+      fxKeep(d.say||null);
     } else if(d.action==='change' && d.copy){
       FXDIFF[k]={old:cur, new:d.copy};
       fxSet(k,d.copy);
       FXLIST.push({label:FXLBL[k], note}); TWEAKS++;
       fxClearOpts();
-      fxSay(esc(d.say||'On the card. '+fxAsk()),'robot',true);
-      if(d.flags && d.flags.length) fxSay('Careful — '+esc(d.flags[0]),'robot',false);
+      fxSay(esc(d.say||'Like this?'),'robot',true);
+      if(d.flags && d.flags.length) fxSay('Careful \u2014 '+esc(d.flags[0]),'robot',false);
       if(d.wants) fxSay(esc(d.wants),'robot',false);
       fxApplyFx(k);
     } else {
-      fxSay(esc(d.say||"Can\u2019t do that one."),'robot',true);
+      fxSay(esc(d.say||'Say that another way?'),'robot',true);
     }
-  }catch(e){ th.remove(); fxSay(esc(e.message),'robot',true); }
-  FXHL=null;
+  }catch(e){ await th.done(); fxSay(esc(e.message),'robot',true); }
 }
 
-const FX_LOCKED_LINE='That\u2019s from the brief — dates, numbers and legals travel locked. Change it back in FEED IT and I\u2019ll rewrite around it.';
+const FX_LOCKED_LINE='That\u2019s from the brief — dates, numbers and legals travel locked. Change it back in FEED IT and it changes everywhere.';
+function fxDeflect(){ fxSay(FX_LOCKED_LINE,'robot',true); }
 function fxSnap(full,part){
   const i=full.indexOf(part); if(i===-1) return part;
   let a=i,b=i+part.length;
