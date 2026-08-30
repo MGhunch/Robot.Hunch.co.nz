@@ -1,44 +1,61 @@
 {
-  "_comment": "The quiz block of the container definition. Hand-authored for now; SET UP (hit list 22) will generate this file one day, so nothing in here should be something a generator couldn't write. The engine reads it via /api/quiz and the FEEDER dresses it live — the rail is fixed, the dressing is live. The patter fields are the fallback: if the FEEDER call fails, the robot asks the plain version, in character, and nobody can tell.",
+  "_comment": "The FEED IT block of the container definition. Hand-authored for now; SET UP (hit list 22) will generate this file one day, so nothing in here should be something a generator couldn't write. Three stops on the concertina, three moves in the chat. The engine reads it via /api/quiz; the FEEDER dresses the moves live and the plain versions are the fallback — if a call stumbles the robot asks the plain question, in character, and nobody can tell.",
 
   "artefact": "Prize Draw email",
-  "pill": "Three question quiz",
   "tagline": "Fill in the blanks. The robot does the rest.",
 
-  "tools": {
-    "upload": true,
-    "dig": false,
-    "dig_why": "Search lands with hit list 9. Flip this true when the engine exists — the circle simply doesn't render until then."
-  },
+  "stops": [
+    {
+      "key": "dump",
+      "title": "Dump your docs",
+      "sub": "Drop in anything you've got.",
+      "pad": {
+        "head": "DROP IT HERE",
+        "browse": "Browse",
+        "line": "or drag and drop.",
+        "hint": "Briefs, emails, legals, whatever.",
+        "paste": "Or paste it in here."
+      }
+    },
+    { "key": "bounce", "title": "Bounce ideas", "sub": "Quick chat to land an angle." },
+    { "key": "deets",  "title": "Check your deets", "sub": "Dates, times, legals. Lock it in." }
+  ],
 
-  "questions": [
+  "needs": "A Rewards prize-draw email. It has to say what's being given away, who can win it (One NZ customers), how to enter, and give the reader one honest reason to bother. The story of the prize matters more than the mechanics — dates, venues and values are checklist facts, not chat.",
+
+  "moves": [
     {
       "n": 1,
       "key": "prize",
-      "title": "What's this all about?",
-      "patter": "The story in your words. Don't sweat the details.",
-      "placeholder": "'Coldplay tickets, gold circle, our members would lose their minds...' Or just dump in a brief.",
+      "job": "the gap",
+      "plain": "What's this all about?",
+      "placeholder": "'Coldplay tickets, gold circle, our members would lose their minds...'",
       "why": "Your story here sets the feel of the whole email — the headline and the body grow out of how you tell it. The boring facts I'll chase at the checklist."
     },
     {
       "n": 2,
-      "key": "source",
-      "title": "Dump your docs",
-      "patter": "What have you got lying around? Paste it, drop it, whatever exists.",
-      "placeholder": "Paste anything — the brief, the T&Cs, last year's email...",
-      "why": "I read whatever you drop and pull the facts out myself — dates, venues, prize names — so you don't have to type them. Rough is fine. Nothing is fine too."
+      "key": "care",
+      "job": "the benefit",
+      "plain": "Why will anyone care?",
+      "placeholder": "'First show here in twelve years. One night. That's it.'",
+      "why": "This is the difference between an email and a reason to enter. One honest line beats three polished ones."
     },
     {
       "n": 3,
-      "key": "care",
-      "title": "Why will anyone care?",
-      "patter": "The human hook. What makes this one matter?",
-      "placeholder": "'First show here in twelve years. One night. That's it.'",
-      "why": "This is the difference between an email and a reason to enter. One honest line beats three polished ones."
+      "key": "angle",
+      "job": "the angle",
+      "plain": "What's the angle?",
+      "placeholder": "'Yep.' Or say it your way.",
+      "why": "The angle is the one idea the whole email hangs off. I'll propose one from what you've told me — say yes, or say it better."
     }
   ],
 
-  "closing": "That's the three. Off to check the facts —",
+  "closing": "Locked. Off to check the facts —",
+
+  "tools": {
+    "dig": false,
+    "dig_why": "Search lands with hit list 9. Flip this true when the engine exists — the circle simply doesn't render until then."
+  },
 
   "shape": {
     "modules": [

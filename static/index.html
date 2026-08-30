@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=010">
+<link rel="stylesheet" href="robot.css?v=013">
 </head>
 <body>
 
@@ -124,12 +124,12 @@
   <!-- 1 BRIEF — the story, then the detail -->
   <div class="pane on" data-p="0">
 
-    <!-- page one: THE QUIZ. One journey, three questions, robot leading.
-         The definition comes from the container (quiz.json via /api/quiz);
-         this is a dumb renderer wearing the mock. Answers land in hidden
-         slots (storyPrize / blurb / storyCare) so everything downstream —
-         extraction, craftKey, the checklist — reads exactly what it always
-         read. The quiz is a new face on the same mouth. -->
+    <!-- page one: FEED IT — three stops on a concertina. Closed = title +
+         sub; open = the action. The stops, the pad copy and the three moves
+         come from the container (quiz.json via /api/quiz); this is a dumb
+         renderer wearing feed-it-concertina-mock.html. Answers land in
+         hidden slots (storyPrize / blurb / storyCare / storyAngle) so
+         everything downstream reads what it always read, plus the angle. -->
     <div id="storyView">
       <div class="feedstage">
         <div class="fd-wrap">
@@ -137,44 +137,90 @@
           <div class="fd-tagline" id="fdTagline">Fill in the blanks. The robot does the rest.</div>
           <div class="fd-grid">
             <div class="fd-ghosthold">
-              <div class="fd-zone" id="fdArtefact">&nbsp;</div>
               <div class="fd-ghost" id="fdGhost"></div>
             </div>
-            <div>
-              <div class="fd-zone" style="margin-left:46px" id="fdPill">&nbsp;</div>
-              <div class="fd-chat" id="fdChat"></div>
-              <div class="fd-answer">
-                <div class="fd-say">
-                  <textarea id="fdBox" rows="3" placeholder=""></textarea>
-                  <div class="fd-foot">
-                    <div class="fd-tools" id="fdTools"></div>
-                    <button class="fd-go beb" id="fdGo" onclick="fdNext()">NEXT</button>
+            <div class="fd-acc" id="fdAcc">
+
+              <!-- STOP 1 — the landing pad -->
+              <div class="fd-stage on" data-i="0">
+                <div class="fd-gut">1</div>
+                <div class="fd-card">
+                  <button class="fd-head" onclick="acc(0)">
+                    <div>
+                      <span class="fd-q" id="fdT0"></span>
+                      <div class="fd-sub" id="fdS0"></div>
+                    </div>
+                    <svg class="fd-chev" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="fd-bod">
+                    <div class="picdrop fd-pad" id="fdPad" tabindex="0" role="button">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5"/><path d="M8 9l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+                      <div class="pichead" id="fdPadHead"></div>
+                      <div class="picsub"><a id="fdBrowse"></a> <span id="fdPadLine"></span><br><span id="fdPadHint"></span></div>
+                      <div class="fd-docs" id="fdDocs"></div>
+                      <textarea class="fd-paste" id="fdDump" rows="3"></textarea>
+                    </div>
+                    <div class="fd-foot"><div class="fd-tools"></div><button class="fd-go" id="fdDumpGo" onclick="fdDumpNext()">NEXT</button></div>
                   </div>
                 </div>
               </div>
+
+              <!-- STOP 2 — the chat -->
+              <div class="fd-stage todo" data-i="1">
+                <div class="fd-gut">2</div>
+                <div class="fd-card">
+                  <button class="fd-head" onclick="acc(1)">
+                    <div>
+                      <span class="fd-q" id="fdT1"></span>
+                      <div class="fd-sub" id="fdS1"></div>
+                    </div>
+                    <svg class="fd-chev" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="fd-bod">
+                    <div class="fd-chat" id="fdChat"></div>
+                    <div class="fd-answer">
+                      <div class="fd-say">
+                        <textarea id="fdBox" rows="3" placeholder=""></textarea>
+                        <div class="fd-foot">
+                          <div class="fd-tools" id="fdTools"></div>
+                          <button class="fd-go" id="fdGo" onclick="fdNext()">NEXT</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- STOP 3 — the checklist. One dumb renderer; the container's
+                   config deals the rows (CL_CONFIG below). Nothing flies
+                   without a tick. -->
+              <div class="fd-stage todo" data-i="2">
+                <div class="fd-gut">3</div>
+                <div class="fd-card">
+                  <button class="fd-head" onclick="acc(2)">
+                    <div>
+                      <span class="fd-q" id="fdT2"></span>
+                      <div class="fd-sub" id="fdS2"></div>
+                    </div>
+                    <svg class="fd-chev" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="fd-bod">
+                    <div class="cl-cards" id="clCards"></div>
+                    <button class="cl-door" id="clDoor" onclick="toPics()">WRITE THE WORDS</button>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
       </div>
-      <!-- the harvest: downstream reads these, the quiz writes them -->
+      <!-- the harvest: downstream reads these, the stops write them -->
       <textarea id="storyPrize" style="display:none"></textarea>
       <textarea id="storyCare" style="display:none"></textarea>
+      <textarea id="storyAngle" style="display:none"></textarea>
       <textarea id="blurb" style="display:none"></textarea>
       <input type="file" id="fdFile" accept=".txt,.md,.csv,text/plain" multiple style="display:none">
-    </div>
-
-    <!-- page two: THE CHECKLIST. One dumb renderer; the container's config
-         deals the screen (see CL_CONFIG below). Nothing flies without a tick. -->
-    <div class="redpane subhide" id="detailView">
-      <h2 class="rhed beb">CHECKLIST</h2>
-      <p class="rlede">Got all the facts in a straight line?</p>
-
-      <div class="cl-cards" id="clCards"></div>
-
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center;margin-top:16px">
-        <button class="btnw" style="opacity:.85" onclick="backToStory()">THE STORY</button>
-        <button class="cl-door" id="clDoor" onclick="toPics()">WRITE THE WORDS</button>
-      </div>
     </div>
 
     <!-- page three: the pics. The robot's already writing — this page fills
@@ -199,7 +245,7 @@
       </div>
 
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        <button class="btnw" style="opacity:.85" onclick="subView('detail')">THE DETAIL</button>
+        <button class="btnw" style="opacity:.85" onclick="subView('detail')">THE DEETS</button>
         <button class="btnw" id="picsGo" onclick="buildIt()">NO IMAGES? NO WORRIES.</button>
       </div>
     </div>
@@ -593,36 +639,58 @@ const formData = () => ({
 function enterRoom(){ $('door').style.display='none'; $('room').classList.add('on'); clRender(); quizInit(); }
 
 /* ---------------- story -> detail ---------------- */
-const storyData = () => ({prize:val('storyPrize'), care:val('storyCare'), source:val('blurb')});
+const storyData = () => ({prize:val('storyPrize'), care:val('storyCare'), angle:val('storyAngle'), source:val('blurb')});
 
 function subView(v){
-  $('storyView').classList.toggle('subhide', v!=='story');
-  $('detailView').classList.toggle('subhide', v!=='detail');
+  /* 'story' and 'detail' are both the concertina now — detail just
+     means stop 3 open. 'pics' is still its own page. */
+  $('storyView').classList.toggle('subhide', v==='pics');
   $('picsView').classList.toggle('subhide', v!=='pics');
+  if(v==='detail') acc(2);
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function backToStory(){ subView('story'); }
 
-/* ================= THE QUIZ =================
-   The rail comes from the container (/api/quiz); the FEEDER dresses each
-   stop live (/api/feeder) and the config patter is the silent fallback.
-   Answers write into the hidden story slots the rest of the tool reads. */
-let QZ=null, QN=0, QANS={};          // config, current question n, answers by key
-const FD_SLOT={prize:'storyPrize', source:'blurb', care:'storyCare'};
+/* ================= FEED IT — the concertina =================
+   Three stops, one open at a time. The stops and the moves come from the
+   container (/api/quiz); the FEEDER dresses each move live (/api/feeder)
+   and the config's plain version is the silent fallback. Every move is two
+   beats — CONFIRM, then ENRICH — and move 3 proposes an angle the human
+   bounces. Answers write into the hidden slots the rest of the tool reads. */
+let QZ=null, QN=0, QANS={}, QANGLE='';   // config, current move n, answers by key, proposed angle
+const FD_SLOT={prize:'storyPrize', care:'storyCare', angle:'storyAngle'};
 const BOT_AV='<span class="botdisc"><img src="robot-face.svg" alt=""></span>';
 const FD_ROBOT='<div class="fd-cav">'+BOT_AV+'</div>';
+let FAR=0;                                // furthest stop reached
+
+/* the concertina: one open, the rest closed; you can reopen anything reached */
+function acc(i){
+  if(i>FAR) return;
+  document.querySelectorAll('.fd-stage').forEach((st,j)=>{
+    st.className='fd-stage '+(j===i?'on':j<i?'done':'todo');
+  });
+  if(i===2){ clRender(); armDetail(); }
+}
+function accReach(i){ FAR=Math.max(FAR,i); acc(i); }
 
 async function quizInit(){
   if(QZ) return;
   try{ QZ = await api('/api/quiz'); }
   catch(e){ QZ=null; return; }
-  $('fdArtefact').textContent = QZ.artefact || 'The artefact';
-  $('fdPill').textContent = QZ.pill || 'The quiz';
   if(QZ.tagline) $('fdTagline').textContent = QZ.tagline;
+  (QZ.stops||[]).forEach((st,i)=>{
+    const t=$('fdT'+i), su=$('fdS'+i);
+    if(t) t.textContent=st.title||''; if(su) su.textContent=st.sub||'';
+  });
+  const pad=(QZ.stops&&QZ.stops[0]&&QZ.stops[0].pad)||{};
+  $('fdPadHead').textContent = pad.head||'DROP IT HERE';
+  $('fdBrowse').textContent  = pad.browse||'Browse';
+  $('fdPadLine').textContent = pad.line||'or drag and drop.';
+  $('fdPadHint').textContent = pad.hint||'';
+  $('fdDump').placeholder    = pad.paste||'Or paste it in here.';
   fdGhostDraw(QZ.shape);
   fdToolsDraw(QZ.tools||{});
-  QN=0; QANS={};
-  fdAsk(1, '', QZ.questions[0].patter);
+  QN=0; QANS={}; QANGLE='';
 }
 
 /* the ghost renders from the shape block — the engine knows module types,
@@ -649,11 +717,9 @@ function fdGhostDraw(shape){
   $('fdGhost').innerHTML = bar + '<div class="fd-gbody">' + rest + '</div>';
 }
 
+/* the chat's tools: dig (flag-off until hit list 9) and the why-beat */
 function fdToolsDraw(t){
   const b=[];
-  if(t.upload) b.push(`<button class="fd-tool" title="Drop your docs — brief, T&amp;Cs, whatever's lying around" onclick="$('fdFile').click()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>`);
   if(t.dig) b.push(`<button class="fd-tool" title="Let it dig — the robot can google the boring bits" onclick="fdDig()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="11" cy="11" r="6.5"/><path d="M15.8 15.8L20 20"/></svg></button>`);
@@ -663,9 +729,61 @@ function fdToolsDraw(t){
   $('fdTools').innerHTML=b.join('');
 }
 
+/* ---------- STOP 1: the landing pad ---------- */
+const FD_TEXT = f => /\.(txt|md|csv)$/i.test(f.name) || (f.type||'').startsWith('text/');
+let FD_DOCS=[];                            // {name, text} — what's been dropped
+async function fdTake(files){
+  for(const f of files){
+    if(FD_TEXT(f)){
+      const t=await f.text();
+      FD_DOCS.push({name:f.name, text:t.slice(0,12000)});
+    }else{
+      FD_DOCS.push({name:f.name, text:'', bad:true});
+    }
+  }
+  fdDocsDraw();
+}
+function fdDocsDraw(){
+  $('fdDocs').innerHTML = FD_DOCS.map((d,i)=>
+    `<span class="fd-doc${d.bad?' bad':''}" title="${d.bad?'Can\'t read this one yet — paste the words in':''}">${esc(d.name)}<button onclick="fdDocDrop(${i});event.stopPropagation()" aria-label="Remove">&times;</button></span>`).join('');
+}
+function fdDocDrop(i){ FD_DOCS.splice(i,1); fdDocsDraw(); }
+$('fdBrowse').addEventListener('click', e=>{ e.stopPropagation(); $('fdFile').click(); });
+$('fdFile').addEventListener('change', async e=>{ await fdTake(e.target.files); e.target.value=''; });
+{
+  const pad=$('fdPad');
+  ['dragenter','dragover'].forEach(ev=>pad.addEventListener(ev,e=>{e.preventDefault();pad.classList.add('dragover');}));
+  ['dragleave','drop'].forEach(ev=>pad.addEventListener(ev,e=>{e.preventDefault();pad.classList.remove('dragover');}));
+  pad.addEventListener('drop', e=>fdTake(e.dataTransfer.files));
+}
+/* the dump is everything on the pad: pasted words plus every readable doc */
+function fdDumpText(){
+  const parts=FD_DOCS.filter(d=>d.text).map(d=>`--- ${d.name} ---\n${d.text}`);
+  const typed=$('fdDump').value.trim();
+  if(typed) parts.unshift(typed);
+  return parts.join('\n\n');
+}
+
+async function fdDumpNext(){
+  const dump=fdDumpText();
+  $('blurb').value=dump; dirty();
+  $('fdDumpGo').disabled=true;
+  accReach(1);
+  /* extraction runs in the background — by stop 3 the checklist's
+     pre-filled. Favour, not gate. */
+  fdExtract();
+  /* move 1: the robot reads the dump and asks the gap */
+  fdThink(true);
+  let d;
+  try{ d = await api('/api/feeder',{dump:dump, answers:QANS, next:1}); }
+  catch(e){ d = {confirm:'', enrich:QZ.moves[0].plain}; }
+  fdThink(false);
+  fdAsk(1, d);
+  $('fdDumpGo').disabled=false;
+}
+
+/* ---------- STOP 2: the chat ---------- */
 const fdScroll=()=>{ const c=$('fdChat'); c.scrollTop=c.scrollHeight; };
-$('fdChat').addEventListener('scroll', e=>
-  e.target.classList.toggle('scrolled', e.target.scrollTop>6));
 function fdBubble(html, me){
   const row=document.createElement('div');
   row.className='fd-row'+(me?' me':'');
@@ -673,6 +791,7 @@ function fdBubble(html, me){
   if(me) row.querySelector('.fd-msg').textContent=html;
   $('fdChat').appendChild(row); fdScroll();
 }
+/* the bouncing dots — the robot's thinking face, every time it reads */
 function fdThink(on){
   let t=$('fdChat').querySelector('.fd-think');
   if(on&&!t){ t=document.createElement('div'); t.className='fd-think';
@@ -681,35 +800,45 @@ function fdThink(on){
   if(!on&&t) t.remove();
 }
 
-function fdAsk(n, ack, ask){
-  const q=QZ.questions[n-1]; QN=n;
-  if(ack) fdBubble(esc(ack));
-  fdBubble(`<span class="fd-q"><i>#${q.n}</i> ${esc(q.title)}</span>${esc(ask||q.patter)}`);
-  const box=$('fdBox'); box.value=''; box.placeholder=q.placeholder||''; box.focus();
-  $('fdGo').textContent = n===QZ.questions.length ? 'DONE' : 'NEXT';
+/* one bubble per move: CONFIRM, then ENRICH. On move 3 the angle rides in
+   the same bubble, as a proposal. */
+function fdAsk(n, d){
+  const m=QZ.moves[n-1]; QN=n;
+  let html='';
+  if(d.confirm) html+=`<span class="fd-confirm">${esc(d.confirm)}</span>`;
+  if(n===3 && d.angle){ QANGLE=d.angle; html+=`<span class="fd-angle">${esc(d.angle)}</span>`; }
+  else QANGLE='';
+  html+=esc(d.enrich||m.plain);
+  fdBubble(html);
+  const box=$('fdBox'); box.value=''; box.placeholder=m.placeholder||''; box.focus();
+  $('fdGo').textContent = n===QZ.moves.length ? 'DONE' : 'NEXT';
 }
 
 async function fdNext(){
   if(!QZ||!QN) return;
-  const q=QZ.questions[QN-1];
-  const a=$('fdBox').value.trim();
-  if(a){ fdBubble(a, true); }
-  QANS[q.key]=a;
-  const slot=$(FD_SLOT[q.key]); if(slot){ slot.value=a; }
+  const m=QZ.moves[QN-1];
+  let a=$('fdBox').value.trim();
+  if(a) fdBubble(a, true);
+  /* move 3: a yes (or nothing) locks the proposal; anything else replaces it */
+  if(m.key==='angle'){
+    const yes = !a || /^(y|yes|yep|yeah|yup|sure|ok|okay|that'?s it|nailed it|bang on|love it)[.! ]*$/i.test(a);
+    a = yes ? QANGLE : a;
+  }
+  QANS[m.key]=a;
+  const slot=$(FD_SLOT[m.key]); if(slot){ slot.value=a; }
   dirty();
   $('fdGo').disabled=true;
-  if(QN < QZ.questions.length){
+  if(QN < QZ.moves.length){
     fdThink(true);
     let d;
-    try{ d = await api('/api/feeder',{answers:QANS, next:QN+1}); }
-    catch(e){ d = {ack:'', ask:QZ.questions[QN].patter}; }
+    try{ d = await api('/api/feeder',{dump:val('blurb'), answers:QANS, next:QN+1}); }
+    catch(e){ d = {confirm:'', enrich:QZ.moves[QN].plain}; }
     fdThink(false);
-    fdAsk(QN+1, d.ack, d.ask);
+    fdAsk(QN+1, d);
   }else{
     if(QZ.closing) fdBubble(esc(QZ.closing));
-    fdThink(true);
-    await toDetail();          /* extraction runs in here, favour not gate */
-    fdThink(false);
+    await fdExtractDone();     /* if extraction's still reading, wait for it */
+    accReach(2);
   }
   $('fdGo').disabled=false;
 }
@@ -718,51 +847,34 @@ async function fdNext(){
    conversation, not modal. */
 function fdWhy(){
   if(!QZ||!QN) return;
-  const q=QZ.questions[QN-1];
-  if(q.why) fdBubble(esc(q.why));
+  const m=QZ.moves[QN-1];
+  if(m.why) fdBubble(esc(m.why));
 }
 
 /* dig is flag-off until the engine exists (hit list 9) */
 function fdDig(){ fdBubble("Digging lands soon — for now, tell me or paste it."); }
 
-/* the dump door: text files read straight into the box. Anything the
-   browser can't read as text gets an honest in-character line. */
-$('fdFile').addEventListener('change', async e=>{
-  const box=$('fdBox');
-  for(const f of e.target.files){
-    if(/\.(txt|md|csv)$/i.test(f.name) || (f.type||'').startsWith('text/')){
-      const t=await f.text();
-      box.value=(box.value?box.value+'\n\n':'')+t.slice(0,12000);
-    }else{
-      fdBubble(`Can't read ${f.name} yet — paste the words in for now.`);
-    }
-  }
-  e.target.value='';
-});
-
-let EXTRACTED = false;
-async function toDetail(){
-  const btn=$('toDetailBtn');   /* gone with the quiz; guarded for safety */
+let EXTRACTED = false, EXTRACTING = null;
+/* the dump → the checklist. Fires the moment the pad's handed over, so
+   stop 3 arrives pre-filled. Dug or extracted, the rule holds: a
+   robot-found fact never arrives ticked. Provenance line, grey tick,
+   human judges. */
+function fdExtract(){
   const s=storyData();
-  if(!EXTRACTED && (s.prize||s.care||s.source).trim()){
-    if(btn){ btn.disabled=true; btn.textContent='READING THAT…'; }
-    try{
-      const d = await api('/api/extract', s);
-      const f = d.found || {};
-      /* dug or extracted, the rule holds: a robot-found fact never
-         arrives ticked. Provenance line, grey tick, human judges. */
-      const land=(id,v)=>{ if(v && !CLS[id].value){
-        CLS[id].value=v; CLS[id].found='from your docs'; CLS[id].ticked=false; } };
-      if(f.prize_type && !CLS.pname.value) CLS.ptype.value=f.prize_type;
-      land('pname', f.prize_name);
-      land('venue', f.venue);
-      land('edate', f.event_date);
-      EXTRACTED = true;
-    }catch(e){ /* extraction is a favour, not a gate */ }
-    if(btn){ btn.disabled=false; btn.textContent='NOW THE DETAIL'; }
-  }
-  clRender(); subView('detail'); armDetail();
+  if(EXTRACTED || !(s.source||'').trim()) return;
+  EXTRACTING = api('/api/extract', s).then(d=>{
+    const f = d.found || {};
+    const land=(id,v)=>{ if(v && !CLS[id].value){
+      CLS[id].value=v; CLS[id].found='from your docs'; CLS[id].ticked=false; } };
+    if(f.prize_type && !CLS.pname.value) CLS.ptype.value=f.prize_type;
+    land('pname', f.prize_name);
+    land('venue', f.venue);
+    land('edate', f.event_date);
+    EXTRACTED = true;
+  }).catch(()=>{ /* extraction is a favour, not a gate */ })
+    .finally(()=>{ EXTRACTING=null; });
 }
+async function fdExtractDone(){ if(EXTRACTING){ fdThink(true); await EXTRACTING; fdThink(false); } }
 
 /* ---------------- nothing flies without a tick ---------------- */
 const detailReady = () => clRows().every(r=>{

@@ -189,6 +189,7 @@ def generate():
     story = data.get("story") or {}
     s_prize = (story.get("prize") or "").strip()[:600]
     s_care = (story.get("care") or "").strip()[:600]
+    s_angle = (story.get("angle") or "").strip()[:300]
 
     brief = f"""PRIZE: {facts['prize_name']}
 TYPE: {facts['prize_type']}
@@ -202,6 +203,8 @@ ENTRIES CLOSE: {facts['closes_long']}"""
             brief += f"\nWhat's the prize? {s_prize}"
         if s_care:
             brief += f"\nWhy will anyone care? {s_care}"
+    if s_angle:
+        brief += f"\n\nTHE ANGLE (agreed with the human in the chat — the one idea the email hangs off, write to it):\n{s_angle}"
     brief += f"""
 
 WHAT THEY SENT US (the promoter's writing, not ours — mine it for a hook,
@@ -385,44 +388,65 @@ def quiz():
 @copy_bp.route("/api/feeder", methods=["POST"])
 @require_auth
 def feeder():
-    """Between-questions patter. In: the answers so far and which question
-    comes next. Out: {ack, ask}. The rail is fixed — the FEEDER only
-    dresses the next fixed question to fit what's already in hand."""
+    """BOUNCE IDEAS. In: the dump, the answers so far, which move comes
+    next. Out: {confirm, enrich} — plus {angle} on move 3, where the
+    robot proposes and the human bounces. The rail is fixed (three moves,
+    the container's promise); the FEEDER only dresses each move to fit
+    what's already in hand. On any stumble the plain version fires."""
     data = request.get_json() or {}
     cfg = quiz_config()
-    questions = cfg.get("questions", [])
+    moves = cfg.get("moves", [])
     nxt = data.get("next")
-    q = next((x for x in questions if x.get("n") == nxt), None)
-    if not q:
-        return jsonify({"error": "No such question."}), 400
+    m = next((x for x in moves if x.get("n") == nxt), None)
+    if not m:
+        return jsonify({"error": "No such move."}), 400
 
-    # the fallback is the config's own words — used on any stumble
-    fallback = {"success": True, "ack": "", "ask": q.get("patter", ""),
-                "live": False}
+    # the fallback is the config's own words — used on any stumble.
+    # On move 3 there's no proposal to bounce, so the human just says it.
+    fallback = {"success": True, "confirm": "", "enrich": m.get("plain", ""),
+                "angle": "", "live": False}
 
     if not ANTHROPIC_API_KEY:
         return jsonify(fallback)
 
+    dump = (data.get("dump") or "").strip()
     answers = data.get("answers") or {}
     got = []
-    for x in questions:
+    for x in moves:
         a = (answers.get(x["key"]) or "").strip()
         if a:
-            got.append(f"Q{x['n']} — {x['title']}\nTHEY SAID: {a[:2500]}")
-    user = ("THE FIXED RAIL:\n"
-            + "\n".join(f"Q{x['n']}: {x['title']} — {x['patter']}"
-                        for x in questions)
+            got.append(f"MOVE {x['n']} — {x['plain']}\nTHEY SAID: {a[:2500]}")
+
+    # what the container sounds like — read, don't speak (see feeder.md)
+    try:
+        sound = prompt(f"containers/{CONTAINER}/voice")[:1800]
+    except Exception:
+        sound = ""
+
+    user = ("WHAT THE CONTAINER NEEDS:\n" + (cfg.get("needs") or "(not stated)")
+            + "\n\nWHAT THE CONTAINER SOUNDS LIKE (read-only):\n" + (sound or "(not stated)")
+            + "\n\nTHE FIXED RAIL:\n"
+            + "\n".join(f"MOVE {x['n']} ({x.get('job','')}): {x['plain']}" for x in moves)
+            + "\n\nTHE DUMP:\n" + (dump[:6000] or "(empty — nothing dropped in)")
             + "\n\nANSWERS SO FAR:\n" + ("\n\n".join(got) or "(nothing yet)")
-            + f"\n\nNEXT UP: Q{q['n']} — {q['title']}")
+            + f"\n\nNEXT UP: MOVE {m['n']} — {m.get('job','')} — plain version: {m['plain']}")
 
     try:
-        result = _json_from(_call(prompt("feeder"), user, 300))
+        result = _json_from(_call(prompt("feeder"), user, 400))
     except Exception as e:
-        print(f"[robot/feeder] fell back to config patter: {e}")
+        print(f"[robot/feeder] fell back to plain: {e}")
         return jsonify(fallback)
 
-    if not result or not (result.get("ask") or "").strip():
+    if not result or not (result.get("enrich") or "").strip():
         return jsonify(fallback)
 
-    return jsonify({"success": True, "ack": (result.get("ack") or "").strip(),
-                    "ask": result["ask"].strip(), "live": True})
+    out = {"success": True,
+           "confirm": (result.get("confirm") or "").strip(),
+           "enrich": result["enrich"].strip(),
+           "angle": "", "live": True}
+    if m["n"] == 3:
+        ang = (result.get("angle") or "").strip().strip('"\u201c\u201d')
+        if not ang:
+            return jsonify(fallback)
+        out["angle"] = ang[:300]
+    return jsonify(out)

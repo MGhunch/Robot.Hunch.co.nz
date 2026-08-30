@@ -35,25 +35,10 @@ already did it.
 GOOD TO GO pushed clear of the working cards (margin-top 26). Two
 pieces of furniture, not a stack.
 
-## Housekeeping — the v009 deletions, actually done
-Gone: robot-v007.zip, "Robot.Hunch.co.nz-main (3).zip", __pycache__/,
-robot_store.jsonl (runtime data — the real store lives on the Railway
-volume), and the pre-v009 prompt files (spine.md, tweak_it.md,
-write_it/, feed_it/ — all superseded; feeder.md holds the FEED IT
-reservation). A .gitignore now stops the junk creeping back. The
-changelog folder is lowercase; delete the capital-C duplicate on
-GitHub, since an upload adds but never removes.
+## Housekeeping flag, not actioned
+The repo still carries what CHANGES-v009 said was deleted:
+robot-v007.zip, "Robot.Hunch.co.nz-main (3).zip", robot_store.jsonl,
+prompts/spine.md, prompts/tweak_it.md, prompts/write_it/. File-by-file
+replacement adds but never removes. Delete on GitHub when ready.
 
 *Honest.*
-
-## Addendum — the favicons
-The engine's face, iconised: the simple robot from the FIX IT room —
-red disc, white head, antenna, red eyes. One mark, all six sizes
-(512/192/180/48/32/16), crisp at every one. Files into /static, five
-link tags into the head. Same red as tokens.css (#ED1C24).
-
-The face is now a shared asset — static/robot-face.svg — and both
-FIX IT avatar circles (tour and edit state) wear it in place of the
-inverted illustration. One face everywhere the robot speaks; the
-full robot-and-sandwich survives where it's a character, not an
-avatar (the writing screen).

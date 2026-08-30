@@ -619,6 +619,89 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
   .fd-hed{font-size:42px}
 }
 
+/* ---------------- THE CONCERTINA (FEED IT, v013) ----------------
+   Ported from feed-it-concertina-mock.html — the mock is the spec.
+   Three stops in the right column: DUMP / BOUNCE / CHECK. Closed = title
+   + sub; open = the action; one open at a time. The gutter numbers are
+   engine chrome and never reskin. Everything inside a stop is the
+   furniture the tool already had — the pad borrows the pics page's
+   dropzone, the chat is .fd-chat, the deets are .cl-card — it just
+   loses its own card. */
+.fd-wrap{max-width:1000px}
+.fd-grid{grid-template-columns:300px minmax(0,600px)}
+.fd-acc{display:flex;flex-direction:column;gap:12px;position:relative;margin-left:46px}
+.fd-stage{position:relative}
+.fd-card{background:#fff;border-radius:var(--r-lg);overflow:hidden;
+  box-shadow:0 4px 16px rgba(0,0,0,.10)}
+.fd-gut{position:absolute;left:-46px;top:14px;width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;
+  font-family:'Bebas Neue',var(--display);font-size:20px;line-height:1;padding-top:2px}
+.fd-stage.todo .fd-gut{border:2px solid var(--white-mid);color:var(--white-mid)}
+.fd-stage.on .fd-gut{background:#fff;color:var(--red);box-shadow:0 3px 10px rgba(0,0,0,.22)}
+.fd-stage.done .fd-gut{background:#fff;color:var(--mid)}
+.fd-head{display:flex;align-items:center;gap:14px;padding:18px 18px 16px;cursor:pointer;
+  user-select:none;text-align:left;width:100%}
+.fd-head .fd-q{font-family:'Bebas Neue',var(--display);font-weight:400;font-size:34px;letter-spacing:1px;
+  text-transform:uppercase;display:block;color:var(--red);line-height:.9}
+.fd-head .fd-sub{font-size:13.5px;line-height:1.5;color:var(--ink);margin-top:5px}
+.fd-chev{margin-left:auto;flex:0 0 16px;width:16px;height:16px;transition:transform .2s}
+.fd-chev path{stroke:#C4C0B6}
+.fd-stage.on .fd-chev{transform:rotate(180deg)}
+.fd-stage.on .fd-chev path{stroke:var(--red)}
+.fd-stage.todo .fd-head{cursor:default}
+.fd-stage.todo .fd-q{color:#D6D2CB}
+.fd-stage.todo .fd-sub{color:#D6D2CB}
+.fd-stage.done .fd-q{color:var(--mid)}
+.fd-stage.done .fd-sub{color:var(--mid)}
+.fd-bod{display:none;padding:0 14px 14px}
+.fd-stage.on .fd-bod{display:block}
+.fd-stage.on .fd-head{padding-bottom:8px}
+/* the existing furniture, inside a stop */
+.fd-bod .fd-answer{margin-left:0;margin-top:0}
+.fd-bod .fd-say{padding:0}
+.fd-bod .fd-foot{margin:0;padding:8px 0 0}
+.fd-bod .fd-chat{padding-top:0;max-height:none;margin-bottom:10px}
+.fd-bod .fd-chat.scrolled{mask-image:none;-webkit-mask-image:none}
+.fd-bod .fd-row.me{margin-left:60px}
+.fd-bod .fd-msg{background:var(--paper)}
+.fd-bod .fd-row.me .fd-msg{background:#fff;border:1px solid var(--border)}
+.fd-bod .fd-say textarea{min-height:0;padding:9px 4px}
+/* the two beats of a move, and the proposal */
+.fd-confirm{display:block;margin-bottom:6px}
+.fd-angle{display:block;font-weight:600;color:var(--red);margin-bottom:6px}
+/* no display type inside the stops — the sections don't perform */
+.fd-bod .fd-go,.fd-bod .cl-door{font-family:var(--body);font-weight:600;font-size:12px;letter-spacing:1.5px;padding:0 20px}
+.fd-bod .cl-title{font-family:var(--body);font-weight:600;font-size:11.5px;letter-spacing:2px;color:var(--mid);margin-bottom:4px}
+.fd-bod .cl-title em{color:var(--mid)}
+.fd-bod .cl-fact.date{font-family:var(--body);font-size:15px;letter-spacing:0;text-transform:none}
+/* stop one is a landing pad: the pics page's dropzone, borrowed whole */
+.fd-pad{padding:26px 20px 12px;margin-bottom:0;cursor:default}
+.fd-pad svg{width:34px;height:34px;margin-bottom:8px;color:var(--ink)}
+.fd-pad .pichead{font-size:20px}
+.fd-docs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
+.fd-docs:empty{margin-top:0}
+.fd-doc{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border-radius:var(--pill);
+  padding:4px 6px 4px 12px;font-size:11.5px;color:var(--ink)}
+.fd-doc.bad{color:var(--mid);text-decoration:line-through}
+.fd-doc button{width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;font-size:11px;line-height:1;padding:0}
+.fd-doc button:hover{background:var(--red)}
+.fd-paste{display:block;width:100%;margin-top:18px;border:none;border-top:1px dashed var(--border);
+  background:none;outline:none;resize:none;font-family:inherit;font-size:11.5px;line-height:1.6;
+  color:var(--ink);padding:12px 4px 2px;text-align:center}
+.fd-paste::placeholder{color:var(--mid)}
+.fd-bod>.fd-foot{border-top:none;padding-top:10px}
+/* the deets live inside stop three: cards become sections */
+.fd-bod .cl-cards{max-width:none;gap:0}
+.fd-bod .cl-card{padding:12px 4px 4px;border-radius:0}
+.fd-bod .cl-card+.cl-card{border-top:1px solid var(--border)}
+.fd-bod .cl-door{display:block;margin:14px 0 0 auto;height:38px;
+  background:var(--paper);color:#C4C0B6}
+.fd-bod .cl-door.live{background:var(--red);color:#fff}
+@media(max-width:880px){
+  .fd-acc{margin-left:40px}
+  .fd-gut{left:-40px;width:30px;height:30px;font-size:17px}
+}
+
 /* ---------------- THE CHECKLIST (FEED IT page two) ----------------
    Ported from checklist-mock.html — the mock is the spec. One dumb
    renderer; CL_CONFIG deals the screen. One awake device: red text
