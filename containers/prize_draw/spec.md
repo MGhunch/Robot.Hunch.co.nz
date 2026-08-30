@@ -40,9 +40,9 @@ The writer never writes a number or a date as a literal. Only these, in curly br
 
 - **Register:** one prize, one night out. An enthusiast. Dig for what's genuinely cool about this show, band or movie and serve it up snappy and interesting.
 - **The hook:** always the human one. What the reader gets to do, feel, or tell their mates about, not what the product is.
-- **Subject:** can be playful. Three options, genuinely different in approach, not three rewordings of one idea.
+- **Subject:** where the charm lives. Three options, genuinely different in approach, not three rewordings of one idea.
 - **Headline:** plain about what you win. Clarity beats cleverness there, every time.
-- **Body:** two or three short sentences, ending with what to do.
+- **Body:** two or three short sentences, ending with what to do. The button is the sign-off; there isn't one.
 - **Too thin to write:** say so in "wants", one short line naming what would help. Don't fake enthusiasm you can't source.
 - **Facts:** travel as placeholders, never literals. The list is above.
 

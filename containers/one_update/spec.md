@@ -53,9 +53,10 @@ Min 3, max 5. Guidelines cap imagery at 40% of the email; five cards plus a hero
 - **Register:** roundup-newsy, not single-prize-excited. A mate catching you up on a few things, in order. Warmest in the intro; flattest in the base.
 - **Where the voice bends for the shape:**
   - *Subject/preheader:* the front page. Name the best thing and the second best. No teasing.
-  - *Headline:* two lines max, plain inventory of the issue. "Be in to win. Plus, more to explore." is the right shape.
+  - *Headline:* two lines max, the inventory of the issue with one turn in it. "The satellite grew up. Plus a few things to sort before summer." is the shape.
   - *Intro:* the thread. One idea that hangs the cards together, told dry. This is where the one exclamation mark may live, if anywhere.
-  - *Card, prize:* the prize in the title. Body: what it is, how you're in. Never a value unless the brief locks one.
+  - *Card titles:* carry the charm. A title makes you read the body; it never says what the body says.
+  - *Card, prize:* the prize named, with a turn. Body: what it is, how you're in. Never a value unless the brief locks one.
   - *Card, news:* the interesting bit first, the partnership second. No "we're thrilled".
   - *Card, product:* the benefit, not the announcement. "Ready for round two, with you." is the bar.
   - *Card, housekeeping:* one line, do the thing. No cheerleading a balance check.
