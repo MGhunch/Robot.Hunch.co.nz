@@ -19,12 +19,12 @@ One output for now. If a web/tile version gets commissioned, it's a new row and 
 | 6 | headline | email | fixed | writer | 2 lines. Counts toward the 250. |
 | 7 | intro-copy | email | fixed | writer | headline + copy ≤ 250 chars. The thread. |
 | 8 | hero | email | fixed | client | image, see IMAGES below |
-| 9 | card ×N | email | 3–5 | — | repeating. Type: prize / news / product / housekeeping. Order from brief. |
+| 9 | card ×N | email | 3–5 | — | repeating, one per story in the lineup. Type: prize / news / product / housekeeping. Order from brief. |
 | 9a | card-title | email | fixed | writer | ≤ 48 chars. Prize cards say the prize. |
 | 9b | card-body | email | fixed | writer | ≤ 160 chars. |
 | 9c | card-cta | email | optional | writer picks | ≤ 24 chars, from the set. Secondary style. |
 | 9d | card-image | email | fixed | client | image, see IMAGES below |
-| 10 | signoff-copy | email | fixed | writer | ≤ 250 chars incl. Ngā mihi lines. One plain sentence about the next thing. |
+| 10 | signoff-copy | email | fixed | writer | ≤ 250 chars. One plain sentence about the next thing. The Ngā mihi lines are the html's, not the writer's. |
 | 11 | banner | email | optional | fixed | Best in Test. Client toggles. |
 | 12 | legals | email | fixed | assembled | config.md — per-card draw clauses, extras, standard |
 | 13 | base | email | fixed | fixed | privacy · copyright |

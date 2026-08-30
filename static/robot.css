@@ -820,3 +820,36 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .fd-gcard .fd-gcta{margin:6px 0 10px}
 .fd-gcard .fd-gimg{height:56px;margin:0 -12px 0;border-top-right-radius:14px}
 .fd-gmore{font-size:7.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid);padding:2px 0 10px}
+
+/* ---------------- v015: one shape, the lineup ----------------
+   The bounce box wears the pad's dashed box: a white box with a cursor
+   in it, NEXT underneath, no placeholder. Stop 3's lineup: a story is a
+   row with its topics as chips beneath. */
+.fd-bod .fd-say{border:2px dashed var(--border);border-radius:10px;padding:8px 10px 4px}
+.fd-bod .fd-say textarea{font-size:15px;line-height:1.5}
+.cl-card.story{position:relative;padding-bottom:12px}
+.cl-card.story .cl-row{border-top:none;padding-top:4px}
+.cl-tag.grey{background:var(--paper);color:var(--mid)}
+.cl-chips{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.cl-card.story .cl-rm{position:absolute;top:12px;right:14px;float:none}
+.fx-tab{text-transform:uppercase}
+
+/* ---------------- v015: THE WORKINGS wears the chat card ----------------
+   FIX IT's conversation in FEED IT's clothes: white card, grey robot
+   bubbles, outlined human bubbles, the dashed box, NEXT-style SEND. */
+.fx-card{background:#fff;border-radius:var(--r-lg);padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px}
+.fx-card .fx-topic{margin:0 0 2px}
+.fx-card .fx-chat{max-height:46vh}
+.fx-card .fx-msg{background:var(--paper);color:var(--ink)}
+.fx-card .fx-chatrow.me .fx-msg{background:#fff;color:var(--ink);border:1px solid var(--border);border-bottom-right-radius:4px}
+.fx-card .fx-cav{background:transparent}
+.fx-card .fx-opt{background:transparent;color:var(--red);border:1px solid var(--red)}
+.fx-card .fx-opt:hover{background:var(--red);color:#fff}
+.fx-card .fx-think span{background:var(--mid)}
+.fx-card .fx-answer{margin-left:0}
+.fx-card .fx-say{display:block;border:2px dashed var(--border);border-radius:10px;padding:8px 10px 4px;background:#fff}
+.fx-card .fx-say textarea{width:100%;border:none;outline:none;background:none;resize:none;font-family:inherit;
+  font-size:15px;line-height:1.5;color:var(--ink);padding:6px 4px;min-height:0}
+.fx-card .fx-say textarea::placeholder{color:var(--mid)}
+.fx-card .fd-foot{margin:0;padding:8px 0 0}
+mark.fx-hl{background:var(--paper);color:var(--red);padding:0 2px;border-radius:2px}

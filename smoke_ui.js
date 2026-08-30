@@ -38,23 +38,17 @@ const BASE='http://127.0.0.1:5055';
   console.log('FXORDER:', E('FXORDER').join(','), '| pads:', d.querySelectorAll('#fxGutter .fx-pad').length, '| topic:', d.getElementById('fxTopic').textContent, '| cap:', d.getElementById('fxCap').textContent);
   const D=E('FXDOC'); console.log('poured headline:', D&&D.querySelector('[data-module="headline"]').textContent, '| terms starts:', D&&D.querySelector('[data-module="terms"]').textContent.slice(0,40), '| chat:', d.querySelectorAll('#fxChat .fx-chatrow').length, 'drawer:', d.querySelectorAll('#fxChat .fx-opt').length);
   w.fxPickOption('subject',1); await sleep(100); console.log('after pick:', D.querySelector('[data-module="subject"]').textContent);
-  // one update
+  // one update — the lineup
   w.eval('COPY=null'); await w.enterRoom('one_update'); await sleep(300);
-  console.log('OU checklist cards:', d.querySelectorAll('#clCards .cl-card').length, 'add btn:', !!d.querySelector('.cl-add'), '| ghost cards:', d.querySelectorAll('#fdGhost .fd-gcard').length, 'strips:', d.querySelectorAll('#fdGhost .fd-gstrip').length, 'more:', d.querySelector('#fdGhost .fd-gmore')&&d.querySelector('#fdGhost .fd-gmore').textContent);
-  E('CLR').card[0].card_type.value='prize'; w.clRender();
-  console.log('OU card1 rows after type=prize:', d.querySelectorAll('#clCards .cl-card')[1].querySelectorAll('.cl-row').length, 'tag:', d.querySelector('#clCards .cl-tag').textContent);
-
-  const S=id=>{ E('CLS')[id].value= id==='card_count'?'3':'Q3'; E('CLS')[id].ticked=true; };
-  ['issue','thread','next','card_count'].forEach(S);
-  const c=E('CLR').card; const fill=(o,kv)=>Object.entries(kv).forEach(([k,v])=>{ o[k].value=v; o[k].ticked=true; });
-  fill(c[0],{card_type:'prize',card_subject:'Headphones',card_cta:'Enter now',card_url:'#'}); w.clRender();
-  fill(c[0],{prize_name:'Sony WH-1000XM6',prize_count:'1',closes:'2026-09-06',terms_url:'#'});
-  fill(c[1],{card_type:'news',card_subject:'Toilets',card_cta:'Find out more',card_url:'#'});
-  fill(c[2],{card_type:'product',card_subject:'Refurb',card_cta:'Learn more',card_url:'#'}); w.clRender();
-  console.log('OU ready:', w.detailReady(), '| form card1:', JSON.stringify(w.formData().card[0]));
-  await w.refreshLegals(); await sleep(200); console.log('OU menu:', E('MENU').length, 'facts card:', E('FACTS')&&E('FACTS').card&&E('FACTS').card[0].closes_day);
-  w.fxInit({copy:{subject:['Toilets, and a draw','Headphones, and toilets'],preheader:'Win things',headline:'Be in to win.',"intro-copy":'Three things.',"signoff-copy":'Ngā mihi',cards:[{'card-title':'Win Sony headphones','card-body':'One pair.','card-cta':'Enter now'},{'card-title':'Toilets','card-body':'Bear with us.','card-cta':'Find out more'},{'card-title':'Refurb','card-body':'Round two.','card-cta':'Learn more'}],why:{subject:'front page',card:'says what it is'},wants:null},facts:E('FACTS'),context:{},flags:[]});
+  console.log('OU tabs:', [...d.querySelectorAll('.fx-tab')].map(x=>x.textContent).join('/'), '| ghost bar:', !!d.querySelector('#fdGhost .fd-gbar'), '| stories:', d.querySelectorAll('#clCards .cl-card.story').length, '| legals card:', !!d.querySelector('#clCards .cl-card.legals'));
+  const st=E('CLR').story; const fill=(o,kv)=>Object.entries(kv).forEach(([k,v])=>{ o[k].value=v; o[k].ticked=true; });
+  fill(st[0],{story_type:'prize',story_subject:'Win 500 Phone Dollars'}); fill(st[1],{story_type:'news',story_subject:'Satellite calls'}); fill(st[2],{story_type:'news',story_subject:'2G switch-off'});
+  st[1].story_legals.value=['satellite']; w.clRender();
+  const cards=d.querySelectorAll('#clCards .cl-card.story');
+  console.log('OU chips on prize:', cards[0].querySelectorAll('.cl-clause').length, 'ticked:', cards[0].querySelectorAll('.cl-clause.on').length, '| news chips on:', cards[1].querySelectorAll('.cl-clause.on').length, '| ready:', w.detailReady(), '| story1:', JSON.stringify(w.formData().story[0]));
+  await w.refreshLegals(); await sleep(200); console.log('OU menu:', E('MENU').length, '| facts story:', E('FACTS')&&E('FACTS').story&&E('FACTS').story[0].story_legals);
+  w.fxInit({copy:{subject:['Toilets, and a draw','Headphones, and toilets'],preheader:'Win things',headline:'Be in to win.',"intro-copy":'Three things.',"signoff-copy":'Ngā mihi',cards:[{'card-title':'Win Phone Dollars','card-body':'One pair.','card-cta':'Enter now'},{'card-title':'Satellite','card-body':'Bear with us.','card-cta':'Find out more'},{'card-title':'2G','card-body':'Round two.','card-cta':'Learn more'}],why:{subject:'front page',card:'says what it is'},wants:null},facts:E('FACTS'),context:{},flags:[]});
   await sleep(700);
-  const D2=E('FXDOC'); console.log('OU FXORDER:', E('FXORDER').length, E('FXORDER').slice(0,8).join(','), '| cards in doc:', D2.querySelectorAll('[data-module="card"]').length, '| card2 title:', D2.querySelector('[data-card="2"] [data-module="card-title"]').textContent, '| subj B:', D2.querySelector('[data-variant="B"]').textContent, '| pads:', d.querySelectorAll('#fxGutter .fx-pad').length, '| cap:', d.getElementById('fxCap').textContent);
+  const D2=E('FXDOC'); console.log('OU FXORDER:', E('FXORDER').length, 'terms in order:', E('FXORDER').includes('terms'), '| cards in doc:', D2.querySelectorAll('[data-module="card"]').length, '| legals module untouched:', D2.querySelector('[data-module="legals"]').textContent.includes('competition'), '| pads:', d.querySelectorAll('#fxGutter .fx-pad').length);
   console.log('errors:', errors);
 })().catch(e=>{ console.log('SMOKE FAIL', e.stack); process.exit(1); });

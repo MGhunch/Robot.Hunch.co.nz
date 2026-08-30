@@ -203,13 +203,15 @@ def _parse_needs(text, problems, cid):
             continue
         tab = _table(body)
         g = {"title": re.sub(r"\s*\(.*\)$", "", title), "rows": [], "repeat": None, "prose": ""}
-        m = re.match(r"EACH (.+?) \(repeats(.*)\)$", title, re.I)
+        m = re.match(r"(?:EACH )?(.+?)\s*\(repeats(?: per (\w+))?(.*)\)$", title, re.I)
         if m:
-            rep = {"per": m.group(1).strip().lower(), "min": 1, "max": 5, "where": None}
-            rng = re.search(r"(\d+)\s*[–-]\s*(\d+)", m.group(2))
+            # "EACH CARD (repeats per card, 1–5)" or "THE LINEUP (repeats per story, 3–5)"
+            per = (m.group(2) or m.group(1)).strip().lower()
+            rep = {"per": per, "min": 1, "max": 5, "where": None}
+            rng = re.search(r"(\d+)\s*[–-]\s*(\d+)", m.group(3))
             if rng:
                 rep["min"], rep["max"] = int(rng.group(1)), int(rng.group(2))
-            w = re.search(r"where\s+(\w+)\s*=\s*(\w+)", m.group(2))
+            w = re.search(r"where\s+(\w+)\s*=\s*(\w+)", m.group(3))
             if w:
                 # "where type = prize" names a row loosely; resolve it to
                 # the real id (card_type) once all groups are read
@@ -243,6 +245,8 @@ def _parse_needs(text, problems, cid):
                     row["options"] = [str(n) for n in range(int(rng.group(1)), int(rng.group(2)) + 1)] if rng else []
             elif t.startswith("checkboxes"):
                 row["type"] = "legals"
+            elif t.startswith("topics"):
+                row["type"] = "topics"
             g["rows"].append(row)
         # prose after the table (e.g. prize_name by type) rides along for humans
         after = body.split("\n\n", 1)
@@ -374,6 +378,11 @@ def _parse_config(text, cid, problems):
             problems.append(f"{cid}: NEEDS id '{i}' appears more than once")
     known = set(ids) | ENGINE_FACTS
     declared = set(re.findall(r"\{(\w+)\}", c["legals"]["facts"]))
+    # a story's topics are its own facts once they're wired
+    for g in c["needs"]["groups"]:
+        for r in g["rows"]:
+            if r["type"] == "topics":
+                known.add(r["id"])
     clause_text = " ".join(
         [x["text"] for x in c["legals"]["base"]] + [x["text"] for x in c["legals"]["conditional"]] +
         [x["text"] for x in c["legals"]["extras"]] +

@@ -215,7 +215,7 @@ def _shape(c, facts):
         notes.append(f"{m['module']}: {m['length']}" + (f" ({n} options, best first)" if n else ""))
     for g in groups:
         key = g["module"]
-        items = facts.get(key) or []
+        items = facts.get(key) or next((v for v in facts.values() if isinstance(v, list)), [])
         count = len(items) if isinstance(items, list) else 0
         inner = {p["module"]: "..." for p in g["parts"]}
         shape[key + "s"] = [inner] * max(count, 1)
@@ -245,12 +245,27 @@ def _brief(c, facts, story, source):
             if facts.get(r["id"] + "_other"):
                 v = f"{v} ({facts[r['id'] + '_other']})"
             lines.append(f"{r['label'].upper()}: {v}")
+    # repeating groups, in words: the row's label, the value as a human
+    # would say it. Never a fact id — the WRITER can't tell a key from a word.
+    labels = {r["id"]: r for g in c["needs"]["groups"] for r in g["rows"]}
+    topics = {x["id"]: x["label"] for x in c["legals"]["extras"]}
     for key, items in facts.items():
-        if isinstance(items, list):
-            for it in items:
-                bits = [f"{k}: {v}" for k, v in it.items()
-                        if not k.endswith(("_iso", "_short", "_date", "_day", "_word")) and k != "n"]
-                lines.append(f"{key.upper()} {it.get('n', '')}: " + " · ".join(bits))
+        if not isinstance(items, list):
+            continue
+        for it in items:
+            bits = []
+            for k, v in it.items():
+                r = labels.get(k)
+                if not r or v in (None, "", []):
+                    continue
+                if r["type"] == "date":
+                    v = it.get(k + "_long", v)
+                    if it.get(k + "_time"):
+                        v = f"{v} at {it[k + '_time']}"
+                elif r["type"] == "topics":
+                    v = ", ".join(topics.get(x, x) for x in v)
+                bits.append(f"{r['label']}: {v}")
+            lines.append(f"{key.upper()} {it.get('n', '')}: " + " · ".join(bits))
     brief = "THE FACTS (from the checklist — quote them, never restate them):\n" + "\n".join(lines)
 
     moves = c["feed_it"]["moves"]
@@ -325,7 +340,7 @@ def generate():
 def _extract_shape(c):
     shape, notes = {}, []
     for g in c["needs"]["groups"]:
-        rows = [r for r in g["rows"] if r["type"] in ("text", "number", "date", "select")]
+        rows = [r for r in g["rows"] if r["type"] in ("text", "number", "date", "select", "topics")]
         if not rows:
             continue
         inner = {r["id"]: None for r in rows}
@@ -333,6 +348,8 @@ def _extract_shape(c):
             t = r["type"]
             if t == "select":
                 t += " — one of: " + " / ".join(r.get("options", []))
+            if t == "topics":
+                t = "list — any of: " + " / ".join(f"{x['id']} ({x['label']})" for x in c["legals"]["extras"]) + ", else []"
             notes.append(f"{r['id']} ({t}): {r['label']}")
         if g["repeat"]:
             key = g["repeat"]["per"].split()[-1]
@@ -372,6 +389,10 @@ def extract():
         for k, v in (d or {}).items():
             r = rows.get(k)
             if not r or v in (None, ""):
+                continue
+            if r["type"] == "topics":
+                ok = {x["id"] for x in c["legals"]["extras"]}
+                out[k] = [x for x in (v if isinstance(v, list) else []) if x in ok]
                 continue
             v = str(v).strip()[:160]
             if r["type"] == "select" and v not in r.get("options", []):

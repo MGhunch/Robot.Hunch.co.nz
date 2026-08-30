@@ -25,10 +25,19 @@ assert not E.check_copy(c, "Win {winners_word} passes {closes_day}", f, "subject
 assert E.render_copy(c, "by {closes_day}", f) == "by Sunday"
 
 ou = C.container("one_update")
-f2 = E.build_facts(ou, {"issue": "Q3", "card_count": "3", "card": [
-    {"card_type": "prize", "card_subject": "Headphones", "prize_name": "Sony", "prize_count": "1", "closes": "2026-09-06"},
-    {"card_type": "news", "card_subject": "Toilets"}, {"card_type": "product", "card_subject": "Refurb"}]})
-assert f2["card"][0]["closes_day"] == "Sunday" and f2["card"][0]["closes_time"] == "11:59pm" and "closes_day" not in f2["card"][1]
+f2 = E.build_facts(ou, {"story": [
+    {"story_type": "prize", "story_subject": "Phone Dollars", "story_legals": ["draw", "one_wallet"]},
+    {"story_type": "news", "story_subject": "Satellite", "story_legals": ["satellite"]},
+    {"story_type": "news", "story_subject": "2G"}]})
+assert f2["story"][0]["story_legals"] == ["draw", "one_wallet"] and f2["story"][2]["story_legals"] == []
+from copy_stage import _brief, _shape
+b = _brief(ou, f2, {}, "dump")
+assert "STORY 1: Type: prize · What it's about: Phone Dollars · Legals: draw, One Wallet redemption" in b and "story_legals" not in b
+assert len(_shape(ou, f2)[0]["cards"]) == 3
+try:
+    E.build_facts(ou, {"story": [{"story_type": "prize", "story_subject": "x"}]}); raise AssertionError
+except E.TermsError as e:
+    assert "3 to 5" in str(e)
 assert E.check_copy(ou, "x" * 170, f2, "card-body")
 print("engine ok")
 
@@ -41,7 +50,8 @@ t.post("/api/auth/word", json={"word": "taniwha"})
 d = t.get("/api/containers").get_json()
 assert d["hunch"] and {x["id"] for x in d["tiles"]} == {"one_update", "prize_draw"}
 d = t.get("/api/container/one_update").get_json()
-assert d["quiz"]["moves"][0]["key"] == "gap" and d["checklist"]["groups"][1]["repeat"]["min"] == 3
+assert d["quiz"]["moves"][0]["key"] == "gap" and d["checklist"]["groups"][0]["repeat"] == {"per": "story", "min": 3, "max": 5, "where": None}
+assert d["checklist"]["topics"][0] == {"id": "draw", "label": "Prize draw clause", "default": True, "when": "prize"}
 assert "/brands/one_nz/assets/" in d["html"] and d["ghost"][0] == "precopy"
 r = t.post("/api/terms", json={"container": "prize_draw", "form": form}).get_json()
 assert len(r["menu"]) == 15 and r["footer"].startswith("For any queries")

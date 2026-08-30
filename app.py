@@ -101,7 +101,10 @@ def _checklist(c):
             rows.append(row)
         groups.append({"title": g["title"], "rows": rows, "repeat": g["repeat"], "prose": g.get("prose", "")})
     types = type_options(c)
-    return {"groups": groups, "types": types,
+    topics = [{"id": x["id"], "label": x["label"], "default": x["default"]} for x in c["legals"]["extras"]]
+    for x in c["legals"]["conditional"]:
+        topics.insert(0, {"id": x["id"], "label": x["title"], "default": True, "when": "prize"})
+    return {"groups": groups, "types": types, "topics": topics,
             "legals": {"title": "The legals",
                        "sub": "Standard legals are locked in. Tick the extras this one needs."}}
 

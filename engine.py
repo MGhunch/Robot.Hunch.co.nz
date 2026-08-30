@@ -146,6 +146,12 @@ def _fill_row(row, form, facts, label_of):
     if t == "legals":
         return
 
+    if t == "topics":
+        v = form.get(rid)
+        facts[rid] = [str(x) for x in v] if isinstance(v, list) else \
+            [x.strip() for x in str(v or "").split(",") if x.strip()]
+        return
+
     if not raw:
         if row["locked"] and _shown(row, form):
             raise TermsError(f"{label_of(rid)} is blank.")

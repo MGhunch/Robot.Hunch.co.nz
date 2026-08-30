@@ -15,6 +15,7 @@ status:  testing
 ## Changelog
 - v1 — 30 Aug 2026 — first set up, from OCS03000 Q1 and the eDM guidelines v3.0. Voice built here (not Prompter). FEED IT replaced by DUMP / BOUNCE / CHECK; NEEDS below drives BOUNCE IT. Michael + Claude.
 - v2 — 30 Aug 2026 — crunched to five things: config.md (this), voice.md, spec.md, one_update.html, assets/. One home per fact. The engine draws the ghost from the html. Michael + Claude.
+- v3.2 — 30 Aug 2026 — NEEDS cut to THE LINEUP: a row per story with legal topics hanging off it. Issue, thread, card count, prize rows, links all gone; facts are factual and live in the dump. Michael + Claude.
 - v3.1 — 30 Aug 2026 — schema gaps closed: FEEDER needs and bounce dressing added (draft copy), derived facts named for the draw clause, Standard legals as a table. Michael + Claude.
 - v3 — 30 Aug 2026 — brand split out: voice and skin now live in brands/one_nz, pointed at by `brand:` above. The container keeps a VOICE LEAN in spec.md. Michael + Claude.
 
@@ -36,30 +37,16 @@ A quarterly roundup for One NZ customers. Three to five things worth knowing, in
 Got it. Let me check what I'm missing.
 
 ## NEEDS
-### THE ISSUE
+*One card. A row per story, read from the dump; the legal topics each one needs hang off it. Facts (dates, names, prices) stay in the dump and the WRITER reads them straight.*
+
+### THE LINEUP (repeats per story, 3–5)
 | id | label | type | locked | ask | not-sure line | diggable |
 |---|---|---|---|---|---|---|
-| issue | Issue | text | yes | Which issue is this — Q1, Q2? | | no |
-| thread | The thread | text | no | What ties this lot together? | I'll look for one in the dump. | no |
-| next | The next thing | text | no | Anything coming up to mention at the end — an event, a date? | Fine to skip. | no |
-| card_count | How many cards | dropdown 3–5 | yes | How many things are in this issue? | | no |
+| story_type | Type | dropdown: prize / news / product / housekeeping | yes | Is story {n} a prize, news, a product, or housekeeping? | | no |
+| story_subject | What it's about | text | yes | In a few words, what's story {n}? | | no |
+| story_legals | Legals | topics from LEGALS below | no | Which legal topics apply to story {n}? | | no |
 
-### EACH CARD (repeats per card, 3–5)
-| id | label | type | locked | ask | not-sure line | diggable |
-|---|---|---|---|---|---|---|
-| card_type | Type | dropdown: prize / news / product / housekeeping | yes | Is card {n} a prize, news, a product, or housekeeping? | | no |
-| card_subject | What it's about | text | yes | In a few words — what's card {n}? | | no |
-| card_cta | Button | dropdown: Enter now / Find out more / Learn more / Check my balance / none | no | What should the button say on card {n}? | I'll pick from the set. | no |
-| card_url | Link | text | no | Where does card {n}'s button go? | | yes |
-
-### EACH PRIZE CARD (repeats per card where type = prize)
-| id | label | type | sub | locked | ask | not-sure line | diggable |
-|---|---|---|---|---|---|---|---|
-| prize_name | Prize, short | text | | yes | What's the prize, in a few words? (goes in the terms) | | no |
-| prize_count | How many | text | | yes | How many prizes? | | no |
-| closes | Draw closes | date | 11:59pm | yes | When does the {prize_name} draw close? | | no |
-| terms_url | T&Cs link | text | | no | Where do the full terms live? | I'll ask Suze. | yes |
-| extras | Extra clauses | checkboxes from LEGALS below | | no | Any of these apply? | | no |
+A `topics` row draws the LEGALS extras as square checkboxes under the story. Extras default off; the draw clause shows for a prize story and defaults on.
 
 ### FIXED (never asked, never ticked)
 - FirstName, One Wallet ID, Phone Dollars — merge fields
@@ -67,12 +54,12 @@ Got it. Let me check what I'm missing.
 - Best in Test — banner toggle, client's call per issue
 
 ### Open
-- Whether hero and card images come with the dump or after. Guess: after. Images row per card needed once One NZ answers specs.
-- Whether the client picks card order or the robot proposes it. Rows above assume the client's list is the order.
+- The draw clause needs a short prize name and a close date verbatim. Until that's read off the dump and confirmed, prize stories carry the topic, not the assembled clause.
+- Whether hero and card images come with the dump or after. Images arrive from FIX IT in 2.0.
 
 ## LEGALS
 ### Facts the clauses fill from (NEEDS → facts)
-Per prize card: `{prize_name}` `{prize_count}` and from `closes` the engine derives `{closes_day}` (Sunday) `{closes_date}` (6 September 2026) `{closes_time}` (the row's sub, default 11:59pm). Engine-wide: `{year}` is the current year at render.
+Per prize story, once read off the dump and confirmed (parked): `{prize_name}` `{prize_count}` `{closes_day}` `{closes_date}` `{closes_time}`. Engine-wide: `{year}` is the current year at render.
 
 ### Standard (locked in, client never unticks)
 | id | fixed | default | label | text |
@@ -82,7 +69,7 @@ Per prize card: `{prize_name}` `{prize_count}` and from `closes` the engine deri
 
 Order in the base: offer clauses first, then privacy, then copyright. 4px green divider above.
 
-### Per card (fires once per prize card, fields from NEEDS below)
+### Per card (fires once per prize story, fields parked — see NEEDS Open)
 | id | title | text |
 |---|---|---|
 | draw | Prize draw clause | {prize_name} competition: One NZ customers with a My One NZ account are eligible to enter. Entry is limited to one per eligible entrant and closes {closes_day} {closes_date} at {closes_time}. Terms and conditions apply. |

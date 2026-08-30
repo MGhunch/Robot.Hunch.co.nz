@@ -11,7 +11,8 @@ for cid, c in cs.items():
     assert c["needs"]["groups"] and c["spec"]["modules"], cid
     assert C.voice_for(c).count("Container") <= 1
 assert cs["prize_draw"]["legals"]["by_type"][1]["needs"] == ["venue", "event_date"]
-assert cs["one_update"]["needs"]["groups"][2]["repeat"]["where"] == {"row": "card_type", "is": "prize"}
+assert cs["one_update"]["needs"]["groups"][0]["repeat"] == {"per": "story", "min": 3, "max": 5, "where": None}
+assert cs["one_update"]["needs"]["groups"][0]["rows"][2]["type"] == "topics"
 assert cs["one_update"]["spec"]["modules"][0]["max_chars"] == 50
 assert cs["one_update"]["brand_data"]["skin"]["tokens"]["green"] == "#1B7C53"
 print("both folders read clean")

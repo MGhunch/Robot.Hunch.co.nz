@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=013">
+<link rel="stylesheet" href="robot.css?v=015">
 </head>
 <body>
 
@@ -46,9 +46,9 @@
       </button>
     </div>
     <div class="hm-body about">
-      <p>Robots are brilliant at squirting words into well designed containers. So if you have a good story (and good containers) this should work really well.</p>
+      <p>Robots are brilliant at squirting words into well designed containers. So if you have a good story (and good containers) this should work well.</p>
       <p>If you need help deciding what to say or designing great containers, humans are the way to go. Hunch is pretty good at both.</p>
-      <p>Once you've nailed those, you can roll with a robot every day of the week. Just feed it, fix it and you'll be finished in a flash. Happy days.</p>
+      <p>Once you've nailed both, you can roll with a robot every day of the week. Just feed it, fix it and you'll be done in a flash. Happy days.</p>
     </div>
   </div>
 </div>
@@ -169,7 +169,7 @@
                     <div class="fd-chat" id="fdChat"></div>
                     <div class="fd-answer">
                       <div class="fd-say">
-                        <textarea id="fdBox" rows="3" placeholder=""></textarea>
+                        <textarea id="fdBox" rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fdNext();}"></textarea>
                         <div class="fd-foot">
                           <div class="fd-tools" id="fdTools"></div>
                           <button class="fd-go" id="fdGo" onclick="fdNext()">NEXT</button>
@@ -212,32 +212,7 @@
       <input type="file" id="fdFile" accept=".txt,.md,.csv,text/plain" multiple style="display:none">
     </div>
 
-    <!-- page three: the pics. The robot's already writing — this page fills
-         the window. Optional by design; the exit label flips with the grid. -->
-    <div class="redpane subhide" id="picsView">
-      <h2 class="rhed beb">WORKING ON THE WORDS.<br>GOT ANY PICTURES?</h2>
-      <p class="rlede">Drag or upload your images here.</p>
-
-      <div class="qcard">
-        <div class="picdrop" id="picDrop" tabindex="0" role="button" aria-label="Pop your pics in here">
-          <svg viewBox="0 0 56 56" fill="none" aria-hidden="true">
-            <rect x="6" y="10" width="44" height="36" rx="4" stroke="#1D1D1B" stroke-width="2.5"/>
-            <circle cx="19" cy="22" r="4" stroke="#1D1D1B" stroke-width="2.5"/>
-            <path d="M10 42 L24 28 L34 38 L41 31 L50 40" stroke="#1D1D1B" stroke-width="2.5"
-              stroke-linejoin="round" stroke-linecap="round" fill="none"/>
-          </svg>
-          <div class="pichead">POP YOUR PICS IN HERE</div>
-          <div class="picsub"><a id="picBrowse">Browse files</a> or drag and drop. JPG or PNG.</div>
-        </div>
-        <input type="file" id="picFile" accept="image/jpeg,image/png" multiple style="display:none">
-        <div class="picgrid" id="picGrid"></div>
-      </div>
-
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        <button class="btnw" style="opacity:.85" onclick="subView('detail')">THE DEETS</button>
-        <button class="btnw" id="picsGo" onclick="buildIt()">NO IMAGES? NO WORRIES.</button>
-      </div>
-    </div>
+    <!-- the pics page went in v015: images arrive from FIX IT when 2.0 wants them -->
   </div>
 
   <!-- 2 FIX IT — the whole email on the table, tools on the right,
@@ -258,15 +233,17 @@
         </div>
         <div class="fx-rail">
           <h2 class="fx-room beb">THE WORKINGS</h2>
-          <div class="fx-topic" id="fxTopic"></div>
-          <div class="fx-chat" id="fxChat"></div>
-          <div class="fx-answer">
-            <div class="fx-say">
-              <input id="fxNote" placeholder="Say what you'd change&hellip;"
-                onkeydown="if(event.key==='Enter')fxSend()">
-              <button class="fx-sendgo" onclick="fxSend()" aria-label="Send">
-                <svg viewBox="0 0 16 16" fill="none"><path d="M2 8h11M9 4l4 4-4 4" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
+          <!-- the conversation wears FEED IT's chat card: same bubbles,
+               same dashed box with a cursor, Enter sends. One chat, one look. -->
+          <div class="fx-card">
+            <div class="fx-topic" id="fxTopic"></div>
+            <div class="fx-chat" id="fxChat"></div>
+            <div class="fx-answer">
+              <div class="fx-say">
+                <textarea id="fxNote" rows="2"
+                  onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fxSend();}"></textarea>
+                <div class="fd-foot"><div></div><button class="fd-go" onclick="fxSend()">SEND</button></div>
+              </div>
             </div>
           </div>
           <div class="fx-receipt" id="fxReceipt" style="display:none">
@@ -427,7 +404,7 @@ const CL_PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 let CLS = {};      // row id -> state, for the flat rows
 let CLR = {};      // repeat key -> [ {row id -> state}, ... ], for the repeating groups
-const newState = r => ({ value:'', sub:r.sub||'', other:'', ticked:false, mode:'view', found:null });
+const newState = r => ({ value:r.type==='topics'?[]:'', sub:r.sub||'', other:'', ticked:false, mode:'view', found:null });
 
 function clInit(){
   CL_CONFIG=CONT.checklist; CLS={}; CLR={};
@@ -478,7 +455,7 @@ function clRender(){
       clDerive(r,CLS); card.appendChild(clRowEl(r,CLS)); });
     wrap.appendChild(card);
   });
-  wrap.appendChild(clLegalsCard());
+  if(!CL_CONFIG.groups.some(g=>g.rows.some(r=>r.type==='topics'))) wrap.appendChild(clLegalsCard());
   $('clDoor').classList.toggle('live', detailReady());
 }
 function clTitle(t){
@@ -495,10 +472,16 @@ function clRepeatCards(key){
   const items=CLR[key];
   while(items.length<base.repeat.min) items.push({});
   items.forEach(S=>{ groups.forEach(g=>g.rows.forEach(r=>{ if(!S[r.id]) S[r.id]=newState(r); })); });
+  /* a prize story carries the draw clause by default; the human unticks */
+  items.forEach(S=>{ const tr=groups.flatMap(g=>g.rows).find(r=>r.id.endsWith('_type')), tp=groups.flatMap(g=>g.rows).find(r=>r.type==='topics');
+    if(tr&&tp&&S[tr.id].value==='prize'&&!S[tp.id].seeded){ S[tp.id].seeded=true;
+      (CL_CONFIG.topics||[]).filter(x=>x.default&&(!x.when||x.when==='prize')).forEach(x=>{ if(!S[tp.id].value.includes(x.id)) S[tp.id].value.push(x.id); }); } });
   const cards=items.map((S,i)=>{
     const card=document.createElement('div'); card.className='cl-card';
     const typeRow=base.rows.find(r=>r.id.endsWith('_type'));
     const type=typeRow?(S[typeRow.id].value||''):'';
+    const topicRow=groups.flatMap(g=>g.rows).find(r=>r.type==='topics');
+    if(topicRow){ return clStoryCard(key,i,S,items,base,typeRow,topicRow); }
     card.innerHTML=`<div class="cl-title">${esc(key).toUpperCase()} <em>${i+1}</em>${type?`<span class="cl-tag">${esc(type)}</span>`:''}
       ${items.length>base.repeat.min?`<a class="cl-rm" title="Remove">&times;</a>`:''}</div>`;
     const rm=card.querySelector('.cl-rm'); if(rm) rm.onclick=()=>{ items.splice(i,1); dirty(); clRender(); };
@@ -516,6 +499,67 @@ function clRepeatCards(key){
     cards.push(add);
   }
   return cards;
+}
+
+/* THE LINEUP — a story is one row: what it's about, its type as a tag,
+   the circle tick; under it the legal topics as square chips. Click the
+   words to edit subject and type. No title, no provenance. */
+function clStoryCard(key,i,S,items,base,typeRow,topicRow){
+  const card=document.createElement('div'); card.className='cl-card story';
+  const subjRow=base.rows.find(r=>r.type==='text')||base.rows[0];
+  const s=S[subjRow.id], ty=typeRow?S[typeRow.id]:null, tp=S[topicRow.id];
+  const type=ty?ty.value:'';
+  const row=document.createElement('div'); row.className='cl-row';
+  const main=document.createElement('div'); main.className='cl-main'; row.appendChild(main);
+  main.innerHTML=`<div class="cl-label">${esc(key)} ${i+1}</div>`;
+  const valEl=document.createElement('div'); valEl.className='cl-value'; main.appendChild(valEl);
+  const tick=document.createElement('button'); tick.className='cl-tick'; main.appendChild(tick);
+  const shown=s.value;
+  if(s.mode==='edit'){
+    tick.innerHTML=CL_PENCIL;
+    const inp=document.createElement('input'); inp.type='text'; inp.value=s.value; inp.placeholder=subjRow.ask||'';
+    valEl.appendChild(inp);
+    let sel=null;
+    if(typeRow){ sel=document.createElement('select');
+      sel.innerHTML='<option value="">—</option>'+clOptions(typeRow).map(o=>`<option value="${esc(o[0])}" ${o[0]===type?'selected':''}>${esc(o[1])}</option>`).join('');
+      sel.style.marginTop='6px'; valEl.appendChild(document.createElement('br')); valEl.appendChild(sel); }
+    const save=()=>{ if(s.mode!=='edit') return;
+      if(sel && document.activeElement===sel) return;
+      const nv=inp.value.trim(), nt=sel?sel.value:type;
+      if(nv!==s.value||nt!==type){ s.value=nv; if(ty){ ty.value=nt; ty.ticked=true; } s.ticked=false; s.found=null; dirty(); }
+      s.mode='view'; clRender(); };
+    inp.onblur=()=>setTimeout(save,80); if(sel) sel.onblur=()=>setTimeout(save,80);
+    inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
+    setTimeout(()=>inp.focus(),0);
+  } else {
+    tick.innerHTML=CL_CHECK; if(s.ticked) tick.classList.add('on');
+    valEl.innerHTML = shown
+      ? `<span class="cl-fact">${esc(shown)}</span>${type?`<span class="cl-tag grey">${esc(type)}</span>`:''}`
+      : `<span class="cl-ask">${esc(subjRow.ask||'')}</span>`;
+    valEl.onclick=()=>{ s.mode='edit'; clRender(); };
+    tick.onclick=()=>{ if(!shown){ s.mode='edit'; clRender(); return; }
+      s.ticked=!s.ticked; if(ty) ty.ticked=s.ticked; clArm(); clRender(); };
+  }
+  card.appendChild(row);
+  const topics=(CL_CONFIG.topics||[]).filter(x=>!x.when||x.when===type);
+  if(topics.length){
+    const box=document.createElement('div'); box.className='cl-chips';
+    topics.forEach(x=>{
+      const on=tp.value.includes(x.id);
+      const el=document.createElement('div'); el.className='cl-clause'+(on?' on':'');
+      el.innerHTML=`<span class="cl-clbox">${on?CL_CHECK:''}</span><span class="cl-cltext"><b>${esc(x.label)}</b></span>`;
+      el.onclick=()=>{ tp.value = on ? tp.value.filter(v=>v!==x.id) : tp.value.concat([x.id]); dirty(); clRender(); };
+      box.appendChild(el);
+    });
+    card.appendChild(box);
+  } else if(shown){
+    const w=document.createElement('div'); w.className='cl-legwait'; w.textContent='Nothing to add. Standard legals cover it.'; card.appendChild(w);
+  }
+  if(items.length>base.repeat.min){
+    const rm=document.createElement('a'); rm.className='cl-rm'; rm.title='Remove'; rm.innerHTML='&times;';
+    rm.onclick=()=>{ items.splice(i,1); dirty(); clRender(); }; card.appendChild(rm);
+  }
+  return card;
 }
 
 function clRowEl(r,S){
@@ -667,6 +711,7 @@ function clLegalsCard(){
    each repeating group as a list under its key. OTHER sends what they
    typed; the engine names it back in its honest "don't know that yet". */
 const rowVal = (r,S) => { const s=S[r.id]; if(!s) return '';
+  if(r.type==='topics') return Array.isArray(s.value)?s.value:[];
   return (r.type==='select' && s.value==='other') ? (s.other||'other') : s.value; };
 function formData(){
   const f={};
@@ -688,7 +733,15 @@ async function enterRoom(cid){
   try{ CONT = await api('/api/container/'+encodeURIComponent(cid)); }
   catch(e){ alert(e.message); return; }
   $('door').style.display='none'; $('room').classList.add('on');
+  FACTS=null; COPY=null; PICK=0; MENU=[]; CHOSEN=null; TWEAKS=0; CTX={}; REACHED=0; unlock(); go(0);
+  EXTRACTED=false; EXTRACTING=null; CRAFT=null; CRAFT_KEY=''; FXDOC=null;
   clInit(); clRender(); quizInit();
+  fxTabs();
+}
+/* the tabs over THE WORK: one per output in the spec */
+function fxTabs(){
+  const tabs=document.querySelector('.fx-tabs'); if(!tabs) return;
+  tabs.innerHTML=(CONT.outputs||[]).map((o,i)=>`<span class="fx-tab ${i?'dead':'on'}">#${i+1}: ${esc(o.id)}</span>`).join('');
 }
 
 /* ---------------- story -> detail ---------------- */
@@ -697,8 +750,6 @@ const storyData = () => ({gap:val('storyPrize'), benefit:val('storyCare'), angle
 function subView(v){
   /* 'story' and 'detail' are both the concertina now — detail just
      means stop 3 open. 'pics' is still its own page. */
-  $('storyView').classList.toggle('subhide', v==='pics');
-  $('picsView').classList.toggle('subhide', v!=='pics');
   if(v==='detail') acc(2);
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -724,7 +775,7 @@ function acc(i){
   });
   if(i===2){ clRender(); armDetail(); }
 }
-function accReach(i){ FAR=Math.max(FAR,i); acc(i); }
+function accReach(i){ FAR=Math.max(FAR,i); acc(i); if(i!==1) fdThink(false); }
 
 async function quizInit(){
   if(!CONT) return;
@@ -776,8 +827,7 @@ function fdGhostDraw(){
   tags.forEach(m=>{
     if(group && parts.has(m)) return;      // drawn by the card
     if(isWrap(m)) return;                  // a wrapper draws nothing
-    if(m==='subject'){ for(let i=0;i<Math.max(opt(m),1);i++) bar+=`<div class="fd-gsubj"><span class="fd-in">Subject line</span></div>`; return; }
-    if(m==='preheader'){ bar+=`<div class="fd-gpre"></div>`; return; }
+    if(/^(subject|preheader|readonline)$/.test(m)) return;   // inbox furniture, not the email
     if(group && m===group.module){
       const cg=(CONT.checklist.groups||[]).find(g=>g.repeat&&!g.repeat.where&&g.repeat.per.split(' ').pop()===group.module);
       const rng=cg?[0,cg.repeat.min,cg.repeat.max]:/(\d+)\s*[–-]\s*(\d+)/.exec(group.repeat||'');
@@ -878,6 +928,7 @@ function fdBubble(html, me){
 }
 /* the bouncing dots — the robot's thinking face, every time it reads */
 function fdThink(on){
+  $('fdChat').querySelectorAll('.fd-think').forEach((x,i)=>{ if(!on||i>0) x.remove(); });
   let t=$('fdChat').querySelector('.fd-think');
   if(on&&!t){ t=document.createElement('div'); t.className='fd-think';
     t.innerHTML='<span></span><span></span><span></span>';
@@ -888,6 +939,7 @@ function fdThink(on){
 /* one bubble per move: CONFIRM, then ENRICH. On move 3 the angle rides in
    the same bubble, as a proposal. */
 function fdAsk(n, d){
+  fdThink(false);
   const m=QZ.moves[n-1]; QN=n;
   let html='';
   if(d.confirm) html+=`<span class="fd-confirm">${esc(d.confirm)}</span>`;
@@ -895,7 +947,7 @@ function fdAsk(n, d){
   else QANGLE='';
   html+=esc(d.enrich||m.plain);
   fdBubble(html);
-  const box=$('fdBox'); box.value=''; box.placeholder=m.placeholder||''; box.focus();
+  const box=$('fdBox'); box.value=''; box.placeholder=''; box.focus();
   $('fdGo').textContent = n===QZ.moves.length ? 'DONE' : 'NEXT';
 }
 
@@ -948,8 +1000,9 @@ function fdExtract(){
   if(EXTRACTED || !(s.source||'').trim()) return;
   EXTRACTING = api('/api/extract', {container:CID, source:s.source, answers:{gap:s.gap, benefit:s.benefit}}).then(d=>{
     const f = d.found || {};
-    const land=(S,r,v)=>{ if(v && S[r.id] && !S[r.id].value){
-      S[r.id].value=String(v); S[r.id].found='from your docs'; S[r.id].ticked=false; } };
+    const land=(S,r,v)=>{ if(!S[r.id]) return;
+      if(r.type==='topics'){ if(Array.isArray(v)&&v.length&&!S[r.id].value.length) S[r.id].value=v.slice(); return; }
+      if(v && !S[r.id].value){ S[r.id].value=String(v); S[r.id].found='from your docs'; S[r.id].ticked=false; } };
     flatRows().forEach(r=>land(CLS,r,f[r.id]));
     Object.keys(CLR).forEach(key=>{
       const found=f[key]; if(!Array.isArray(found)||!found.length) return;
@@ -966,7 +1019,7 @@ function fdExtract(){
 async function fdExtractDone(){ if(EXTRACTING){ fdThink(true); await EXTRACTING; fdThink(false); } }
 
 /* ---------------- nothing flies without a tick ---------------- */
-const rowReady = (r,S) => { if(r.type==='legals'||!clShown(r,S)) return true;
+const rowReady = (r,S) => { if(r.type==='legals'||r.type==='topics'||!clShown(r,S)) return true;
   const s=S[r.id]; if(!s) return true;
   const has = r.type==='select' ? (s.value && (s.value!=='other'||s.other)) : !!s.value;
   return !!has && s.ticked; };
@@ -1043,57 +1096,12 @@ function go(n){
 }
 function reach(n){ if(n>REACHED){REACHED=n; unlock();} go(n); }
 
-/* ---------------- the pics page ----------------
-   WRITE THE WORDS lands here, not in the copy room: the robot's already
-   writing (armCraft fired when the facts were complete), so the human
-   fills the window with pictures. The exit does the old job — and the
-   robot-is-writing moment only appears if the writing's genuinely not
-   done, which after an upload or two it usually is. */
+/* WRITE THE WORDS goes straight to the copy room. The robot's already
+   writing (armCraft fired when the facts were complete). RUN groups a
+   session's tweaks in the log. */
 const RUN = (crypto.randomUUID ? crypto.randomUUID()
              : Date.now()+'-'+Math.random().toString(36).slice(2)).replace(/[^a-z0-9-]/gi,'');
-
-function toPics(){
-  if(!detailReady()){ armDetail();
-    alert("A couple of facts still need a tick."); return; }
-  armCraft();
-  subView('pics');
-}
-
-function flipPicsGo(){
-  $('picsGo').textContent = $('picGrid').children.length
-    ? "LET'S GO BUILD" : "NO IMAGES? NO WORRIES.";
-}
-
-function addPics(files){
-  [...files].filter(f=>f.type==='image/jpeg'||f.type==='image/png').forEach(f=>{
-    const cell=document.createElement('div'); cell.className='pic hold';
-    const r=new FileReader();
-    r.onload=()=>{ cell.innerHTML=`<img src="${r.result}" alt="">
-      <button aria-label="Remove ${esc(f.name)}">&times;</button>`;
-      cell.querySelector('button').onclick=()=>{ cell.remove(); flipPicsGo();
-        if(cell.dataset.id) fetch(`/api/images/${RUN}/${cell.dataset.id}`,{method:'DELETE'}); };
-    };
-    r.readAsDataURL(f);
-    $('picGrid').appendChild(cell); flipPicsGo();
-    const fd=new FormData(); fd.append('run',RUN); fd.append('file',f);
-    fetch('/api/images',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
-      if(d.id){ cell.dataset.id=d.id; cell.classList.remove('hold'); }
-      else { cell.remove(); flipPicsGo(); }
-    }).catch(()=>{ cell.remove(); flipPicsGo(); });
-  });
-}
-
-{
-  const dz=$('picDrop'), fi=$('picFile');
-  const pick=e=>{ e.stopPropagation(); fi.click(); };
-  dz.addEventListener('click', pick);
-  $('picBrowse').addEventListener('click', pick);
-  dz.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click();} });
-  ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('dragover');}));
-  ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('dragover');}));
-  dz.addEventListener('drop', e=>addPics(e.dataTransfer.files));
-  fi.addEventListener('change', ()=>{ addPics(fi.files); fi.value=''; });
-}
+function toPics(){ buildIt(); }
 
 async function buildIt(){
   if(!detailReady()){ subView('detail'); armDetail();
@@ -1147,7 +1155,7 @@ function fxOrderBuild(){
       const items=COPY[group.module+'s']||[];
       items.forEach((_,i)=>group.parts.forEach(p=>{ if(tags.includes(p.module)) FXORDER.push(p.module+'#'+(i+1)); }));
     }
-    else if(/^(terms|legals)$/.test(t) && MENU.length && !FXORDER.includes('terms')) FXORDER.push('terms');
+    else if(t==='terms' && MENU.length && !FXORDER.includes('terms')) FXORDER.push('terms');
   });
   FXLBL={}; FXORDER.forEach(k=>FXLBL[k]=fxLabel(k));
 }
@@ -1238,7 +1246,7 @@ function fxPrepDoc(){
   }
   FXORDER.filter(k=>!fxN(k)).forEach(k=>{
     const m=k==='terms'?null:fxMod(k);
-    const els = m ? [...D.querySelectorAll(`[data-module="${m}"]`)] : [D.querySelector('[data-module="terms"]')||D.querySelector('[data-module="legals"]')];
+    const els = m ? [...D.querySelectorAll(`[data-module="${m}"]`)] : [D.querySelector('[data-module="terms"]')];
     els.forEach(el=>{ if(el){ el.classList.add('fx-sec'); el.dataset.k=k; } });
   });
   D.addEventListener('mouseup', fxSelect);
@@ -1277,7 +1285,7 @@ function fxSelect(){
   sel.removeAllRanges();
   const snapped=fxSnap(sec.textContent, txt);
   FXHL = snapped.length>60 ? snapped.slice(0,57)+'\u2026' : snapped;
-  $('fxNote').placeholder='About \u201c'+(FXHL.length>26?FXHL.slice(0,24)+'\u2026':FXHL)+'\u201d\u2026';
+  $('fxNote').placeholder='About \u201c'+(FXHL.length>26?FXHL.slice(0,24)+'\u2026':FXHL)+'\u201d';
   $('fxNote').focus();
 }
 
@@ -1431,7 +1439,7 @@ async function fxSend(){
   const note=$('fxNote').value.trim();
   if(!note || !COPY) return;
   const k=fxBeat();
-  $('fxNote').value='';
+  $('fxNote').value=''; $('fxNote').placeholder='';
   fxSay(FXHL?`<mark class="fx-hl">${esc(FXHL)}</mark> — ${esc(note)}`:esc(note),'me');
   if(!k){ fxSay('Everything\u2019s locked — tap a padlock to reopen one and keep talking.','robot',true); return; }
   const cur = fxText(k);
