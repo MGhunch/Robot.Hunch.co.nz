@@ -96,18 +96,7 @@
     <div class="si-note" id="siNote"></div>
   </div>
 
-  <div class="rooms" id="rooms">
-    <button class="room" onclick="enterRoom()">
-      <div><div class="room-t">TICKET GIVEAWAYS</div>
-      <div class="room-d">Competitions and prize draws for Rewards</div></div>
-      <div class="room-go">&rarr;</div>
-    </button>
-    <div class="room soon">
-      <div><div class="room-t">YOUR NEXT PROJECT</div>
-      <div class="room-d">Coming soon</div></div>
-      <div class="room-go">&rarr;</div>
-    </div>
-  </div>
+  <div class="rooms" id="rooms"></div>
 
 </section>
 
@@ -381,85 +370,92 @@ function signedIn(d){
   fitEcho();
   $('echo').classList.add('on');
   $('q').classList.add('on');
-  $('rooms').style.display='flex';
   $('who').textContent = d.tenant || '';
+  HUNCH = !!d.hunch;
+  doorway();
 }
 (async()=>{ try{ const d=await api('/api/auth/me'); if(d.authed) signedIn(d); }catch(e){} })();
+
+/* THE DOORWAY — one tile per container folder, grouped by brand. The brand
+   name only shows when there's more than one to tell apart. Testing tiles
+   arrive for Hunch logins only, badged in ink. One tile means the second
+   slot says YOUR NEXT PROJECT, as the site plan promised. */
+let HUNCH=false, TILES=[];
+async function doorway(){
+  const box=$('rooms'); box.innerHTML='';
+  let d;
+  try{ d = await api('/api/containers'); }
+  catch(e){ box.innerHTML=`<div class="room soon"><div><div class="room-t">NO CONTAINERS</div><div class="room-d">${esc(e.message)}</div></div></div>`; box.style.display='flex'; return; }
+  TILES=d.tiles||[];
+  const brands=[...new Set(TILES.map(t=>t.brand))];
+  brands.forEach(b=>{
+    if(brands.length>1){
+      const h=document.createElement('div'); h.className='brand-h';
+      h.textContent=((d.brands[b]||{}).name||b).toUpperCase(); box.appendChild(h);
+    }
+    TILES.filter(t=>t.brand===b).forEach(t=>{
+      const el=document.createElement('button');
+      el.className='room'+(t.status==='testing'?' testing':'');
+      el.innerHTML=`<div><div class="room-t">${esc(t.name).toUpperCase()}${t.status==='testing'?'<span class="badge">Testing</span>':''}</div>
+        <div class="room-d">${esc(t.line||t.purpose.split('. ')[0])}</div></div><div class="room-go">&rarr;</div>`;
+      el.onclick=()=>enterRoom(t.id);
+      box.appendChild(el);
+    });
+  });
+  if(TILES.length<2){
+    box.insertAdjacentHTML('beforeend',`<div class="room soon"><div><div class="room-t">YOUR NEXT PROJECT</div><div class="room-d">Coming soon</div></div><div class="room-go">&rarr;</div></div>`);
+  }
+  box.style.display='flex';
+}
 
 /* ---------------- state + nav ---------------- */
 let FACTS=null, COPY=null, PICK=0, MENU=[], CHOSEN=null, TWEAKS=0;
 let CTX={};                                    // slot -> value, from the brief
-const ORDER=['subject','headline','body'];
-let LOCKED={subject:false,headline:false,body:false};
-let OPENK='subject';                           // the one section that's open
+let LOCKED={};
 let REACHED = 0;                 // furthest step unlocked
 const HIST = {};
 
 const val = id => ($(id) ? $(id).value : '');
 
-/* ============================================================
-   CONTAINER CONFIG — prize_draw's checklist. This is the container
-   speaking: the chrome below renders whatever it's handed and knows
-   nothing about prizes. Moves behind the container definition when
-   the abstraction lands (hit list 17); it's the needs list wearing
-   a UI (hit list 20).
-   ============================================================ */
-const CL_CONFIG = {
-  groups: [
-    { title:"The prize", accent:"prize", rows: [
-      { id:'ptype',  label:'Prize', type:'select', value:'movie',
-        options:[['movie','Movie passes'],['gig','Gig tickets'],['sport','Sports tickets'],['other','Other…']],
-        otherAsk:'What is it?' },
-      { id:'pname',  label:'Show', type:'text', ask:"What's the show?",
-        labelBy:{ row:'ptype', map:{movie:'Film', gig:'Show', sport:'Match', other:'Prize name'} },
-        askBy:{ row:'ptype', map:{movie:"What's the film?", gig:"Who's playing?",
-                                  sport:"What's the match?", other:"What's it called?"} } },
-      { id:'venue',  label:'Venue', type:'text', ask:'Where is it?',
-        showIf:{ row:'ptype', in:['gig','sport'] },
-        notsure:'I can hunt for the venue myself.' },
-      { id:'edate',  label:'Event date', type:'date', ask:'When is it?',
-        showIf:{ row:'ptype', in:['gig','sport'] } },
-      { id:'winners', label:'Prizes', type:'number', ask:'How many?' }
-    ]},
-    { title:"The dates", accent:"dates", rows: [
-      { id:'opens',  label:'Draw opens',  type:'date', value:'2026-08-24', sub:'12:00am' },
-      { id:'closes', label:'Draw closes', type:'date', value:'2026-09-06', sub:'11:59pm' },
-      { id:'drawn',  label:'Winners drawn', type:'date', ask:'When?', derive:'nextWorkday:closes' }
-    ]}
-  ],
-  legals: { title:"The legals", accent:"legals",
-    sub:'<a onclick="toggleFixed()">Standard legals</a> are locked in. Tick the extras this one needs.' }
-};
-
-/* ============================================================
-   CHECKLIST CHROME — one dumb renderer. Everything below is engine.
-   Rules, from the spec: an edited fact is an unconfirmed fact; a
-   robot-found fact never arrives ticked; nothing flies without a tick.
-   ============================================================ */
+/* CONT is the container, straight off /api/container/<id>. Everything the
+   room draws — the stops, the moves, the checklist rows, the modules, the
+   ghost, the artefact — comes from it. Nothing below knows what a prize is. */
+let CONT=null, CID='';
+let CL_CONFIG={groups:[],legals:{title:'The legals',sub:''},types:[]};
 const CL_CHECK  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>';
 const CL_PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3"/><path d="M13.5 6.5l3 3"/></svg>';
 
-let CLS = {};                 // id -> {value, sub, other, ticked, mode, found}
-CL_CONFIG.groups.forEach(g => g.rows.forEach(r => {
-  CLS[r.id] = { value:r.value||'', sub:r.sub||'', other:'', ticked:false, mode:'view', found:null };
-}));
+let CLS = {};      // row id -> state, for the flat rows
+let CLR = {};      // repeat key -> [ {row id -> state}, ... ], for the repeating groups
+const newState = r => ({ value:'', sub:r.sub||'', other:'', ticked:false, mode:'view', found:null });
 
-const clRows = () => CL_CONFIG.groups.flatMap(g=>g.rows);
-const clRow  = id => clRows().find(r=>r.id===id);
-const clShown = r => !r.showIf || r.showIf.in.includes(CLS[r.showIf.row].value);
-const clLabel = r => r.labelBy ? (r.labelBy.map[CLS[r.labelBy.row].value]||r.label) : r.label;
-const clAsk   = r => r.askBy ? (r.askBy.map[CLS[r.askBy.row].value]||r.ask) : (r.ask||'');
-
+function clInit(){
+  CL_CONFIG=CONT.checklist; CLS={}; CLR={};
+  CL_CONFIG.groups.forEach(g=>{
+    if(g.repeat){ CLR[repKey(g)] = CLR[repKey(g)] || []; return; }
+    g.rows.forEach(r=>{ CLS[r.id]=newState(r); });
+  });
+}
+const repKey = g => g.repeat.per.split(' ').pop();          // "prize card" -> card
+const flatRows = () => CL_CONFIG.groups.filter(g=>!g.repeat).flatMap(g=>g.rows);
+const clRow  = id => flatRows().find(r=>r.id===id) || CL_CONFIG.groups.flatMap(g=>g.rows).find(r=>r.id===id);
+const clShown = (r,S) => !r.showIf || r.showIf.in.includes((S[r.showIf.row]||{}).value);
+const clAsk   = r => r.ask||'';
+/* select labels: the clause library's types name the options where it has
+   them (movie -> Movie passes); otherwise the option is its own label */
+function clOptions(r){
+  const types=Object.fromEntries((CL_CONFIG.types||[]).map(t=>[t.value,t.label]));
+  return (r.options||[]).map(o=>[o, types[o] || (o==='other'?'Other…':o)]);
+}
 const MONTHS=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 const clFmtDate = v => { if(!v) return '';
   const d=new Date(v+'T00:00'); return d.getDate()+' '+MONTHS[d.getMonth()]; };
 
-/* WINNERS DRAWN: derived as a suggestion — next working day after close,
-   nobody draws on a Sunday — but human-editable and human-ticked. */
-function clDerive(r){
-  if(r.derive!=='nextWorkday:closes') return;
-  const s=CLS[r.id]; if(s.touched) return;
-  const c=CLS.closes.value; if(!c){ s.value=''; return; }
+/* derive: nextWorkday:<row> — a suggestion, human-editable, human-ticked */
+function clDerive(r,S){
+  const m=/^nextWorkday:(\w+)$/.exec(r.derive||''); if(!m) return;
+  const s=S[r.id]; if(s.touched) return;
+  const c=(S[m[1]]||{}).value; if(!c){ s.value=''; return; }
   const d=new Date(c+'T00:00'); d.setDate(d.getDate()+1);
   while(d.getDay()===0||d.getDay()===6) d.setDate(d.getDate()+1);
   const v=d.toISOString().slice(0,10);
@@ -467,37 +463,76 @@ function clDerive(r){
 }
 
 function clRender(){
-  const wrap=$('clCards'); wrap.innerHTML='';
+  const wrap=$('clCards'); if(!wrap||!CONT) return; wrap.innerHTML='';
+  const done=new Set();
   CL_CONFIG.groups.forEach(g=>{
+    if(g.repeat){
+      const key=repKey(g); if(done.has(key)) return; done.add(key);
+      clRepeatCards(key).forEach(c=>wrap.appendChild(c));
+      return;
+    }
+    if(!g.rows.some(r=>r.type!=='legals')) return;      // a prose-only group draws nothing
     const card=document.createElement('div'); card.className='cl-card';
-    card.innerHTML=`<div class="cl-title">${clTitle(g.title,g.accent)}</div>`;
-    g.rows.forEach(r=>{ if(!clShown(r)) return;
-      clDerive(r); card.appendChild(clRowEl(r)); });
+    card.innerHTML=`<div class="cl-title">${clTitle(g.title)}</div>`;
+    g.rows.forEach(r=>{ if(r.type==='legals'||!clShown(r,CLS)) return;
+      clDerive(r,CLS); card.appendChild(clRowEl(r,CLS)); });
     wrap.appendChild(card);
   });
   wrap.appendChild(clLegalsCard());
-  const ready=detailReady();
-  $('clDoor').classList.toggle('live', ready);
+  $('clDoor').classList.toggle('live', detailReady());
+}
+function clTitle(t){
+  const w=String(t).split(' '); if(w.length<2) return esc(t);
+  return esc(w.slice(0,-1).join(' '))+' <em>'+esc(w[w.length-1])+'</em>';
 }
 
-function clTitle(t,accent){
-  return esc(t).replace(new RegExp('('+accent+')','i'),'<em>$1</em>');
+/* a repeating group: one card per item (CARD 1, CARD 2…), the base rows,
+   then any conditional group's rows when its condition holds. Items come
+   from extraction or the + link; the group's min is the floor. */
+function clRepeatCards(key){
+  const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
+  const base=groups.find(g=>!g.repeat.where)||groups[0];
+  const items=CLR[key];
+  while(items.length<base.repeat.min) items.push({});
+  items.forEach(S=>{ groups.forEach(g=>g.rows.forEach(r=>{ if(!S[r.id]) S[r.id]=newState(r); })); });
+  const cards=items.map((S,i)=>{
+    const card=document.createElement('div'); card.className='cl-card';
+    const typeRow=base.rows.find(r=>r.id.endsWith('_type'));
+    const type=typeRow?(S[typeRow.id].value||''):'';
+    card.innerHTML=`<div class="cl-title">${esc(key).toUpperCase()} <em>${i+1}</em>${type?`<span class="cl-tag">${esc(type)}</span>`:''}
+      ${items.length>base.repeat.min?`<a class="cl-rm" title="Remove">&times;</a>`:''}</div>`;
+    const rm=card.querySelector('.cl-rm'); if(rm) rm.onclick=()=>{ items.splice(i,1); dirty(); clRender(); };
+    groups.forEach(g=>{
+      const w=g.repeat.where;
+      if(w && String((S[w.row]||{}).value)!==w.is) return;
+      g.rows.forEach(r=>{ if(r.type==='legals'||!clShown(r,S)) return; clDerive(r,S); card.appendChild(clRowEl(r,S)); });
+    });
+    return card;
+  });
+  if(items.length<base.repeat.max){
+    const add=document.createElement('button'); add.className='cl-add';
+    add.textContent=`+ another ${key}`;
+    add.onclick=()=>{ items.push({}); clRender(); };
+    cards.push(add);
+  }
+  return cards;
 }
 
-function clRowEl(r){
-  const s=CLS[r.id];
+function clRowEl(r,S){
+  const s=S[r.id];
   const row=document.createElement('div'); row.className='cl-row';
   const main=document.createElement('div'); main.className='cl-main'; row.appendChild(main);
   const label=document.createElement('div'); label.className='cl-label';
-  label.textContent=clLabel(r); main.appendChild(label);
+  label.textContent=r.label; main.appendChild(label);
   const valEl=document.createElement('div'); valEl.className='cl-value'; main.appendChild(valEl);
   const tick=document.createElement('button'); tick.className='cl-tick';
-  tick.setAttribute('aria-label','Confirm '+clLabel(r)); main.appendChild(tick);
+  tick.setAttribute('aria-label','Confirm '+r.label); main.appendChild(tick);
+  const isSel=r.type==='select', hasOther=isSel&&(r.options||[]).includes('other');
 
   if(s.mode==='view'){
     tick.innerHTML=CL_CHECK; if(s.ticked) tick.classList.add('on');
-    const shown = r.id==='ptype'
-      ? (s.value==='other' ? (s.other||'') : (r.options.find(o=>o[0]===s.value)||[])[1])
+    const shown = isSel
+      ? (s.value==='other' ? (s.other||'') : (clOptions(r).find(o=>o[0]===s.value)||[])[1])
       : s.value;
     if(!shown){
       valEl.innerHTML=`<span class="cl-ask">${esc(clAsk(r))}</span>`;
@@ -516,16 +551,16 @@ function clRowEl(r){
   else if(s.mode==='edit'){
     tick.innerHTML=CL_PENCIL;
     let inp;
-    if(r.type==='select'){
+    if(isSel){
       inp=document.createElement('select');
-      inp.innerHTML=r.options.map(o=>`<option value="${o[0]}" ${o[0]===s.value?'selected':''}>${o[1]}</option>`).join('');
+      inp.innerHTML='<option value="">—</option>'+clOptions(r).map(o=>`<option value="${esc(o[0])}" ${o[0]===s.value?'selected':''}>${esc(o[1])}</option>`).join('');
     } else {
       inp=document.createElement('input');
       inp.type = r.type==='date'?'date':(r.type==='number'?'number':'text');
       if(r.type==='number') inp.min=1;
       inp.value=s.value; inp.placeholder=clAsk(r);
     }
-    if(s.sub!=='' && r.sub!==undefined){
+    if(r.sub!==undefined){
       const si=document.createElement('input'); si.className='cl-subin';
       si.value=s.sub; si.setAttribute('aria-label','At');
       si.oninput=()=>{ s.sub=si.value; };
@@ -533,16 +568,16 @@ function clRowEl(r){
     }
     valEl.appendChild(inp); valEl.onclick=null;
     let otherIn=null;
-    if(r.id==='ptype'){
+    if(hasOther){
       otherIn=document.createElement('input');
-      otherIn.placeholder=r.otherAsk; otherIn.value=s.other;
+      otherIn.placeholder='What is it?'; otherIn.value=s.other;
       otherIn.style.display = s.value==='other'?'inline-block':'none';
       otherIn.style.marginTop='6px';
       valEl.appendChild(document.createElement('br')); valEl.appendChild(otherIn);
       inp.onchange=()=>{ otherIn.style.display = inp.value==='other'?'inline-block':'none';
         if(inp.value==='other') otherIn.focus(); };
     }
-    if(clAsk(r) && clRow(r.id).notsure){
+    if(clAsk(r) && r.notsure){
       const ns=document.createElement('span'); ns.className='cl-notsure';
       ns.textContent='Not sure?';
       ns.onmousedown=e=>{ e.preventDefault(); s.mode='doors'; clRender(); };
@@ -574,15 +609,18 @@ function clRowEl(r){
     const btns=document.createElement('div'); btns.className='cl-doorbtns';
     const tell=document.createElement('button'); tell.textContent="I'll tell it";
     tell.onclick=()=>{ s.mode='edit'; clRender(); };
-    const dig=document.createElement('button'); dig.className='primary'; dig.textContent='Let it dig';
-    /* SEARCH (hit list 9) isn't built. The honest answer, in character. */
-    dig.onclick=()=>{
-      panel.querySelector('.cl-doorline span:last-child').innerHTML=
-        "Can't dig yet &mdash; that bit of me is still being built. Tell me for now?";
-      btns.remove();
-      setTimeout(()=>{ s.mode='edit'; clRender(); },1600);
-    };
-    btns.appendChild(tell); btns.appendChild(dig);
+    btns.appendChild(tell);
+    if(r.diggable){
+      const dig=document.createElement('button'); dig.className='primary'; dig.textContent='Let it dig';
+      /* SEARCH (hit list 9) isn't built. The honest answer, in character. */
+      dig.onclick=()=>{
+        panel.querySelector('.cl-doorline span:last-child').innerHTML=
+          "Can't dig yet &mdash; that bit of me is still being built. Tell me for now?";
+        btns.remove();
+        setTimeout(()=>{ s.mode='edit'; clRender(); },1600);
+      };
+      btns.appendChild(dig);
+    }
     panel.appendChild(btns); row.appendChild(panel);
   }
   return row;
@@ -595,13 +633,14 @@ function clProv(s){
 }
 
 /* the legals card — selection, not confirmation. Square boxes from the
-   live clause menu; no circle ticks on clauses. */
+   live clause menu; no circle ticks on clauses. A container with no
+   optional clauses just shows the standard line. */
 let FIXED_OPEN=false;
 function toggleFixed(){ FIXED_OPEN=!FIXED_OPEN; clRender(); }
 function clLegalsCard(){
   const card=document.createElement('div'); card.className='cl-card legals';
-  card.innerHTML=`<div class="cl-title">${clTitle(CL_CONFIG.legals.title,CL_CONFIG.legals.accent)}</div>
-    <div class="cl-sub">${CL_CONFIG.legals.sub}</div>`;
+  card.innerHTML=`<div class="cl-title">${clTitle(CL_CONFIG.legals.title)}</div>
+    <div class="cl-sub"><a onclick="toggleFixed()">Standard legals</a> are locked in. Tick the extras this one needs.</div>`;
   if(!MENU.length){
     const w=document.createElement('div'); w.className='cl-legwait';
     w.textContent='Finish the facts above and the legals sort themselves.';
@@ -624,22 +663,36 @@ function clLegalsCard(){
   return card;
 }
 
-const formData = () => ({
-  /* OTHER sends whatever they typed — the terms engine names it back in its
-     "we don't know that prize type yet" message, which is the honest answer. */
-  prize_type: CLS.ptype.value==='other' ? (CLS.ptype.other.toLowerCase()||'other') : CLS.ptype.value,
-  prize_name: CLS.pname.value, winners: CLS.winners.value,
-  opens: CLS.opens.value, closes: CLS.closes.value,
-  opens_time: CLS.opens.sub, closes_time: CLS.closes.sub,
-  venue: clShown(clRow('venue')) ? CLS.venue.value : '',
-  event_date: clShown(clRow('edate')) ? CLS.edate.value : '',
-  drawn: CLS.drawn.value
-});
+/* the form the engine reads: row id -> value, <id>__sub for a time, and
+   each repeating group as a list under its key. OTHER sends what they
+   typed; the engine names it back in its honest "don't know that yet". */
+const rowVal = (r,S) => { const s=S[r.id]; if(!s) return '';
+  return (r.type==='select' && s.value==='other') ? (s.other||'other') : s.value; };
+function formData(){
+  const f={};
+  flatRows().forEach(r=>{ if(r.type==='legals') return;
+    f[r.id]=clShown(r,CLS)?rowVal(r,CLS):''; if(r.sub!==undefined) f[r.id+'__sub']=CLS[r.id].sub; });
+  Object.keys(CLR).forEach(key=>{
+    const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
+    f[key]=CLR[key].map(S=>{ const o={};
+      groups.forEach(g=>g.rows.forEach(r=>{ if(r.type==='legals'||!S[r.id]) return;
+        o[r.id]=clShown(r,S)?rowVal(r,S):''; if(r.sub!==undefined) o[r.id+'__sub']=S[r.id].sub; }));
+      return o; });
+  });
+  return f;
+}
 
-function enterRoom(){ $('door').style.display='none'; $('room').classList.add('on'); clRender(); quizInit(); }
+/* into the room: fetch the container, deal the checklist, wake the quiz */
+async function enterRoom(cid){
+  CID=cid;
+  try{ CONT = await api('/api/container/'+encodeURIComponent(cid)); }
+  catch(e){ alert(e.message); return; }
+  $('door').style.display='none'; $('room').classList.add('on');
+  clInit(); clRender(); quizInit();
+}
 
 /* ---------------- story -> detail ---------------- */
-const storyData = () => ({prize:val('storyPrize'), care:val('storyCare'), angle:val('storyAngle'), source:val('blurb')});
+const storyData = () => ({gap:val('storyPrize'), benefit:val('storyCare'), angle:val('storyAngle'), source:val('blurb')});
 
 function subView(v){
   /* 'story' and 'detail' are both the concertina now — detail just
@@ -658,7 +711,7 @@ function backToStory(){ subView('story'); }
    beats — CONFIRM, then ENRICH — and move 3 proposes an angle the human
    bounces. Answers write into the hidden slots the rest of the tool reads. */
 let QZ=null, QN=0, QANS={}, QANGLE='';   // config, current move n, answers by key, proposed angle
-const FD_SLOT={prize:'storyPrize', care:'storyCare', angle:'storyAngle'};
+const FD_SLOT={gap:'storyPrize', benefit:'storyCare', angle:'storyAngle'};
 const BOT_AV='<span class="botdisc"><img src="robot-face.svg" alt=""></span>';
 const FD_ROBOT='<div class="fd-cav">'+BOT_AV+'</div>';
 let FAR=0;                                // furthest stop reached
@@ -674,9 +727,9 @@ function acc(i){
 function accReach(i){ FAR=Math.max(FAR,i); acc(i); }
 
 async function quizInit(){
-  if(QZ) return;
-  try{ QZ = await api('/api/quiz'); }
-  catch(e){ QZ=null; return; }
+  if(!CONT) return;
+  QZ = CONT.quiz; QN=0; QANS={}; QANGLE=''; FAR=0;
+  $('fdChat').innerHTML=''; acc(0);
   if(QZ.tagline) $('fdTagline').textContent = QZ.tagline;
   (QZ.stops||[]).forEach((st,i)=>{
     const t=$('fdT'+i), su=$('fdS'+i);
@@ -688,33 +741,65 @@ async function quizInit(){
   $('fdPadLine').textContent = pad.line||'or drag and drop.';
   $('fdPadHint').textContent = pad.hint||'';
   $('fdDump').placeholder    = pad.paste||'Or paste it in here.';
-  fdGhostDraw(QZ.shape);
+  fdGhostDraw();
   fdToolsDraw(QZ.tools||{});
-  QN=0; QANS={}; QANGLE='';
 }
 
-/* the ghost renders from the shape block — the engine knows module types,
-   the container deals the order. Job 20's shape, first structured outing. */
-function fdGhostDraw(shape){
-  const mod = m => {
-    if(m.type==='subject') return `<div class="fd-gbar"><div class="fd-gsubj"><span class="fd-in">${esc(m.label||'Subject line')}</span></div></div>`;
-    if(m.type==='image') return `<div class="fd-gimg">
-      <svg class="x" preserveAspectRatio="none" viewBox="0 0 100 100">
-        <line x1="0" y1="0" x2="100" y2="100" vector-effect="non-scaling-stroke"/>
-        <line x1="100" y1="0" x2="0" y2="100" vector-effect="non-scaling-stroke"/></svg>
-      <svg class="fd-gmtn" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="2.5" y="4.5" width="19" height="15" rx="2"/><circle cx="8.6" cy="9.4" r="1.5"/>
-        <path d="M4.5 17l4.8-4.6 3.4 3.2 3.5-3.4 5.3 4.8"/></svg></div>`;
-    if(m.type==='header') return `<div class="fd-ghed"><span class="fd-in">${esc(m.label||'Header')}</span></div>`;
-    if(m.type==='lines') return `<div class="fd-glines"><div class="fd-gl w85"></div><div class="fd-gl"></div><div class="fd-gl w60"></div></div>`;
-    if(m.type==='button') return `<span class="fd-gcta"><span class="fd-in">${esc(m.label||'Button')}</span></span>`;
-    if(m.type==='terms') return `</div><div class="fd-gtcs"><div class="fd-gl"></div><div class="fd-gl w85"></div><div class="fd-gl w45"></div>`;
-    return '';
-  };
-  const mods=(shape&&shape.modules)||[];
-  const bar = mods.filter(m=>m.type==='subject').map(mod).join('');
-  const rest = mods.filter(m=>m.type!=='subject').map(mod).join('');
-  $('fdGhost').innerHTML = bar + '<div class="fd-gbody">' + rest + '</div>';
+/* THE GHOST — the engine's drawing of the artefact's shape. It walks the
+   html's data-module tags (CONT.ghost) and draws its own grey shape for
+   each: a labelled pill, a strip, an image, some lines, a card. The
+   vocabulary is the engine's; the order is the container's. Never wears
+   the client. A repeating module draws once, count stated. */
+const GH_IMG = h => `<div class="fd-gimg" style="height:${h}px">
+  <svg class="x" preserveAspectRatio="none" viewBox="0 0 100 100">
+    <line x1="0" y1="0" x2="100" y2="100" vector-effect="non-scaling-stroke"/>
+    <line x1="100" y1="0" x2="0" y2="100" vector-effect="non-scaling-stroke"/></svg>
+  <svg class="fd-gmtn" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2.5" y="4.5" width="19" height="15" rx="2"/><circle cx="8.6" cy="9.4" r="1.5"/>
+    <path d="M4.5 17l4.8-4.6 3.4 3.2 3.5-3.4 5.3 4.8"/></svg></div>`;
+const GH_LINES = n => `<div class="fd-glines">${['w85','','w60'].slice(0,n).map(w=>`<div class="fd-gl ${w}"></div>`).join('')}</div>`;
+const GH_PILL  = l => `<div class="fd-ghed"><span class="fd-in">${esc(l)}</span></div>`;
+const GH_STRIP = l => `<div class="fd-gstrip"><span class="fd-in">${esc(l)}</span></div>`;
+const GH_BTN   = () => `<span class="fd-gcta"><span class="fd-in">Button</span></span>`;
+const ghLabel = m => m.replace(/-/g,' ').replace(/\bcta\b/,'button');
+
+function fdGhostDraw(){
+  const tags=CONT.ghost||[];
+  const mods=CONT.modules||{all:[],writer:[],groups:[]};
+  const opt=m=>{ const w=mods.writer.find(x=>x.module===m); return w&&w.options?w.options:1; };
+  const group=mods.groups[0];              // one repeating module is plenty for now
+  const parts=group?new Set(mods.all.filter(m=>m.module.startsWith(group.module+'-')).map(m=>m.module)):new Set();
+  let bar='', body='', inCard=false;
+  const isImg = m => /image|hero|pic|photo/.test(m);
+  const isStrip = m => /^(header|wallet|salutation|readonline|banner|logo)$/.test(m);
+  const isWrap  = m => /^(precopy|cards|intro|signoff)$/.test(m);
+  tags.forEach(m=>{
+    if(group && parts.has(m)) return;      // drawn by the card
+    if(isWrap(m)) return;                  // a wrapper draws nothing
+    if(m==='subject'){ for(let i=0;i<Math.max(opt(m),1);i++) bar+=`<div class="fd-gsubj"><span class="fd-in">Subject line</span></div>`; return; }
+    if(m==='preheader'){ bar+=`<div class="fd-gpre"></div>`; return; }
+    if(group && m===group.module){
+      const cg=(CONT.checklist.groups||[]).find(g=>g.repeat&&!g.repeat.where&&g.repeat.per.split(' ').pop()===group.module);
+      const rng=cg?[0,cg.repeat.min,cg.repeat.max]:/(\d+)\s*[–-]\s*(\d+)/.exec(group.repeat||'');
+      let card='';
+      group.parts.forEach(p=>{
+        const n=p.module.replace(group.module+'-','');
+        if(/title|head/.test(n)) card+=GH_PILL(ghLabel(p.module));
+        else if(/cta|button/.test(n)) card+=GH_BTN();
+        else card+=GH_LINES(3);
+      });
+      if(tags.includes(group.module+'-image')) card+=GH_IMG(56);
+      body+=`<div class="fd-gcards"><div class="fd-gcard">${card}</div><div class="fd-gmore">${rng?`${rng[1]}–${rng[2]} ${group.module}s`:`${group.module} × N`}</div></div>`;
+      return;
+    }
+    if(/^(terms|legals|base|footer)$/.test(m)){ if(!body.includes('fd-gtcs')) body+=`</div><div class="fd-gtcs"><div class="fd-gl"></div><div class="fd-gl w85"></div><div class="fd-gl w45"></div>`; return; }
+    if(isImg(m)){ body+=GH_IMG(84); return; }
+    if(m==='headline'){ body+=GH_PILL('Headline'); return; }
+    if(/button|cta/.test(m)){ body+=GH_BTN(); return; }
+    if(isStrip(m)){ body+=GH_STRIP(ghLabel(m)); return; }
+    body+=GH_LINES(3);                     // anything else is copy: three lines
+  });
+  $('fdGhost').innerHTML = (bar?`<div class="fd-gbar">${bar}</div>`:'') + '<div class="fd-gbody">' + body + '</div>';
 }
 
 /* the chat's tools: dig (flag-off until hit list 9) and the why-beat */
@@ -775,7 +860,7 @@ async function fdDumpNext(){
   /* move 1: the robot reads the dump and asks the gap */
   fdThink(true);
   let d;
-  try{ d = await api('/api/feeder',{dump:dump, answers:QANS, next:1}); }
+  try{ d = await api('/api/feeder',{container:CID, dump:dump, answers:QANS, next:1}); }
   catch(e){ d = {confirm:'', enrich:QZ.moves[0].plain}; }
   fdThink(false);
   fdAsk(1, d);
@@ -831,7 +916,7 @@ async function fdNext(){
   if(QN < QZ.moves.length){
     fdThink(true);
     let d;
-    try{ d = await api('/api/feeder',{dump:val('blurb'), answers:QANS, next:QN+1}); }
+    try{ d = await api('/api/feeder',{container:CID, dump:val('blurb'), answers:QANS, next:QN+1}); }
     catch(e){ d = {confirm:'', enrich:QZ.moves[QN].plain}; }
     fdThink(false);
     fdAsk(QN+1, d);
@@ -856,20 +941,24 @@ function fdDig(){ fdBubble("Digging lands soon — for now, tell me or paste it.
 
 let EXTRACTED = false, EXTRACTING = null;
 /* the dump → the checklist. Fires the moment the pad's handed over, so
-   stop 3 arrives pre-filled. Dug or extracted, the rule holds: a
-   robot-found fact never arrives ticked. Provenance line, grey tick,
-   human judges. */
+   stop 3 arrives pre-filled. The rule holds: a robot-found fact never
+   arrives ticked. Provenance line, grey tick, human judges. */
 function fdExtract(){
   const s=storyData();
   if(EXTRACTED || !(s.source||'').trim()) return;
-  EXTRACTING = api('/api/extract', s).then(d=>{
+  EXTRACTING = api('/api/extract', {container:CID, source:s.source, answers:{gap:s.gap, benefit:s.benefit}}).then(d=>{
     const f = d.found || {};
-    const land=(id,v)=>{ if(v && !CLS[id].value){
-      CLS[id].value=v; CLS[id].found='from your docs'; CLS[id].ticked=false; } };
-    if(f.prize_type && !CLS.pname.value) CLS.ptype.value=f.prize_type;
-    land('pname', f.prize_name);
-    land('venue', f.venue);
-    land('edate', f.event_date);
+    const land=(S,r,v)=>{ if(v && S[r.id] && !S[r.id].value){
+      S[r.id].value=String(v); S[r.id].found='from your docs'; S[r.id].ticked=false; } };
+    flatRows().forEach(r=>land(CLS,r,f[r.id]));
+    Object.keys(CLR).forEach(key=>{
+      const found=f[key]; if(!Array.isArray(found)||!found.length) return;
+      const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
+      const max=groups[0].repeat.max;
+      while(CLR[key].length<Math.min(found.length,max)) CLR[key].push({});
+      found.slice(0,max).forEach((item,i)=>{ const S=CLR[key][i];
+        groups.forEach(g=>g.rows.forEach(r=>{ if(!S[r.id]) S[r.id]=newState(r); land(S,r,item[r.id]); })); });
+    });
     EXTRACTED = true;
   }).catch(()=>{ /* extraction is a favour, not a gate */ })
     .finally(()=>{ EXTRACTING=null; });
@@ -877,20 +966,28 @@ function fdExtract(){
 async function fdExtractDone(){ if(EXTRACTING){ fdThink(true); await EXTRACTING; fdThink(false); } }
 
 /* ---------------- nothing flies without a tick ---------------- */
-const detailReady = () => clRows().every(r=>{
-  if(!clShown(r)) return true;
-  const s=CLS[r.id];
-  const has = r.id==='ptype' ? (s.value!=='other'||s.other) : !!s.value;
-  return has && s.ticked;
-});
+const rowReady = (r,S) => { if(r.type==='legals'||!clShown(r,S)) return true;
+  const s=S[r.id]; if(!s) return true;
+  const has = r.type==='select' ? (s.value && (s.value!=='other'||s.other)) : !!s.value;
+  return !!has && s.ticked; };
+function detailReady(){
+  if(!CONT) return false;
+  if(!flatRows().every(r=>rowReady(r,CLS))) return false;
+  return Object.keys(CLR).every(key=>{
+    const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
+    return CLR[key].every(S=>groups.every(g=>{ const w=g.repeat.where;
+      if(w && String((S[w.row]||{}).value)!==w.is) return true;
+      return g.rows.every(r=>rowReady(r,S)); }));
+  });
+}
 
 let ARM=null, CRAFT=null, CRAFT_KEY='';
 
 async function refreshLegals(){
-  if(!clRows().every(r=>!clShown(r)||CLS[r.id].value||(r.id==='ptype'))){ MENU=[]; clRender(); return; }
-  if(!formData().prize_name || !formData().opens || !formData().closes) { MENU=[]; return; }
+  const filled = flatRows().every(r=>r.type==='legals'||!clShown(r,CLS)||CLS[r.id].value);
+  if(!filled){ MENU=[]; clRender(); return; }
   try{
-    const d = await api('/api/terms',{form:formData()});
+    const d = await api('/api/terms',{container:CID, form:formData()});
     MENU=d.menu; FACTS=d.facts;
     if(CHOSEN===null) CHOSEN = MENU.filter(c=>!c.fixed && c.default).map(c=>c.id);
     clRender();
@@ -911,14 +1008,14 @@ function armDetail(){
   ARM = setTimeout(()=>{ refreshLegals(); armCraft(); }, 700);
 }
 
-function craftKey(){ return JSON.stringify([formData(), storyData()]); }
+function craftKey(){ return JSON.stringify([CID, formData(), storyData()]); }
 
 function armCraft(){
   if(!detailReady()) return;
   const key = craftKey();
   if(key===CRAFT_KEY) return;             // already writing (or written) this one
   CRAFT_KEY = key;
-  CRAFT = api('/api/copy',{form:formData(), story:storyData(), source:val('blurb')})
+  CRAFT = api('/api/copy',{container:CID, form:formData(), story:storyData(), source:val('blurb')})
     .catch(e=>({__err:e.message}));
 }
 
@@ -998,7 +1095,6 @@ function addPics(files){
   fi.addEventListener('change', ()=>{ addPics(fi.files); fi.value=''; });
 }
 
-/* ---------------- 2 COPY ---------------- */
 async function buildIt(){
   if(!detailReady()){ subView('detail'); armDetail();
     alert("A couple of facts still need a tick."); return; }
@@ -1006,53 +1102,83 @@ async function buildIt(){
   if(COPY) return;
   const key = craftKey();
   if(CRAFT && key===CRAFT_KEY){
-    $('fxArt').innerHTML='<div class="load" style="margin:40px auto"><img class="robotwork" src="robot-sandwich.png" alt="">The robot is writing…</div>';
-    $('fxGutter').innerHTML=''; $('fxChat').innerHTML=''; $('fxTopic').textContent='';
+    fxLoading();
     const d = await CRAFT;
     if(d.__err){ genCopy(); return; }       // the background try failed; go live
     fxInit(d);
   } else genCopy();
 }
-
-async function genCopy(){
+function fxLoading(){
   $('fxArt').innerHTML='<div class="load" style="margin:40px auto"><img class="robotwork" src="robot-sandwich.png" alt="">The robot is writing…</div>';
   $('fxGutter').innerHTML=''; $('fxChat').innerHTML=''; $('fxTopic').textContent='';
+}
+async function genCopy(){
+  fxLoading();
   try{
-    const d = await api('/api/copy',{form:formData(), story:storyData(), source:val('blurb')});
+    const d = await api('/api/copy',{container:CID, form:formData(), story:storyData(), source:val('blurb')});
     fxInit(d);
   }catch(e){
     $('fxArt').innerHTML=`<div class="err" style="margin:20px">${esc(e.message)}</div>`;
   }
 }
 
-/* =====================================================================
-   FIX IT — the Wrangler split.
-   The whole email sits on the table as the artefact. Padlocks live in
-   the gutter and they are the buttons: open / pencil / shut. The rail
-   is the robot's side of the desk — the tour in one state, the fixer
-   chat in the other. Rewrites land straight on the card, changes
-   marked. The card is the proposal.
-   ===================================================================== */
-const FXORDER=['subject','headline','body','terms'];
-const FXLBL={subject:'Subject line',headline:'Headline',body:'Body',terms:'Terms'};
-let FXLOCK={}, FXHL=null, FXDIFF={}, FXLIST=[], FXFLAGS=[], WHY={};
-
-const FXFALLBACK_WHY={
-  subject:'The pick of three — two more wait in the drawer.',
-  headline:'Plain about what you win — the rule up here.',
-  body:'The story, three short lines, ends with what to do.',
-  terms:"Suze's clauses, assembled from the brief. Read it and nod."
-};
+/* The blocks the tour walks: every writer module, in the html's order;
+   a repeating module contributes one block per item per part, keyed
+   "card-title#2"; the terms block last where the html has one. The
+   copy store is what the WRITER returned — top modules by name (an
+   options module is a list, PICK chooses), repeats under "<module>s". */
+let FXORDER=[], FXLBL={}, FXLOCK={}, FXHL=null, FXDIFF={}, FXLIST=[], FXFLAGS=[], WHY={};
+let FXDOC=null;                                   // the artefact's document (iframe)
+const fxMod = k => k.split('#')[0];
+const fxN   = k => +(k.split('#')[1]||0);
+function fxLabel(k){
+  const m=fxMod(k), n=fxN(k);
+  const nice=m.replace(/-/g,' ').replace(/\bcta\b/,'button').replace(/\bcopy\b/,'');
+  const s=nice.trim().replace(/^\w/,c=>c.toUpperCase());
+  return n ? s.replace(/^(\w+)/, `$1 ${n}`) : s;
+}
+function fxOrderBuild(){
+  const mods=CONT.modules, tags=CONT.ghost, group=mods.groups[0];
+  const isWriter=m=>mods.writer.some(w=>w.module===m);
+  FXORDER=[];
+  tags.forEach(t=>{
+    if(isWriter(t)) FXORDER.push(t);
+    else if(group && t===group.module){
+      const items=COPY[group.module+'s']||[];
+      items.forEach((_,i)=>group.parts.forEach(p=>{ if(tags.includes(p.module)) FXORDER.push(p.module+'#'+(i+1)); }));
+    }
+    else if(/^(terms|legals)$/.test(t) && MENU.length && !FXORDER.includes('terms')) FXORDER.push('terms');
+  });
+  FXLBL={}; FXORDER.forEach(k=>FXLBL[k]=fxLabel(k));
+}
+const fxOpts = m => { const w=CONT.modules.writer.find(x=>x.module===m); return w?w.options||0:0; };
+function fxText(k){
+  const m=fxMod(k), n=fxN(k);
+  if(k==='terms') return fxTermsText();
+  if(n){ const g=CONT.modules.groups[0]; const it=(COPY[g.module+'s']||[])[n-1]||{}; return it[m]||''; }
+  const v=COPY[m]; return Array.isArray(v) ? (v[PICK]||'') : (v||'');
+}
+function fxSet(k,text){
+  const m=fxMod(k), n=fxN(k);
+  if(n){ const g=CONT.modules.groups[0]; COPY[g.module+'s'][n-1][m]=text; return; }
+  if(Array.isArray(COPY[m])) COPY[m][PICK]=text; else COPY[m]=text;
+}
+const fxShow = k => FXDIFF[k] ? fxDiffWords(FXDIFF[k].old, FXDIFF[k].new) : fillPh(fxText(k));
+function fxTermsText(){
+  if(!MENU || !MENU.length) return 'Terms assemble from the brief once the facts are in.';
+  return MENU.filter(c=>c.fixed || (CHOSEN||[]).includes(c.id)).map(c=>c.text).join(' ');
+}
+function fxBeat(){ return FXORDER.find(k=>!FXLOCK[k]) || null; }
 
 function fxInit(d){
   COPY=d.copy; FACTS=d.facts; CTX=d.context||{}; PICK=0; TWEAKS=0;
   WHY=(COPY.why&&typeof COPY.why==='object')?COPY.why:{};
-  FXLOCK={subject:false,headline:false,body:false,terms:false};
+  fxOrderBuild();
+  FXLOCK={}; FXORDER.forEach(k=>FXLOCK[k]=false);
   FXHL=null; FXDIFF={}; FXLIST=[]; FXFLAGS=d.flags||[];
   LOCKED=FXLOCK;
   $('fxChat').innerHTML='';
-  drawFix();
-  fxOpenBeat('subject', false);
+  fxMount(()=>{ drawFix(); if(FXORDER.length) fxOpenBeat(FXORDER[0], false); });
 }
 
 const fxDiffWords=(o,n)=>{
@@ -1069,45 +1195,102 @@ const fxDiffWords=(o,n)=>{
   }
   return out;
 };
-const fxText = k => k==='subject' ? COPY.subjects[PICK] : COPY[k];
-const fxShow = k => FXDIFF[k] ? fxDiffWords(FXDIFF[k].old, FXDIFF[k].new) : fillPh(fxText(k));
 
-function fxTermsText(){
-  if(!MENU || !MENU.length) return 'Terms assemble from the brief once the facts are in.';
-  return MENU.filter(c=>c.fixed || (CHOSEN||[]).includes(c.id)).map(c=>c.text).join(' ');
+/* THE ARTEFACT — the container's html in an iframe, so its skin can't
+   bleed into the engine and the engine's can't bleed into it. The engine
+   adds one stylesheet inside for its marks (changes, highlights, the
+   editing tint) and pours the copy into the data-module tags. */
+const FX_INNER_CSS=`.fx-sec{position:relative;transition:background .25s}.fx-sec.editing{background:rgba(237,28,36,.06)}
+.fx-sec.flash{animation:fxlanded .7s ease-out}@keyframes fxlanded{0%{background:rgba(237,28,36,.18)}100%{background:transparent}}
+mark.fx-ch{background:#FFE96B;color:inherit;border-radius:2px;padding:0 1px}.ph{cursor:not-allowed}
+body{padding:0!important;background:transparent!important}`;
+function fxMount(then){
+  const host=$('fxArt'); host.innerHTML='<iframe class="fx-frame" title="The work" scrolling="no"></iframe>';
+  const fr=host.querySelector('iframe');
+  fxWrite(fr, CONT.html.replace('</head>', `<style>${FX_INNER_CSS}</style></head>`));
+  FXDOC=fr.contentDocument; fxPrepDoc(); fxSizeFrame(); then&&then();
+}
+/* document.write into the frame: same-origin, synchronous, no srcdoc
+   timing to wait on, and the brand's fonts resolve off the site root */
+function fxWrite(fr, html){
+  const D=fr.contentDocument; D.open(); D.write(html); D.close();
+}
+function fxSizeFrame(){
+  const fr=$('fxArt').querySelector('iframe'); if(!fr||!FXDOC) return;
+  fr.style.height=Math.max(200, FXDOC.documentElement.scrollHeight)+'px';
+}
+/* first pass on the doc: clone or cull repeated items to match the copy,
+   wrap each tour block as .fx-sec with its key, listen for highlights */
+function fxPrepDoc(){
+  const D=FXDOC, group=CONT.modules.groups[0];
+  D.querySelectorAll('.email,.precopy,body').forEach(el=>{ el.style.margin='0 auto'; });
+  if(group){
+    const items=COPY[group.module+'s']||[];
+    const els=[...D.querySelectorAll(`[data-module="${group.module}"]`)];
+    const wrap=el=>el.closest('.cardwrap')||el;
+    while(els.length<items.length && els.length){ const c=wrap(els[els.length-1]).cloneNode(true); wrap(els[els.length-1]).after(c); els.push(c.matches(`[data-module="${group.module}"]`)?c:c.querySelector(`[data-module="${group.module}"]`)); }
+    while(els.length>items.length && els.length>1){ wrap(els.pop()).remove(); }
+    els.forEach((el,i)=>{ el.dataset.card=String(i+1);
+      const it=(FACTS[group.module]||[])[i]||{}; const tr=Object.keys(it).find(k=>k.endsWith('_type'));
+      if(tr) el.dataset.type=it[tr];
+      group.parts.forEach(p=>{ const t=el.querySelector(`[data-module="${p.module}"]`); if(t){ t.classList.add('fx-sec'); t.dataset.k=p.module+'#'+(i+1); } });
+    });
+  }
+  FXORDER.filter(k=>!fxN(k)).forEach(k=>{
+    const m=k==='terms'?null:fxMod(k);
+    const els = m ? [...D.querySelectorAll(`[data-module="${m}"]`)] : [D.querySelector('[data-module="terms"]')||D.querySelector('[data-module="legals"]')];
+    els.forEach(el=>{ if(el){ el.classList.add('fx-sec'); el.dataset.k=k; } });
+  });
+  D.addEventListener('mouseup', fxSelect);
+}
+/* pour: every tour block gets its current copy (diff-marked if tweaked);
+   a two-option module fills its data-variant twins */
+function fxPour(){
+  const D=FXDOC; if(!D) return;
+  FXORDER.forEach(k=>{
+    const els=[...D.querySelectorAll(`.fx-sec[data-k="${k}"]`)]; if(!els.length) return;
+    const m=fxMod(k);
+    els.forEach(el=>{
+      if(k!=='terms' && !fxN(k) && fxOpts(m)===2 && el.dataset.variant){
+        const i=el.dataset.variant==='B'?1:0; const v=(COPY[m]||[])[i]||'';
+        el.innerHTML=(el.querySelector('.l')?el.querySelector('.l').outerHTML:'')+fillPh(v); return;
+      }
+      if(k==='terms'){ el.innerHTML=esc(fxTermsText()).replace(/\n/g,'<br>'); if(FXLOCK.terms) el.classList.add('locked-look'); return; }
+      const raw=fxShow(k);
+      el.innerHTML = raw.includes('\n') ? raw.replace(/\n/g,'<br>') : raw;
+      el.classList.toggle('editing', fxBeat()===k);
+    });
+  });
+  D.querySelectorAll('[data-variant="B"]').forEach(el=>{ const m=el.dataset.module; if(fxOpts(m)===2) return; });
+  fxSizeFrame();
+}
+function fxSelect(){
+  const sel=FXDOC.getSelection();
+  if(!sel || sel.isCollapsed) return;
+  const txt=sel.toString().trim();
+  if(!txt || txt.length<2) return;
+  const node=sel.anchorNode && sel.anchorNode.parentElement; if(!node) return;
+  if(node.closest('.ph')){ sel.removeAllRanges(); fxSay(FX_LOCKED_LINE,'robot',true); return; }
+  const sec=node.closest('.fx-sec'); if(!sec) return;
+  const k=sec.dataset.k;
+  if(k==='terms'){ sel.removeAllRanges(); fxSay(FX_LOCKED_LINE,'robot',true); return; }
+  sel.removeAllRanges();
+  const snapped=fxSnap(sec.textContent, txt);
+  FXHL = snapped.length>60 ? snapped.slice(0,57)+'\u2026' : snapped;
+  $('fxNote').placeholder='About \u201c'+(FXHL.length>26?FXHL.slice(0,24)+'\u2026':FXHL)+'\u201d\u2026';
+  $('fxNote').focus();
 }
 
-function fxBeat(){ return FXORDER.find(k=>!FXLOCK[k]) || null; }
-
 function drawFix(){
-  /* the artefact — the email itself, sections wrapped for the gutter */
-  $('fxArt').innerHTML = `
-    <div class="mail-bar fx-sec " data-k="subject">
-      <div class="mail-from">One NZ Rewards &lt;rewards@one.nz&gt;</div>
-      <div class="mail-subj">${fxShow('subject')}</div>
-    </div>
-    <div class="mail-body" style="padding-bottom:6px">
-      <div class="mail-img">Hero image goes here</div>
-      <div class="fx-sec " data-k="headline" style="padding:4px 0 10px">
-        <div class="mail-h" style="margin-bottom:0">${fxShow('headline')}</div>
-      </div>
-      <div class="fx-sec " data-k="body" style="padding:2px 0 8px">
-        <div class="mail-p" style="margin-bottom:16px">${fxShow('body')}</div>
-        <span class="mail-cta" style="margin-bottom:22px">Enter now</span>
-      </div>
-    </div>
-    <div class="mail-tcs fx-sec fx-tcs ${FXLOCK.terms?'locked-look':''}" data-k="terms">${esc(fxTermsText())}</div>`;
-
+  fxPour();
   fxGutterDraw();
   fxRailDraw();
   requestAnimationFrame(fxPos);
 }
 
-/* ── the gutter: the padlock is furniture now — quiet confirmation in
-   the background, flipped by the conversation, still tappable for the
-   direct movers. One lock; the bar spins to a side hook when open. ── */
+/* ── the gutter: the padlock is furniture — quiet confirmation in the
+   background, flipped by the conversation, still tappable. ── */
 const FXI_LOCK='<svg viewBox="0 0 16 16" fill="none"><path class="shackle" d="M4.5 8V5a3.5 3.5 0 0 1 7 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="3" y="7.5" width="10" height="7" rx="2" fill="currentColor"/></svg>';
-
 function fxGutterDraw(){
   const beat=fxBeat();
   $('fxGutter').innerHTML = FXORDER.map(k=>{
@@ -1119,15 +1302,15 @@ function fxGutterDraw(){
   }).join('');
 }
 function fxPos(){
-  const art=$('fxArt'); if(!art) return;
-  const top=art.getBoundingClientRect().top;
+  const fr=$('fxArt').querySelector('iframe'); if(!fr||!FXDOC) return;
+  const top=fr.getBoundingClientRect().top - $('fxArt').getBoundingClientRect().top;
   document.querySelectorAll('#fxGutter .fx-pad').forEach(b=>{
-    const sec=art.querySelector(`.fx-sec[data-k="${b.dataset.k}"]`); if(!sec) return;
+    const sec=FXDOC.querySelector(`.fx-sec[data-k="${b.dataset.k}"]`); if(!sec){ b.style.display='none'; return; }
     const r=sec.getBoundingClientRect();
-    b.style.top=(r.top-top+r.height/2-22)+'px';
+    b.style.top=(top+r.top+r.height/2-22)+'px';
   });
 }
-window.addEventListener('resize', fxPos);
+window.addEventListener('resize', ()=>{ fxSizeFrame(); fxPos(); });
 
 /* ── the conversation. The robot presents its choice and closes seeking
    confirmation. The human types; the FIXER reads the reply — yes locks,
@@ -1135,8 +1318,7 @@ window.addEventListener('resize', fxPos);
 const FX_ASKS=['What do you reckon?','Sound good to you?','Happy with it?','Good to lock?'];
 let FX_ASK_I=0;
 const fxAsk=()=>FX_ASKS[(FX_ASK_I++)%FX_ASKS.length];
-const fxNextLine=k=>({subject:'happy with the subject line?',headline:'happy with the headline?',
-  body:'how\u2019s the body reading?',terms:'give the terms a once-over?'}[k]);
+const fxNextLine=k=>k==='terms'?'give the terms a once-over?':`happy with the ${FXLBL[k].toLowerCase()}?`;
 
 function fxSay(html,who,withAv){
   const row=document.createElement('div');
@@ -1156,25 +1338,36 @@ function fxThink(){
 }
 function fxClearOpts(){ document.querySelectorAll('#fxChat .fx-opt').forEach(o=>o.remove()); }
 
+/* the why-beat: the WRITER's, else the spec's fallback, else a plain line */
+function fxWhy(k){
+  const m=fxMod(k), g=CONT.modules.groups[0];
+  const w=(WHY[m]||(g&&fxN(k)?WHY[g.module]:'')||'').trim();
+  return w || CONT.modules.why[m] || (g&&fxN(k)?CONT.modules.why[g.module]:'') || 'Read it and say.';
+}
+function fxDrawer(k){
+  const m=fxMod(k); const v=COPY[m];
+  if(fxN(k)||!Array.isArray(v)||fxOpts(m)!==3) return;
+  v.forEach((opt,i)=>{
+    if(i===PICK) return;
+    const b=document.createElement('button');
+    b.className='fx-opt'; b.innerHTML='Or from the drawer: '+fillPh(opt);
+    b.onclick=()=>{ fxPickOption(k,i); };
+    $('fxChat').appendChild(b);
+  });
+}
+
 /* open a beat: the robot owns its choice, then hands it back */
 function fxOpenBeat(k, reopened){
   $('fxTopic').textContent=FXLBL[k];
   if(reopened){
     fxSay(`Reopened the ${FXLBL[k].toLowerCase()} — what\u2019s off?`,'robot',true);
   } else {
-    const why=(WHY[k]||'').trim()||FXFALLBACK_WHY[k];
-    fxSay(esc(why),'robot',true);
+    fxSay(esc(fxWhy(k)),'robot',true);
     let extra='';
-    if(k==='subject' && FXFLAGS.length) extra+=`<span class="small">Careful — ${esc(FXFLAGS[0])}</span>`;
-    if(k==='subject' && COPY.wants) extra+=`<span class="small">${esc(COPY.wants)}</span>`;
+    if(k===FXORDER[0] && FXFLAGS.length) extra+=`<span class="small">Careful — ${esc(FXFLAGS[0])}</span>`;
+    if(k===FXORDER[0] && COPY.wants) extra+=`<span class="small">${esc(COPY.wants)}</span>`;
     fxSay(esc(fxAsk())+extra,'robot',false);
-    if(k==='subject') COPY.subjects.forEach((opt,i)=>{
-      if(i===PICK) return;
-      const b=document.createElement('button');
-      b.className='fx-opt'; b.innerHTML='Or from the drawer: '+fillPh(opt);
-      b.onclick=()=>{ fxPickSubject(i); };
-      $('fxChat').appendChild(b);
-    });
+    fxDrawer(k);
   }
   $('fxChat').scrollTop=$('fxChat').scrollHeight;
   drawFix();
@@ -1194,17 +1387,9 @@ function fxAnnounceLock(k){
   }
   drawFix();
 }
-/* the body of a beat opening, without the announce (used after a bridge) */
 function fxOpenBody(k){
-  const why=(WHY[k]||'').trim()||FXFALLBACK_WHY[k];
-  fxSay(esc(why),'robot',false);
-  if(k==='subject') COPY.subjects.forEach((opt,i)=>{
-    if(i===PICK) return;
-    const b=document.createElement('button');
-    b.className='fx-opt'; b.innerHTML='Or from the drawer: '+fillPh(opt);
-    b.onclick=()=>{ fxPickSubject(i); };
-    $('fxChat').appendChild(b);
-  });
+  fxSay(esc(fxWhy(k)),'robot',false);
+  fxDrawer(k);
   $('fxChat').scrollTop=$('fxChat').scrollHeight;
 }
 
@@ -1214,37 +1399,31 @@ function fxRailDraw(){
     $('fxRCount').textContent=FXLIST.length+' tweak'+(FXLIST.length>1?'s':'')+' made';
     $('fxRList').innerHTML=FXLIST.map(t=>`<div class="fx-ritem"><div class="fx-rlbl">${esc(t.label)}</div><div class="fx-rwhy">${esc(t.note)}</div></div>`).join('');
   } else $('fxReceipt').style.display='none';
-
-  const locks=FXORDER.filter(k=>FXLOCK[k]).length, all=locks===4;
+  const locks=FXORDER.filter(k=>FXLOCK[k]).length, n=FXORDER.length, all=n>0&&locks===n;
   $('fxGtg').classList.toggle('ready',all);
-  $('fxCap').textContent = all ? 'Four locks on. Take it.' : locks+' of 4 locked';
+  $('fxCap').textContent = all ? `${n} locks on. Take it.` : `${locks} of ${n} locked`;
 }
 
-/* the padlocks still work by hand — background furniture, quiet lines */
 function fxTogglePad(k){
   const was=FXLOCK[k];
   FXLOCK[k]=!was;
-  if(!was){                       // locked by hand
-    fxAnnounceLock(k);
-  } else {                        // reopened by hand
-    fxOpenBeat(k, true);
-  }
+  if(!was) fxAnnounceLock(k); else fxOpenBeat(k, true);
   drawFix();
 }
-function fxPackage(){ if(FXORDER.every(k=>FXLOCK[k])) toReview(); }
+function fxPackage(){ if(FXORDER.length && FXORDER.every(k=>FXLOCK[k])) toReview(); }
 
-function fxPickSubject(i){
-  const old=fxText('subject');
+function fxPickOption(k,i){
+  const old=fxText(k);
   PICK=i;
-  FXDIFF.subject={old, new:fxText('subject')};
-  FXLIST.push({label:FXLBL.subject, note:'From the drawer'}); TWEAKS++;
+  FXDIFF[k]={old, new:fxText(k)};
+  FXLIST.push({label:FXLBL[k], note:'From the drawer'}); TWEAKS++;
   fxClearOpts();
   fxSay('Swapped. '+esc(fxAsk()),'robot',true);
-  fxApplyFx('subject');
+  fxApplyFx(k);
 }
 function fxApplyFx(k){
   drawFix();
-  const sec=document.querySelector(`#fxArt .fx-sec[data-k="${k}"]`);
+  const sec=FXDOC&&FXDOC.querySelector(`.fx-sec[data-k="${k}"]`);
   if(sec){ sec.classList.remove('flash'); void sec.offsetWidth; sec.classList.add('flash'); }
 }
 
@@ -1254,12 +1433,12 @@ async function fxSend(){
   const k=fxBeat();
   $('fxNote').value='';
   fxSay(FXHL?`<mark class="fx-hl">${esc(FXHL)}</mark> — ${esc(note)}`:esc(note),'me');
-  if(!k){ fxSay('All four are locked — tap a padlock to reopen one and keep talking.','robot',true); return; }
-  const cur = k==='terms' ? fxTermsText() : fxText(k);
+  if(!k){ fxSay('Everything\u2019s locked — tap a padlock to reopen one and keep talking.','robot',true); return; }
+  const cur = fxText(k);
   const th=fxThink();
   HIST[k]=HIST[k]||[];
   try{
-    const d=await api('/api/tweak',{form:formData(), block:k, current:cur, note,
+    const d=await api('/api/tweak',{container:CID, run:RUN, form:formData(), block:k, current:cur, note,
       highlight:FXHL, insight:val('storyCare'), history:HIST[k]});
     th.remove();
     HIST[k].push(`Human: ${note}`,`Robot: ${d.say||d.action||''}`);
@@ -1269,7 +1448,7 @@ async function fxSend(){
       fxAnnounceLock(k);
     } else if(d.action==='change' && d.copy){
       FXDIFF[k]={old:cur, new:d.copy};
-      if(k==='subject') COPY.subjects[PICK]=d.copy; else COPY[k]=d.copy;
+      fxSet(k,d.copy);
       FXLIST.push({label:FXLBL[k], note}); TWEAKS++;
       fxClearOpts();
       fxSay(esc(d.say||'On the card. '+fxAsk()),'robot',true);
@@ -1283,8 +1462,6 @@ async function fxSend(){
   FXHL=null;
 }
 
-/* ── highlight-to-tweak: grab whole words; the quote rides the reply.
-   Locked facts get the answer in chat voice — no modal. ── */
 const FX_LOCKED_LINE='That\u2019s from the brief — dates, numbers and legals travel locked. Change it back in FEED IT and I\u2019ll rewrite around it.';
 function fxSnap(full,part){
   const i=full.indexOf(part); if(i===-1) return part;
@@ -1293,59 +1470,44 @@ function fxSnap(full,part){
   while(b<full.length && !/\s/.test(full[b])) b++;
   return full.slice(a,b).trim().replace(/[.,!?;:]+$/,'');
 }
-document.addEventListener('mouseup',()=>{
-  const sel=window.getSelection();
-  if(!sel || sel.isCollapsed) return;
-  const txt=sel.toString().trim();
-  if(!txt || txt.length<2) return;
-  const node=sel.anchorNode && sel.anchorNode.parentElement;
-  if(!node || !node.closest('#fxArt')) return;
-  if(node.closest('.ph')){ sel.removeAllRanges(); fxSay(FX_LOCKED_LINE,'robot',true); return; }
-  const sec=node.closest('.fx-sec'); if(!sec) return;
-  const k=sec.dataset.k;
-  if(k==='terms'){ sel.removeAllRanges(); fxSay(FX_LOCKED_LINE,'robot',true); return; }
-  sel.removeAllRanges();
-  const snapped=fxSnap(sec.textContent, txt);
-  FXHL = snapped.length>60 ? snapped.slice(0,57)+'\u2026' : snapped;
-  $('fxNote').placeholder='About \u201c'+(FXHL.length>26?FXHL.slice(0,24)+'\u2026':FXHL)+'\u201d\u2026';
-  $('fxNote').focus();
-});
 
 /* ---------------- 3 REVIEW ---------------- */
+function fxFinalCopy(){
+  const out={};
+  CONT.modules.writer.forEach(w=>{ const v=COPY[w.module];
+    out[w.module] = Array.isArray(v) ? (w.options===3 ? v[PICK] : v) : v; });
+  const g=CONT.modules.groups[0]; if(g) out[g.module+'s']=COPY[g.module+'s']||[];
+  return out;
+}
 async function toReview(){
   reach(2);
   $('reviewOut').innerHTML='<div class="load"><div class="spin"></div>Putting it together…</div>';
   try{
-    const d = await api('/api/parcel',{form:formData(), chosen:CHOSEN,
-      copy:{subject:COPY.subjects[PICK], headline:COPY.headline, body:COPY.body}});
-    $('reviewOut').innerHTML = `
-    <div class="mail">
-      <div class="mail-bar">
-        <div class="mail-from">One NZ Rewards &lt;rewards@one.nz&gt;</div>
-        <div class="mail-subj">${esc(d.subject)}</div>
-      </div>
-      <div class="mail-body">
-        <div class="mail-img">Hero image goes here</div>
-        <div class="mail-h">${esc(d.headline)}</div>
-        <div class="mail-p">${esc(d.body)}</div>
-        <span class="mail-cta">Enter now</span>
-      </div>
-      <div class="mail-tcs">${esc(d.terms)}</div>
-    </div>
-
-    <div class="sect">For the specialist</div>
-    <div class="file"><div class="file-i">HTML</div>
-      <div><div class="file-n">content-block.html</div>
-      <div class="file-d">Paste into Content Builder. Hero image and URL still to slot in.</div></div></div>
-    <div class="file"><div class="file-i">DOC</div>
-      <div><div class="file-n">copy-deck.docx</div>
-      <div class="file-d">Subject, headline and body — numbers already filled in</div></div></div>
-    <div class="file"><div class="file-i">DOC</div>
-      <div><div class="file-n">terms.docx</div>
-      <div class="file-d">${d.clause_count} clauses, built from the brief</div></div></div>
-    <div class="file"><div class="file-i">ZIP</div>
-      <div><div class="file-n">${esc(d.slug)}.zip</div>
-      <div class="file-d">The lot, ready to hand over${TWEAKS?` · ${TWEAKS} tweak${TWEAKS>1?'s':''} logged`:''}</div></div></div>`;
+    const d = await api('/api/parcel',{container:CID, form:formData(), chosen:CHOSEN, copy:fxFinalCopy()});
+    const files=(CONT.outputs||[]).map(o=>`<div class="file"><div class="file-i">${esc(o.id).toUpperCase().slice(0,4)}</div>
+      <div><div class="file-n">${esc(d.slug)}-${esc(o.id)}.zip</div><div class="file-d">${esc(o.name)} — ${esc(o.files)}${TWEAKS?` · ${TWEAKS} tweak${TWEAKS>1?'s':''} logged`:''}</div></div></div>`).join('');
+    $('reviewOut').innerHTML=`<div class="mail"><iframe class="fx-frame" title="The finished piece" scrolling="no"></iframe></div>
+      <div class="sect">Your files</div>${files}
+      <div class="file"><div class="file-i">DOC</div><div><div class="file-n">terms.docx</div><div class="file-d">${d.clause_count} clauses, built from the brief</div></div></div>`;
+    const fr=$('reviewOut').querySelector('iframe');
+    fxWrite(fr, CONT.html);
+    { const D=fr.contentDocument, g=CONT.modules.groups[0];
+      D.body.style.padding='0'; D.body.style.background='transparent';
+      Object.entries(d.copy).forEach(([m,v])=>{
+        if(Array.isArray(v) && g && m===g.module+'s'){
+          const els=[...D.querySelectorAll(`[data-module="${g.module}"]`)];
+          const wrap=el=>el.closest('.cardwrap')||el;
+          while(els.length<v.length && els.length){ const c=wrap(els[els.length-1]).cloneNode(true); wrap(els[els.length-1]).after(c); els.push(c.matches(`[data-module="${g.module}"]`)?c:c.querySelector(`[data-module="${g.module}"]`)); }
+          while(els.length>v.length && els.length>1) wrap(els.pop()).remove();
+          els.forEach((el,i)=>Object.entries(v[i]||{}).forEach(([p,t])=>{ const x=el.querySelector(`[data-module="${p}"]`); if(x) x.textContent=t; }));
+        } else if(Array.isArray(v)){
+          const els=[...D.querySelectorAll(`[data-module="${m}"]`)];
+          els.forEach((el,i)=>{ el.innerHTML=(el.querySelector('.l')?el.querySelector('.l').outerHTML:'')+esc(v[i]||''); });
+        } else { const el=D.querySelector(`[data-module="${m}"]`); if(el) el.textContent=v; }
+      });
+      const t=D.querySelector('[data-module="terms"]'); if(t) t.innerHTML=esc(d.terms).replace(/\n/g,'<br>');
+      fr.style.height=Math.max(200,D.documentElement.scrollHeight)+'px';
+    }
   }catch(e){ $('reviewOut').innerHTML=`<div class="err">${esc(e.message)}</div>`; }
 }
 

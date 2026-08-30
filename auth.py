@@ -43,6 +43,15 @@ for pair in os.environ.get("ROBOT_WORDS", "").split(","):
         if w.strip():
             WORDS[w.strip().lower()] = n.strip()
 
+# Hunch logins see containers in testing. A name in this list (matched
+# against the name a word resolves to) is Hunch; everyone else is a client.
+HUNCH = {n.strip().lower() for n in os.environ.get("ROBOT_HUNCH", "Michael").split(",") if n.strip()}
+
+
+def is_hunch():
+    return bool(session.get("hunch"))
+
+
 # --- The brake --------------------------------------------------------------
 # Five wrong words from one address, then the door won't listen for a minute.
 # This is what makes a friendly two-word password safe: a person mistyping
@@ -121,7 +130,8 @@ def word():
     session["email"] = "word:" + (name.lower().replace(" ", "-") or "guest")
     session["name"] = name or "there"
     session["tenant"] = ""
-    return jsonify({"success": True, "name": session["name"], "tenant": ""})
+    session["hunch"] = (name or "").lower() in HUNCH
+    return jsonify({"success": True, "name": session["name"], "tenant": "", "hunch": session["hunch"]})
 
 
 # ---------------------------------------------------------------------------
@@ -201,7 +211,8 @@ def verify_code():
     session["email"] = email
     session["tenant"] = tenant
     session["name"] = name or email.split("@")[0].title()
-    return jsonify({"success": True, "tenant": tenant, "name": session["name"]})
+    session["hunch"] = tenant == "Hunch"
+    return jsonify({"success": True, "tenant": tenant, "name": session["name"], "hunch": session["hunch"]})
 
 
 # ---------------------------------------------------------------------------
@@ -211,7 +222,8 @@ def me():
     if "email" not in session:
         return jsonify({"authed": False, "mode": DOOR})
     return jsonify({"authed": True, "mode": DOOR, "email": session["email"],
-                    "tenant": session.get("tenant"), "name": session.get("name")})
+                    "tenant": session.get("tenant"), "name": session.get("name"),
+                    "hunch": bool(session.get("hunch"))})
 
 
 @auth_bp.route("/api/auth/out", methods=["POST"])

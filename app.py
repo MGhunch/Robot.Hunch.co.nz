@@ -1,26 +1,23 @@
 """
 ROBOT
 =====
-robot.hunch.co.nz — a front door with one room in it.
+robot.hunch.co.nz — the engine, and the folders it runs.
 
-Room one is ticket giveaways for One NZ Rewards: answer a few questions, the
-terms get assembled from the answers, the robot writes the copy, you tick it or
-tweak it, and it comes out as a parcel the marketing automation specialist can
-take straight into Salesforce Marketing Cloud.
+  brands/<id>/        voice, skin, assets       set up once per client
+  containers/<id>/    config, spec, artefact    set up once per format
 
 ARCHITECTURE, and the reason for it:
 
-  terms.py       Deterministic. Clause library, date arithmetic, validation.
-                 The model never touches it. This is the bulletproof half.
+  containers.py  The reader. Folders -> one dict each. The validator is the
+                 reader in strict mode. Nothing per-container lives in code.
+  engine.py      Deterministic. Facts from NEEDS, clauses from LEGALS, the
+                 copy check. The model never touches it.
   copy_stage.py  The only part the model touches. Writes prose, never facts.
-  auth.py        Email-is-the-credential OTP. Currently one address.
+  auth.py        The door. A word today, OTP when clients arrive. A Hunch
+                 login sees containers in testing.
 
-  Copy uses placeholders that Python fills from the same FACTS dict that built
-  the terms. One source of truth, two renderings — so the words and the terms
-  cannot structurally drift apart. That's the whole trick.
-
-Blueprints are additive, same pattern as Prompter: adding a room touches
-nothing that already works.
+  Copy and terms both fill from the same FACTS dict, so the words and the
+  terms cannot structurally drift apart. That's the whole trick.
 """
 
 from flask import Flask, jsonify, request, session, send_from_directory
@@ -29,10 +26,11 @@ import os
 import re
 import time
 
-from auth import auth_bp, require_auth
-from copy_stage import copy_bp
-from terms import (build_facts, assemble_terms, render_terms, render_copy,
-                   clause_menu, prize_types, FOOTER, TermsError)
+from auth import auth_bp, require_auth, is_hunch
+from copy_stage import copy_bp, writer_modules, options_of, move_key
+import containers as CT
+from engine import (build_facts, assemble_terms, render_terms, render_copy,
+                    clause_menu, type_options, TermsError)
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-me")
@@ -44,26 +42,117 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(copy_bp)
 
 
+# ---------------------------------------------------------------------------
+# THE DOORWAY and THE CONTAINER — what the front end reads to draw itself.
+# ---------------------------------------------------------------------------
+
+def _visible(c):
+    return c.get("status") == "live" or is_hunch()
+
+
+@app.route("/api/containers")
+@require_auth
+def containers_list():
+    """One tile per folder, grouped by brand. `testing` shows to Hunch
+    logins only, badged; the client sees `live`. No list in code."""
+    tiles = [CT.tile(c) for c in CT.containers().values() if _visible(c)]
+    brands = {b["id"]: {"id": b["id"], "name": b.get("name", b["id"])} for b in CT.brands().values()}
+    return jsonify({"tiles": tiles, "brands": brands, "hunch": is_hunch()})
+
+
+def _quiz(c):
+    """FEED IT's words, in the shape the concertina reads."""
+    fi = c["feed_it"]
+    return {
+        "artefact": c.get("name", c["id"]),
+        "tagline": "Fill in the blanks. The robot does the rest.",
+        "stops": [
+            {"key": "dump", "title": "Dump your docs", "sub": "Drop in anything you've got.",
+             "pad": {"head": "DROP IT HERE", "browse": "Browse", "line": "or drag and drop.",
+                     "hint": fi["dump"], "paste": "Or paste it in here."}},
+            {"key": "bounce", "title": "Bounce ideas", "sub": "Quick chat to land an angle."},
+            {"key": "deets", "title": "Check your deets", "sub": "Dates, times, legals. Lock it in."},
+        ],
+        "needs": fi["needs"],
+        "moves": [dict(m, key=move_key(m)) for m in fi["moves"]],
+        "closing": fi["closing"],
+        "tools": {"dig": False},
+    }
+
+
+def _checklist(c):
+    """NEEDS, in the shape the checklist renderer deals from: groups of
+    rows; repeating groups carry their repeat rule; the legals card."""
+    groups = []
+    for g in c["needs"]["groups"]:
+        rows = []
+        for r in g["rows"]:
+            row = {"id": r["id"], "label": r["label"], "type": r["type"], "ask": r["ask"],
+                   "locked": r["locked"], "diggable": r["diggable"]}
+            if r.get("notsure"): row["notsure"] = r["notsure"]
+            if r.get("sub"): row["sub"] = r["sub"]
+            if r.get("options"): row["options"] = r["options"]
+            if r.get("when"):
+                m = re.match(r"(\w+)\s+in\s+(.+)", r["when"])
+                if m: row["showIf"] = {"row": m.group(1), "in": [v.strip() for v in m.group(2).split(",")]}
+            if r.get("derive"):
+                m = re.search(r"next working day after (\w+)", r["derive"])
+                if m: row["derive"] = "nextWorkday:" + m.group(1)
+            rows.append(row)
+        groups.append({"title": g["title"], "rows": rows, "repeat": g["repeat"], "prose": g.get("prose", "")})
+    types = type_options(c)
+    return {"groups": groups, "types": types,
+            "legals": {"title": "The legals",
+                       "sub": "Standard legals are locked in. Tick the extras this one needs."}}
+
+
+def _modules(c):
+    top, groups = writer_modules(c)
+    return {"all": c["spec"]["modules"],
+            "writer": [dict(m, options=options_of(m)) for m in top],
+            "groups": groups,
+            "why": c["spec"].get("why", {}),
+            "limits": c["spec"].get("limits", "")}
+
+
+@app.route("/api/container/<cid>")
+@require_auth
+def container_get(cid):
+    c = CT.container(cid)
+    if not c or not _visible(c):
+        return jsonify({"error": "No such container."}), 404
+    return jsonify({
+        "tile": CT.tile(c),
+        "brand": {"id": c["brand"], "name": c["brand_data"].get("name", c["brand"]),
+                  "skin": c["brand_data"].get("skin", {})},
+        "quiz": _quiz(c),
+        "checklist": _checklist(c),
+        "modules": _modules(c),
+        "ghost": c["artefact"]["modules"],
+        "html": c["artefact"]["html"].replace("../../brands/", "/brands/"),
+        "outputs": c["spec"]["outputs"],
+        "images": c["spec"]["images"],
+        "problems": c["problems"],
+    })
+
+
 @app.route("/api/terms", methods=["POST"])
 @require_auth
 def terms():
-    """Form -> the clause menu. No model, so this is free and instant.
-
-    Returns every clause in publish order with its id and whether it's
-    optional, so the UI can render fixed ones as text and optional ones as
-    checkboxes. Those checkboxes are also how we learn which clauses are
-    really boilerplate — see the note in terms.py.
-    """
+    """Form -> the clause menu. No model, so this is free and instant."""
     data = request.get_json() or {}
+    c = CT.container(data.get("container", ""))
+    if not c:
+        return jsonify({"error": "No such container."}), 404
     try:
-        facts = build_facts(data.get("form") or {})
+        facts = build_facts(c, data.get("form") or {})
+        menu = clause_menu(c, facts)
     except TermsError as e:
         return jsonify({"error": str(e)}), 400
     chosen = data.get("chosen")
-    return jsonify({"success": True, "facts": facts,
-                    "menu": clause_menu(facts),
-                    "clauses": assemble_terms(facts, chosen),
-                    "footer": FOOTER})
+    return jsonify({"success": True, "facts": facts, "menu": menu,
+                    "clauses": assemble_terms(c, facts, chosen),
+                    "footer": c["legals"].get("footer", "")})
 
 
 @app.route("/api/parcel", methods=["POST"])
@@ -71,20 +160,28 @@ def terms():
 def parcel():
     """Final render. Placeholders filled from the same facts as the terms."""
     data = request.get_json() or {}
+    c = CT.container(data.get("container", ""))
+    if not c:
+        return jsonify({"error": "No such container."}), 404
     try:
-        facts = build_facts(data.get("form") or {})
+        facts = build_facts(c, data.get("form") or {})
     except TermsError as e:
         return jsonify({"error": str(e)}), 400
-    c = data.get("copy") or {}
+    cp = data.get("copy") or {}
+    out = {}
+    for k, v in cp.items():
+        if isinstance(v, str):
+            out[k] = render_copy(c, v, facts)
+        elif isinstance(v, list):
+            out[k] = [({kk: render_copy(c, vv, facts) for kk, vv in x.items()} if isinstance(x, dict)
+                       else render_copy(c, x, facts)) for x in v]
+    name = next((facts[r["id"]] for g in c["needs"]["groups"] for r in g["rows"]
+                 if r["type"] == "text" and facts.get(r["id"])), c["id"])
     return jsonify({
-        "success": True,
-        "subject": render_copy(c.get("subject", ""), facts),
-        "headline": render_copy(c.get("headline", ""), facts),
-        "body": render_copy(c.get("body", ""), facts),
-        "terms": render_terms(facts, data.get("chosen")),
-        "clause_count": len(assemble_terms(facts, data.get("chosen"))),
-        "slug": "".join(ch if ch.isalnum() else "-"
-                        for ch in facts["prize_name"].lower()).strip("-"),
+        "success": True, "copy": out,
+        "terms": render_terms(c, facts, data.get("chosen")),
+        "clause_count": len(assemble_terms(c, facts, data.get("chosen"))),
+        "slug": "".join(ch if ch.isalnum() else "-" for ch in str(name).lower()).strip("-"),
     })
 
 
@@ -145,9 +242,12 @@ def images_remove(run, name):
     return jsonify({"success": True})
 
 
-@app.route("/api/types")
-def types():
-    return jsonify({"types": prize_types()})
+@app.route("/brands/<bid>/assets/<path:name>")
+@require_auth
+def brand_asset(bid, name):
+    """The brand's fonts and logo, for the artefact. Read-only, auth-gated."""
+    folder = os.path.join(CT.BRANDS_DIR, _clean(bid, 40), "assets")
+    return send_from_directory(folder, name)
 
 
 @app.route("/api/health")

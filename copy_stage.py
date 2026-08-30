@@ -1,48 +1,45 @@
 """
 ROBOT — COPY STAGE
 ==================
-The only part the model touches. It writes prose. It never writes a number or
-a date — those come through as placeholders that Python fills from the same
-FACTS dict that built the terms, so the copy and the terms cannot disagree.
+The only part the model touches. It writes prose. It never writes a fact —
+facts come from the checklist through engine.build_facts, and where a
+container has a placeholder rule the copy carries them as {slots}.
 
-Two routes:
-  POST /api/copy   facts + source material -> 3 subjects, headline, body
-  POST /api/tweak  one block + a human note -> a proposal, or a pushback
+Every route takes a container id and reads that container's definition
+(containers.py). Nothing here knows what a prize or a card is.
 
-Both are auth-gated: they cost money.
+  POST /api/copy      container + facts + story -> the modules, filled
+  POST /api/tweak     container + one module + a human note -> lock / change / ask / decline
+  POST /api/extract   container + the dump -> checklist pre-fill
+  POST /api/feeder    container + dump + answers -> the next move, dressed
+  GET  /api/log       the tweak log
 
-Every tweak is logged to TWEAK_LOG. That log is the actual asset here — a few
-hundred recorded human judgements about what One NZ sounds like when it's good.
-Move it to a real store before this sees any volume; losing it on restart is
-losing the point.
+Every tweak is logged to ROBOT_STORE, container-tagged. That log is the
+asset. Mount a Railway volume at the store path or a redeploy eats it.
 """
 
 from flask import Blueprint, jsonify, request, session
 import anthropic
 import os
 import json
+import re
 from datetime import datetime
 
 from auth import require_auth
-from terms import build_facts, check_copy, copy_context, TermsError
+import containers as CT
+from engine import build_facts, check_copy, copy_context, TermsError
 
 copy_bp = Blueprint("copy", __name__)
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 MODEL = os.environ.get("ROBOT_MODEL", "claude-opus-4-8")
 
-
-
-CONTAINER = "prize_draw"
-
 # ---------------------------------------------------------------------------
-# THE PROMPTS live in /prompts as markdown — findable, editable, diffable
-# without touching this file. Workers are the engine and sit flat (writer,
-# fixer, feeder, extract); a container is only voice + specs, under
-# containers/<name>/. The folder structure is the site plan's §6.
+# THE WORKERS live in /prompts as markdown: writer, fixer, feeder, extract.
+# They're the engine — one fixed machine — and they never mention a
+# container. Voice and spec arrive from the container on every call.
 # Files are re-read when they change on disk, so a prompt edit lands on the
-# next call — no restart. A missing file fails loud: better a crash on
-# deploy than the robot quietly writing from a stale voice.
+# next call. A missing file fails loud.
 # ---------------------------------------------------------------------------
 
 PROMPTS_DIR = os.environ.get(
@@ -56,24 +53,26 @@ def prompt(name):
         cached = _PROMPT_CACHE.get(name)
         if cached and cached[0] == mtime:
             return cached[1]
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             text = f.read().strip()
         _PROMPT_CACHE[name] = (mtime, text)
         return text
     except OSError as e:
         raise RuntimeError(f"prompt file missing: {path}") from e
 
+
+def _container():
+    """The container this call is about. Missing or unknown is a 404 the
+    front end can read; nothing defaults to a format any more."""
+    data = request.get_json(silent=True) or {}
+    cid = data.get("container") or request.args.get("container") or ""
+    return CT.container(cid), data
+
+
 # ---------------------------------------------------------------------------
-# THE FEEDBACK LOOP
-# Two inputs make the robot better over time, both folded into the system
-# prompt on every call:
-#   1. voice_examples.json — copy the humans rated, with one line on why.
-#      This is the gold. Few-shot examples teach voice better than any rule.
-#   2. TWEAK_LOG — every correction ever made, persisted to ROBOT_STORE
-#      (JSON lines). Recent notes go back into the prompt so the same
-#      correction never needs making twice.
-# NOTE: Railway's filesystem is ephemeral. Mount a volume at the store path
-# or the log survives restarts but not redeploys.
+# THE FEEDBACK LOOP — the tweak log and the gold examples, folded into the
+# voice on every call. The log always records; the prompt only eats what a
+# Hunch human has curated (hit list 11) — until then, recent notes.
 # ---------------------------------------------------------------------------
 
 STORE = os.environ.get("ROBOT_STORE", "robot_store.jsonl")
@@ -83,7 +82,7 @@ EXAMPLES_FILE = os.environ.get("ROBOT_EXAMPLES", "voice_examples.json")
 def _load_log():
     entries = []
     try:
-        with open(STORE) as f:
+        with open(STORE, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line:
@@ -101,44 +100,41 @@ TWEAK_LOG = _load_log()
 
 def _persist(entry):
     try:
-        with open(STORE, "a") as f:
+        with open(STORE, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
     except OSError as e:
         print(f"[robot/store] couldn't persist tweak: {e}")
 
 
-def _examples():
-    """voice_examples.json: a list of {"text": ..., "why": ...} (why optional).
-    Absent or empty is fine — the slot sits wired and waiting."""
+def _examples(cid):
+    """voice_examples.json: a list of {"text", "why", "container"?}. Absent
+    or empty is fine. Untagged examples predate the tag and are prize_draw."""
     try:
-        with open(EXAMPLES_FILE) as f:
+        with open(EXAMPLES_FILE, encoding="utf-8") as f:
             items = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         return []
     out = []
     for it in items if isinstance(items, list) else []:
         if isinstance(it, str):
-            out.append({"text": it, "why": ""})
-        elif isinstance(it, dict) and it.get("text"):
+            it = {"text": it}
+        if isinstance(it, dict) and it.get("text") and it.get("container", "prize_draw") == cid:
             out.append({"text": it["text"], "why": it.get("why", "")})
     return out
 
 
-def _voice_now():
-    """The container's voice, assembled fresh each call: the voice pages,
-    then the gold examples, then recent curated corrections."""
-    parts = [prompt(f"containers/{CONTAINER}/voice")]
-    ex = _examples()
+def _voice_now(c):
+    """The voice, assembled fresh each call: the brand's voice, this
+    container's lean, the gold examples, then recent corrections —
+    container-tagged so formats never cross-contaminate."""
+    parts = [CT.voice_for(c)]
+    ex = _examples(c["id"])
     if ex:
-        lines = "\n".join(f'- "{e["text"]}"' + (f' — {e["why"]}' if e["why"] else "")
-                          for e in ex[:8])
+        lines = "\n".join(f'- "{e["text"]}"' + (f' — {e["why"]}' if e["why"] else "") for e in ex[:8])
         parts.append("COPY THE HUMANS RATED — match this standard and register:\n" + lines)
     notes = []
     for t in reversed(TWEAK_LOG):
-        # container-tagged so Prize Draw corrections never leak into the
-        # next format's prompts; untagged entries predate the tag and are
-        # Prize Draw by birth
-        if t.get("container", CONTAINER) != CONTAINER:
+        if t.get("container", "prize_draw") != c["id"]:
             continue
         n = (t.get("note") or "").strip()
         if n and n not in notes:
@@ -146,14 +142,16 @@ def _voice_now():
         if len(notes) >= 12:
             break
     if notes:
-        parts.append("RECENT CORRECTIONS FROM THE HUMANS — recurring notes on "
-                     "your work. Don't make anyone give the same note twice:\n"
-                     + "\n".join(f"- {n}" for n in notes))
-    return "\n\n".join(parts)
+        parts.append("RECENT CORRECTIONS FROM THE HUMANS — recurring notes on your work. "
+                     "Don't make anyone give the same note twice:\n" + "\n".join(f"- {n}" for n in notes))
+    return "\n\n".join(p for p in parts if p)
+
+
+def _system(c, worker):
+    return _voice_now(c) + "\n\nTHE SPEC FOR THIS FORMAT:\n" + CT.specs_for(c) + "\n\n" + prompt(worker)
 
 
 def _json_from(text):
-    """Pull a JSON object out of a reply, tolerant of fences and preamble."""
     if not text:
         return None
     t = text.replace("```json", "").replace("```", "").strip()
@@ -175,119 +173,237 @@ def _call(system, user, max_tokens=1200):
     return (resp.content[0].text or "").strip()
 
 
+# ---------------------------------------------------------------------------
+# THE SHAPE — what the WRITER returns, read off the spec's modules.
+# writer-filled modules become keys. A module whose length asks for
+# options ("Three options", "A and B") becomes a list. A repeating module
+# ("card ×N") becomes a list of objects, one per item in the facts, with
+# its sub-modules (card-title, card-body) as keys.
+# ---------------------------------------------------------------------------
+
+def writer_modules(c):
+    """(top-level writer modules, repeating groups with their writer parts)."""
+    top, groups = [], {}
+    for m in c["spec"]["modules"]:
+        if m.get("repeat"):
+            groups[m["module"]] = {"module": m["module"], "repeat": m["repeat"], "parts": []}
+            continue
+        parent = next((g for g in groups if m["module"].startswith(g + "-")), None)
+        if parent:
+            if m["filled_by"].startswith("writer"):
+                groups[parent]["parts"].append(m)
+        elif m["filled_by"].startswith("writer"):
+            top.append(m)
+    return top, list(groups.values())
+
+
+def options_of(m):
+    L = m.get("length", "")
+    if re.search(r"\bthree options\b", L, re.I):
+        return 3
+    if re.search(r"\bA and B\b", L):
+        return 2
+    return 0
+
+
+def _shape(c, facts):
+    top, groups = writer_modules(c)
+    shape, notes = {}, []
+    for m in top:
+        n = options_of(m)
+        shape[m["module"]] = ["..."] * n if n else "..."
+        notes.append(f"{m['module']}: {m['length']}" + (f" ({n} options, best first)" if n else ""))
+    for g in groups:
+        key = g["module"]
+        items = facts.get(key) or []
+        count = len(items) if isinstance(items, list) else 0
+        inner = {p["module"]: "..." for p in g["parts"]}
+        shape[key + "s"] = [inner] * max(count, 1)
+        notes.append(f"{key}s: {count or 'N'} objects, one per {key} in the brief, in order. "
+                     + "; ".join(f"{p['module']}: {p['length']}" for p in g["parts"]))
+    shape["why"] = {m["module"]: "..." for m in top}
+    for g in groups:
+        shape["why"][g["module"]] = "..."
+    shape["wants"] = None
+    return shape, notes
+
+
+def _brief(c, facts, story, source):
+    """The facts as words, the human's answers, the angle, the dump."""
+    lines = []
+    for g in c["needs"]["groups"]:
+        if g["repeat"]:
+            continue
+        for r in g["rows"]:
+            v = facts.get(r["id"])
+            if v in (None, ""):
+                continue
+            if r["type"] == "date":
+                v = facts.get(r["id"] + "_long", v)
+                if facts.get(r["id"] + "_time"):
+                    v += f" at {facts[r['id'] + '_time']}"
+            if facts.get(r["id"] + "_other"):
+                v = f"{v} ({facts[r['id'] + '_other']})"
+            lines.append(f"{r['label'].upper()}: {v}")
+    for key, items in facts.items():
+        if isinstance(items, list):
+            for it in items:
+                bits = [f"{k}: {v}" for k, v in it.items()
+                        if not k.endswith(("_iso", "_short", "_date", "_day", "_word")) and k != "n"]
+                lines.append(f"{key.upper()} {it.get('n', '')}: " + " · ".join(bits))
+    brief = "THE FACTS (from the checklist — quote them, never restate them):\n" + "\n".join(lines)
+
+    moves = c["feed_it"]["moves"]
+    got = [(m, (story.get(move_key(m)) or "").strip()) for m in moves]
+    if any(a for m, a in got if m["n"] != 3):
+        brief += "\n\nTHE STORY (a human answered these — this is your fuel, lead from here):"
+        for m, a in got:
+            if a and m["n"] != 3:
+                brief += f"\n{m['plain']} {a[:600]}"
+    angle = (story.get("angle") or "").strip()
+    if angle:
+        brief += f"\n\nTHE ANGLE (agreed with the human in the chat — the one idea the piece hangs off, write to it):\n{angle[:300]}"
+    brief += ("\n\nWHAT THEY SENT US (their writing, not ours — mine it for a hook, don't echo it):\n"
+              + (source or "(nothing supplied)").strip()[:6000])
+    return brief
+
+
+def move_key(m):
+    """A move's key in the answers: its job word — gap, benefit, angle."""
+    return re.sub(r"^the\s+", "", m["job"].strip().lower()).replace(" ", "_")
+
+
+def _flags(c, result, facts):
+    top, groups = writer_modules(c)
+    flags = []
+    for m in top:
+        v = result.get(m["module"])
+        for text in (v if isinstance(v, list) else [v]):
+            flags += check_copy(c, text or "", facts, m["module"])
+    for g in groups:
+        for it in result.get(g["module"] + "s") or []:
+            if isinstance(it, dict):
+                for p in g["parts"]:
+                    flags += check_copy(c, it.get(p["module"]) or "", facts, p["module"])
+    return flags
+
+
 @copy_bp.route("/api/copy", methods=["POST"])
 @require_auth
 def generate():
-    data = request.get_json() or {}
+    c, data = _container()
+    if not c:
+        return jsonify({"error": "No such container."}), 404
     if not ANTHROPIC_API_KEY:
         return jsonify({"error": "No API key configured on the server."}), 500
     try:
-        facts = build_facts(data.get("form") or {})
+        facts = build_facts(c, data.get("form") or {})
     except TermsError as e:
         return jsonify({"error": str(e)}), 400
 
-    story = data.get("story") or {}
-    s_prize = (story.get("prize") or "").strip()[:600]
-    s_care = (story.get("care") or "").strip()[:600]
-    s_angle = (story.get("angle") or "").strip()[:300]
-
-    brief = f"""PRIZE: {facts['prize_name']}
-TYPE: {facts['prize_type']}
-WINNERS: {facts['winners']} ({'plural' if facts['plural'] else 'singular'})
-ENTRIES CLOSE: {facts['closes_long']}"""
-    if facts.get("venue"):
-        brief += f"\nVENUE: {facts['venue']} on {facts.get('event_long', '')}"
-    if s_prize or s_care:
-        brief += "\n\nTHE STORY (a human answered these — this is your fuel, lead from here):"
-        if s_prize:
-            brief += f"\nWhat's the prize? {s_prize}"
-        if s_care:
-            brief += f"\nWhy will anyone care? {s_care}"
-    if s_angle:
-        brief += f"\n\nTHE ANGLE (agreed with the human in the chat — the one idea the email hangs off, write to it):\n{s_angle}"
-    brief += f"""
-
-WHAT THEY SENT US (the promoter's writing, not ours — mine it for a hook,
-don't echo it):
-{(data.get('source') or '(nothing supplied)').strip()[:4000]}"""
-
+    shape, notes = _shape(c, facts)
+    user = (_brief(c, facts, data.get("story") or {}, data.get("source"))
+            + "\n\nTHE SHAPE TO RETURN — JSON only, these keys exactly:\n"
+            + json.dumps(shape, ensure_ascii=False)
+            + "\n\nMODULE BY MODULE:\n" + "\n".join(f"- {n}" for n in notes))
     try:
-        result = _json_from(_call(
-            _voice_now() + "\n\n" + prompt(f"containers/{CONTAINER}/specs")
-            + "\n\n" + prompt("writer"), brief))
+        result = _json_from(_call(_system(c, "writer"), user, 2000))
     except Exception as e:
         print(f"[robot/copy] generate failed: {e}")
         return jsonify({"error": "The robot fell over. Try again?"}), 500
-
-    if not result or "subjects" not in result:
+    top, _ = writer_modules(c)
+    if not result or not any(m["module"] in result for m in top):
         return jsonify({"error": "The robot said something we couldn't read. Try again?"}), 500
-
-    blocks = list(result.get("subjects", [])) + [result.get("headline", ""),
-                                                 result.get("body", "")]
-    flags = []
-    for b in blocks:
-        flags += check_copy(b or "", facts)
-
     return jsonify({"success": True, "copy": result, "facts": facts,
-                    "context": copy_context(facts), "flags": flags})
+                    "context": copy_context(c, facts), "flags": _flags(c, result, facts)})
+
+
+# ---------------------------------------------------------------------------
+# EXTRACT — the dump -> checklist pre-fill. Suggests, never gates.
+# ---------------------------------------------------------------------------
+
+def _extract_shape(c):
+    shape, notes = {}, []
+    for g in c["needs"]["groups"]:
+        rows = [r for r in g["rows"] if r["type"] in ("text", "number", "date", "select")]
+        if not rows:
+            continue
+        inner = {r["id"]: None for r in rows}
+        for r in rows:
+            t = r["type"]
+            if t == "select":
+                t += " — one of: " + " / ".join(r.get("options", []))
+            notes.append(f"{r['id']} ({t}): {r['label']}")
+        if g["repeat"]:
+            key = g["repeat"]["per"].split()[-1]
+            shape.setdefault(key, [{}])[0].update(inner)
+        else:
+            shape.update(inner)
+    return shape, notes
 
 
 @copy_bp.route("/api/extract", methods=["POST"])
 @require_auth
 def extract():
-    """Story -> facts. Reads the human's answers and pre-fills the Detail page.
-    Extraction only ever suggests: blanks stay blank, and every value lands in
-    an editable field the human confirms. Never guesses, never invents."""
-    data = request.get_json() or {}
+    c, data = _container()
+    if not c:
+        return jsonify({"error": "No such container."}), 404
     if not ANTHROPIC_API_KEY:
-        return jsonify({"error": "No API key configured on the server."}), 500
-
-    def _sect(head, body, cap):
-        body = (body or "").strip()
-        return (head + "\n" + body)[:cap] if body else None
-
-    text = "\n\n".join(filter(None, [
-        _sect("WHAT'S THE PRIZE?", data.get("prize"), 800),
-        _sect("WHY WILL ANYONE CARE?", data.get("care"), 800),
-        _sect("WHAT THE ROBOT WAS GIVEN:", data.get("source"), 3000),
-    ])).strip()
-    if not text:
         return jsonify({"success": True, "found": {}})
-
+    text = (data.get("source") or "").strip()[:8000]
+    for k, v in (data.get("answers") or {}).items():
+        if v:
+            text += f"\n\n{k.upper()}:\n{str(v).strip()[:800]}"
+    if not text.strip():
+        return jsonify({"success": True, "found": {}})
+    shape, notes = _extract_shape(c)
+    user = ("THE DUMP:\n" + text + "\n\nTHE FIELDS:\n" + "\n".join(f"- {n}" for n in notes)
+            + "\n\nRETURN EXACTLY THIS SHAPE:\n" + json.dumps(shape))
     try:
-        result = _json_from(_call(prompt("extract"), text, 300)) or {}
+        result = _json_from(_call(prompt("extract"), user, 600)) or {}
     except Exception as e:
         print(f"[robot/extract] failed: {e}")
-        return jsonify({"success": True, "found": {}})  # extraction is a favour, not a gate
+        return jsonify({"success": True, "found": {}})     # a favour, not a gate
 
-    found = {}
-    if result.get("prize_type") in ("movie", "gig", "sport", "other"):
-        found["prize_type"] = result["prize_type"]
-    for k in ("prize_name", "venue", "event_date"):
-        v = result.get(k)
-        if isinstance(v, str) and v.strip():
-            found[k] = v.strip()[:120]
+    # only keep what the checklist has a row for, typed as the row says
+    rows = {r["id"]: r for g in c["needs"]["groups"] for r in g["rows"]}
+    def keep(d):
+        out = {}
+        for k, v in (d or {}).items():
+            r = rows.get(k)
+            if not r or v in (None, ""):
+                continue
+            v = str(v).strip()[:160]
+            if r["type"] == "select" and v not in r.get("options", []):
+                continue
+            out[k] = v
+        return out
+    found = keep(result)
+    for k, v in result.items():
+        if isinstance(v, list):
+            found[k] = [keep(x) for x in v if isinstance(x, dict)]
     return jsonify({"success": True, "found": found})
 
+
+# ---------------------------------------------------------------------------
+# FIXER — smallest change that honours the note. Container-tagged log.
+# ---------------------------------------------------------------------------
 
 @copy_bp.route("/api/tweak", methods=["POST"])
 @require_auth
 def tweak():
-    """The FIXER. Smallest change that honours the note — the new copy
-    goes straight back to the card, changes marked client-side. declined
-    covers both the locked-fact refusal and the one allowed pushback."""
-    data = request.get_json() or {}
+    c, data = _container()
+    if not c:
+        return jsonify({"error": "No such container."}), 404
     if not ANTHROPIC_API_KEY:
         return jsonify({"error": "No API key configured on the server."}), 500
-
     block = (data.get("block") or "").strip()
     current = (data.get("current") or "").strip()
     note = (data.get("note") or "").strip()
     if not current or not note:
         return jsonify({"error": "Need something to tweak and a note about it."}), 400
-
     try:
-        facts = build_facts(data.get("form") or {})
+        facts = build_facts(c, data.get("form") or {})
     except TermsError as e:
         return jsonify({"error": str(e)}), 400
 
@@ -300,112 +416,58 @@ def tweak():
         user += f"\n\nTHE INSIGHT (the copy must still carry this):\n{insight[:600]}"
     if data.get("history"):
         user += "\n\nEARLIER IN THIS EXCHANGE:\n" + "\n".join(data["history"])[:2000]
-
     try:
-        result = _json_from(_call(
-            _voice_now() + "\n\n" + prompt(f"containers/{CONTAINER}/specs")
-            + "\n\n" + prompt("fixer"), user, 700))
+        result = _json_from(_call(_system(c, "fixer"), user, 700))
     except Exception as e:
         print(f"[robot/tweak] failed: {e}")
         return jsonify({"error": "The robot fell over. Try again?"}), 500
-
     if not result:
         return jsonify({"error": "The robot said something we couldn't read."}), 500
 
     say = result.get("say") or ""
     action = result.get("action")
     if action not in ("lock", "change", "ask", "decline"):
-        # older shape: declined -> decline, copy -> change, else ask
-        action = "decline" if result.get("declined") else \
-                 ("change" if result.get("copy") else "ask")
+        action = "decline" if result.get("declined") else ("change" if result.get("copy") else "ask")
     new_copy = result.get("copy") if action == "change" else None
     if action == "change" and not new_copy:
-        action = "ask"          # a change with no copy is just a question
-    flags = check_copy(new_copy, facts) if new_copy else []
+        action = "ask"
+    flags = check_copy(c, new_copy, facts, block.split("#")[0]) if new_copy else []
 
     entry = {
-        "at": datetime.utcnow().isoformat(),
-        "who": session.get("email"),
-        "container": CONTAINER,
-        "prize": facts["prize_name"],
-        "block": block,
-        "note": note,
-        "before": current,
-        "after": new_copy,
-        "action": action,
-        "declined": action == "decline",
+        "at": datetime.utcnow().isoformat(), "who": session.get("email"),
+        "container": c["id"], "run": data.get("run") or "",
+        "block": block, "note": note, "before": current, "after": new_copy,
+        "action": action, "declined": action == "decline",
     }
     TWEAK_LOG.append(entry)
     _persist(entry)
-
-    return jsonify({"success": True, "action": action, "say": say,
-                    "copy": new_copy, "declined": action == "decline",
-                    "wants": result.get("wants"), "flags": flags})
+    return jsonify({"success": True, "action": action, "say": say, "copy": new_copy,
+                    "declined": action == "decline", "wants": result.get("wants"), "flags": flags})
 
 
 @copy_bp.route("/api/log")
 @require_auth
 def log():
-    """The asset, such as it is. Move this to a real store before volume."""
     return jsonify({"count": len(TWEAK_LOG), "entries": TWEAK_LOG[-200:]})
 
 
 # ---------------------------------------------------------------------------
-# THE QUIZ — the front of FEED IT (hit list 2).
-# The quiz definition lives in the container (quiz.json): the fixed rail of
-# three questions, the ghost's shape, the tool flags. Hand-authored today;
-# SET UP (hit list 22) generates it tomorrow, so the engine reads it blind.
-# The FEEDER dresses the rail live between questions — and falls back to the
-# config's standing patter on any stumble, so the robot never breaks
-# character and the front end never sees the difference. One failure surface.
+# FEEDER — BOUNCE IT. The rail is the engine's (gap / benefit / angle);
+# the container dresses it (config FEED IT). Plain fallback on any stumble.
 # ---------------------------------------------------------------------------
-
-_QUIZ_CACHE = {}
-
-def quiz_config():
-    """containers/<name>/quiz.json, re-read when it changes on disk —
-    same freshness rule as prompt(). Missing file fails loud, same as a
-    missing prompt: better a crash on deploy than a quiz from nowhere."""
-    path = os.path.join(PROMPTS_DIR, "containers", CONTAINER, "quiz.json")
-    mtime = os.path.getmtime(path)
-    cached = _QUIZ_CACHE.get(path)
-    if cached and cached[0] == mtime:
-        return cached[1]
-    with open(path) as f:
-        cfg = json.load(f)
-    _QUIZ_CACHE[path] = (mtime, cfg)
-    return cfg
-
-
-@copy_bp.route("/api/quiz")
-@require_auth
-def quiz():
-    """The quiz definition, minus the plumbing comments. Free and instant."""
-    cfg = quiz_config()
-    return jsonify({k: v for k, v in cfg.items() if not k.startswith("_")})
-
 
 @copy_bp.route("/api/feeder", methods=["POST"])
 @require_auth
 def feeder():
-    """BOUNCE IDEAS. In: the dump, the answers so far, which move comes
-    next. Out: {confirm, enrich} — plus {angle} on move 3, where the
-    robot proposes and the human bounces. The rail is fixed (three moves,
-    the container's promise); the FEEDER only dresses each move to fit
-    what's already in hand. On any stumble the plain version fires."""
-    data = request.get_json() or {}
-    cfg = quiz_config()
-    moves = cfg.get("moves", [])
+    c, data = _container()
+    if not c:
+        return jsonify({"error": "No such container."}), 404
+    moves = c["feed_it"]["moves"]
     nxt = data.get("next")
-    m = next((x for x in moves if x.get("n") == nxt), None)
+    m = next((x for x in moves if x["n"] == nxt), None)
     if not m:
         return jsonify({"error": "No such move."}), 400
-
-    # the fallback is the config's own words — used on any stumble.
-    # On move 3 there's no proposal to bounce, so the human just says it.
-    fallback = {"success": True, "confirm": "", "enrich": m.get("plain", ""),
-                "angle": "", "live": False}
-
+    fallback = {"success": True, "confirm": "", "enrich": m["plain"], "angle": "", "live": False}
     if not ANTHROPIC_API_KEY:
         return jsonify(fallback)
 
@@ -413,37 +475,25 @@ def feeder():
     answers = data.get("answers") or {}
     got = []
     for x in moves:
-        a = (answers.get(x["key"]) or "").strip()
+        a = (answers.get(move_key(x)) or "").strip()
         if a:
             got.append(f"MOVE {x['n']} — {x['plain']}\nTHEY SAID: {a[:2500]}")
-
-    # what the container sounds like — read, don't speak (see feeder.md)
-    try:
-        sound = prompt(f"containers/{CONTAINER}/voice")[:1800]
-    except Exception:
-        sound = ""
-
-    user = ("WHAT THE CONTAINER NEEDS:\n" + (cfg.get("needs") or "(not stated)")
+    sound = c["brand_data"].get("voice", "")[:1800]
+    user = ("WHAT THE CONTAINER NEEDS:\n" + (c["feed_it"]["needs"] or "(not stated)")
             + "\n\nWHAT THE CONTAINER SOUNDS LIKE (read-only):\n" + (sound or "(not stated)")
-            + "\n\nTHE FIXED RAIL:\n"
-            + "\n".join(f"MOVE {x['n']} ({x.get('job','')}): {x['plain']}" for x in moves)
+            + "\n\nTHE FIXED RAIL:\n" + "\n".join(f"MOVE {x['n']} ({x['job']}): {x['plain']}" for x in moves)
             + "\n\nTHE DUMP:\n" + (dump[:6000] or "(empty — nothing dropped in)")
             + "\n\nANSWERS SO FAR:\n" + ("\n\n".join(got) or "(nothing yet)")
-            + f"\n\nNEXT UP: MOVE {m['n']} — {m.get('job','')} — plain version: {m['plain']}")
-
+            + f"\n\nNEXT UP: MOVE {m['n']} — {m['job']} — plain version: {m['plain']}")
     try:
         result = _json_from(_call(prompt("feeder"), user, 400))
     except Exception as e:
         print(f"[robot/feeder] fell back to plain: {e}")
         return jsonify(fallback)
-
     if not result or not (result.get("enrich") or "").strip():
         return jsonify(fallback)
-
-    out = {"success": True,
-           "confirm": (result.get("confirm") or "").strip(),
-           "enrich": result["enrich"].strip(),
-           "angle": "", "live": True}
+    out = {"success": True, "confirm": (result.get("confirm") or "").strip(),
+           "enrich": result["enrich"].strip(), "angle": "", "live": True}
     if m["n"] == 3:
         ang = (result.get("angle") or "").strip().strip('"\u201c\u201d')
         if not ang:
