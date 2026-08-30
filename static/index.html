@@ -426,9 +426,14 @@ function clOptions(r){
   const types=Object.fromEntries((CL_CONFIG.types||[]).map(t=>[t.value,t.label]));
   return (r.options||[]).map(o=>[o, types[o] || (o==='other'?'Other…':o)]);
 }
-const MONTHS=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const clFmtDate = v => { if(!v) return '';
-  const d=new Date(v+'T00:00'); return d.getDate()+' '+MONTHS[d.getMonth()]; };
+  const d=new Date(v+'T00:00'); return DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()]; };
+/* one to twelve as words — display only; the state and the clauses keep
+   the digit. The rule proper lives in voice.md so the WRITER agrees. */
+const NUMWORDS=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve'];
+const clFmtNum = v => { const x=Number(v); return Number.isInteger(x)&&x>=1&&x<=12 ? NUMWORDS[x] : String(v); };
 
 /* derive: nextWorkday:<row> — a suggestion, human-editable, human-ticked */
 function clDerive(r,S){
@@ -444,18 +449,28 @@ function clDerive(r,S){
 function clRender(){
   const wrap=$('clCards'); if(!wrap||!CONT) return; wrap.innerHTML='';
   const done=new Set();
+  let pair=null;                       // two fact cards share a row
+  const place=card=>{
+    if(!card.classList||!card.classList.contains('facts')){ pair=null; wrap.appendChild(card); return; }
+    if(pair&&pair.children.length<2){ pair.appendChild(card); return; }
+    pair=document.createElement('div'); pair.className='cl-pair';
+    pair.appendChild(card); wrap.appendChild(pair);
+  };
   CL_CONFIG.groups.forEach(g=>{
     if(g.repeat){
       const key=repKey(g); if(done.has(key)) return; done.add(key);
-      clRepeatCards(key).forEach(c=>wrap.appendChild(c));
+      clRepeatCards(key).forEach(c=>{ pair=null; wrap.appendChild(c); });
       return;
     }
     if(!g.rows.some(r=>r.type!=='legals')) return;      // a prose-only group draws nothing
-    const card=document.createElement('div'); card.className='cl-card';
+    const card=document.createElement('div'); card.className='cl-card facts';
     card.innerHTML=`<div class="cl-title">${clTitle(g.title)}</div>`;
-    g.rows.forEach(r=>{ if(r.type==='legals'||!clShown(r,CLS)) return;
-      clDerive(r,CLS); card.appendChild(clRowEl(r,CLS)); });
-    wrap.appendChild(card);
+    const grid=document.createElement('div'); grid.className='cl-factgrid';
+    const rows=g.rows.filter(r=>r.type!=='legals'&&clShown(r,CLS));
+    rows.forEach(r=>{ clDerive(r,CLS); grid.appendChild(clRowEl(r,CLS)); });
+    card.appendChild(grid);
+    card.appendChild(clCardOk(rows, CLS, g.title));
+    place(card);
   });
   if(!CL_CONFIG.groups.some(g=>g.rows.some(r=>r.type==='topics'))) wrap.appendChild(clLegalsCard());
   else { const fixed=(CL_CONFIG.legals.fixed||[]); if(fixed.length){
@@ -493,11 +508,16 @@ function clRepeatCards(key){
     card.innerHTML=`<div class="cl-title">${esc(key).toUpperCase()} <em>${i+1}</em>${type?`<span class="cl-tag">${esc(type)}</span>`:''}
       ${items.length>base.repeat.min?`<a class="cl-rm" title="Remove">&times;</a>`:''}</div>`;
     const rm=card.querySelector('.cl-rm'); if(rm) rm.onclick=()=>{ items.splice(i,1); dirty(); clRender(); };
+    card.classList.add('facts');
+    const grid=document.createElement('div'); grid.className='cl-factgrid';
+    const liveRows=[];
     groups.forEach(g=>{
       const w=g.repeat.where;
       if(w && String((S[w.row]||{}).value)!==w.is) return;
-      g.rows.forEach(r=>{ if(r.type==='legals'||!clShown(r,S)) return; clDerive(r,S); card.appendChild(clRowEl(r,S)); });
+      g.rows.forEach(r=>{ if(r.type==='legals'||!clShown(r,S)) return; clDerive(r,S); liveRows.push(r); grid.appendChild(clRowEl(r,S)); });
     });
+    card.appendChild(grid);
+    card.appendChild(clCardOk(liveRows, S, key+' '+(i+1)));
     return card;
   });
   if(items.length<base.repeat.max){
@@ -521,11 +541,9 @@ function clStoryCard(key,i,S,items,base,typeRow,topicRow){
   const main=document.createElement('div'); main.className='cl-main'; row.appendChild(main);
   main.innerHTML=`<div class="cl-label">${esc(key)} ${i+1}</div>`;
   const valEl=document.createElement('div'); valEl.className='cl-value'; main.appendChild(valEl);
-  const tick=document.createElement('button'); tick.className='cl-tick'; main.appendChild(tick);
   const shown=s.value;
   if(s.mode==='edit'){
-    tick.innerHTML=CL_PENCIL;
-    const inp=document.createElement('input'); inp.type='text'; inp.value=s.value; inp.placeholder=subjRow.ask||'';
+    const inp=document.createElement('input'); inp.type='text'; inp.value=s.value; inp.placeholder=(subjRow.ask||'').replace('{n}', i+1);
     valEl.appendChild(inp);
     let sel=null;
     if(typeRow){ sel=document.createElement('select');
@@ -540,22 +558,28 @@ function clStoryCard(key,i,S,items,base,typeRow,topicRow){
     inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
     setTimeout(()=>inp.focus(),0);
   } else {
-    tick.innerHTML=CL_CHECK; if(s.ticked) tick.classList.add('on');
     valEl.innerHTML = shown
-      ? `<span class="cl-fact">${esc(shown)}</span>${type?`<span class="cl-tag grey">${esc(type)}</span>`:''}`
-      : `<span class="cl-ask">${esc(subjRow.ask||'')}</span>`;
+      ? `<span class="cl-storyname">${esc(shown)}</span>${type?`<span class="cl-tag grey">${esc(type)}</span>`:''}`
+      : `<span class="cl-ask">${esc((subjRow.ask||'').replace('{n}', i+1))}</span>`;
     valEl.onclick=()=>{ s.mode='edit'; clRender(); };
-    tick.onclick=()=>{ if(!shown){ s.mode='edit'; clRender(); return; }
-      s.ticked=!s.ticked; if(ty) ty.ticked=s.ticked; clArm(); clRender(); };
   }
   card.appendChild(row);
+  /* the circle, bottom-right: confirms the story — its words, its type,
+     its legals as they stand. Any change drops it. */
+  const ok=document.createElement('button'); ok.className='cl-cardok';
+  ok.innerHTML=CL_CHECK; ok.classList.toggle('on', !!(shown&&s.ticked));
+  ok.setAttribute('aria-label',(s.ticked?'Unconfirm ':'Confirm ')+key+' '+(i+1));
+  ok.onclick=()=>{ if(!shown){ s.mode='edit'; clRender(); return; }
+    s.ticked=!s.ticked; if(ty) ty.ticked=s.ticked; clArm(); clRender(); };
+  card.appendChild(ok);
   const topics=(CL_CONFIG.topics||[]).filter(x=>!x.when||x.when===type);
   if(topics.length){
     const box=document.createElement('div'); box.className='cl-pills';
     topics.forEach(x=>{
       const on=tp.value.includes(x.id);
       box.appendChild(clPill(x,on,false,()=>{
-        tp.value = on ? tp.value.filter(v=>v!==x.id) : tp.value.concat([x.id]); dirty(); clRender(); }));
+        tp.value = on ? tp.value.filter(v=>v!==x.id) : tp.value.concat([x.id]);
+        s.ticked=false; if(ty) ty.ticked=false; dirty(); clRender(); }));
     });
     card.appendChild(box);
   } else if(shown){
@@ -572,34 +596,28 @@ function clRowEl(r,S){
   const s=S[r.id];
   const row=document.createElement('div'); row.className='cl-row';
   const main=document.createElement('div'); main.className='cl-main'; row.appendChild(main);
-  const label=document.createElement('div'); label.className='cl-label';
-  label.textContent=r.label; main.appendChild(label);
   const valEl=document.createElement('div'); valEl.className='cl-value'; main.appendChild(valEl);
-  const tick=document.createElement('button'); tick.className='cl-tick';
-  tick.setAttribute('aria-label','Confirm '+r.label); main.appendChild(tick);
   const isSel=r.type==='select', hasOther=isSel&&(r.options||[]).includes('other');
 
   if(s.mode==='view'){
-    tick.innerHTML=CL_CHECK; if(s.ticked) tick.classList.add('on');
+    /* the fact is a pill: label + comms-clean value. Missing sits awake —
+       dashed red, the ask inside. Click anywhere to update. The circle
+       moved to the card; the row keeps no tick of its own. */
     const shown = isSel
       ? (s.value==='other' ? (s.other||'') : (clOptions(r).find(o=>o[0]===s.value)||[])[1])
       : s.value;
-    if(!shown){
-      valEl.innerHTML=`<span class="cl-ask">${esc(clAsk(r))}</span>`;
-    } else if(r.type==='date'){
-      valEl.innerHTML=(s.sub?`<span class="cl-factsub">${esc(s.sub)}</span>`:'')
-        +`<span class="cl-fact date">${clFmtDate(s.value)}</span>`+clProv(s);
-    } else {
-      valEl.innerHTML=`<span class="cl-fact">${esc(shown)}</span>`+clProv(s);
-    }
+    let v;
+    if(!shown) v=`<span class="cl-ask">${esc(clAsk(r)||'TBC')}</span>`;
+    else if(r.type==='date') v=clFmtDate(s.value);
+    else if(r.type==='number') v=esc(clFmtNum(shown));
+    else v=esc(shown);
+    row.classList.add('pillrow'); if(!shown) row.classList.add('awake');
+    valEl.innerHTML=`<span class="cl-pilllabel">${esc(r.label)}</span> <span class="cl-pillval">${v}</span>`
+      +clProv(s);
     valEl.onclick=()=>{ s.mode='edit'; clRender(); };
-    tick.onclick=()=>{
-      if(!shown){ s.mode='edit'; clRender(); return; }
-      s.ticked=!s.ticked; clArm(); clRender();
-    };
   }
   else if(s.mode==='edit'){
-    tick.innerHTML=CL_PENCIL;
+    row.classList.add('pillrow','editing');
     let inp;
     if(isSel){
       inp=document.createElement('select');
@@ -651,7 +669,7 @@ function clRowEl(r,S){
   }
 
   if(s.mode==='doors'){
-    tick.innerHTML=CL_PENCIL;
+    row.classList.add('pillrow','editing');
     valEl.innerHTML='';
     const panel=document.createElement('div'); panel.className='cl-doors';
     panel.innerHTML=`<div class="cl-doorline"><span class="cl-doorbot">${BOT_AV}</span>
@@ -680,6 +698,27 @@ function clProv(s){
   return s.found
     ? `<div class="cl-prov">the robot found this &mdash; check it before you tick <b>${esc(s.found)}</b></div>`
     : '';
+}
+
+/* the card's circle — the confirm layer, bottom-right, one per row-group.
+   Confirming confirms the state: every fact filled and ticked. A change
+   unticks its row, so the circle drops with it. Pressed with a hole, it
+   doesn't tell, it takes — the first empty fact opens for editing. */
+function clCardOk(rows, S, name){
+  const btn=document.createElement('button'); btn.className='cl-cardok';
+  const filled = r => { const s=S[r.id]; if(!s) return true;
+    return r.type==='select' ? (s.value && (s.value!=='other'||s.other)) : !!s.value; };
+  const allFilled=rows.every(filled);
+  const allTicked=allFilled && rows.every(r=>!S[r.id]||S[r.id].ticked);
+  btn.innerHTML=CL_CHECK;
+  btn.classList.toggle('on', allTicked);
+  btn.setAttribute('aria-label', (allTicked?'Unconfirm ':'Confirm ')+name);
+  btn.onclick=()=>{
+    if(!allFilled){ const hole=rows.find(r=>!filled(r)); S[hole.id].mode='edit'; clRender(); return; }
+    rows.forEach(r=>{ if(S[r.id]) S[r.id].ticked=!allTicked; });
+    clArm(); clRender();
+  };
+  return btn;
 }
 
 /* the legals card — selection, not confirmation. Square boxes from the

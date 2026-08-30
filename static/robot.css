@@ -837,6 +837,40 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .cl-pill.off .cl-ptick svg{display:none}
 .cl-pbody{min-width:0}
 .cl-pname{background:none;border:none;padding:0;font:inherit;font-weight:inherit;color:inherit;cursor:pointer;text-align:left}
+.cl-pname:focus{outline:none}
+.cl-pname:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radius:4px}
+
+/* ---------------- the deets facts (v020) ----------------
+   Facts as pills: label + comms-clean value, two fact groups sharing a
+   row (the what, the when). A missing fact sits awake — dashed red, the
+   ask inside. Click any pill to update; the circle moved to the card,
+   bottom-right, one confirm per group. */
+.cl-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+@media(max-width:700px){.cl-pair{grid-template-columns:1fr}}
+.cl-card.facts{position:relative;padding-bottom:20px;padding-right:16px}
+.cl-factgrid{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding-right:44px}
+.cl-row.pillrow{border:1px solid var(--border);border-radius:999px;padding:8px 16px;cursor:pointer;
+  transition:border-color .12s}
+.cl-row.pillrow:hover{border-color:#9a9a9a}
+.cl-row.pillrow .cl-main{gap:0}
+.cl-row.pillrow .cl-value{text-align:left;font-size:13.5px}
+.cl-pilllabel{font-weight:600}
+.cl-pillval .cl-ask{font-size:13.5px}
+.cl-row.pillrow.awake{border:1.5px dashed var(--red)}
+.cl-row.pillrow.awake .cl-pilllabel{color:var(--red)}
+.cl-row.pillrow.editing{border-radius:16px;border:1.5px solid var(--red);cursor:default}
+.cl-row.pillrow.editing .cl-value{text-align:left}
+.cl-row.pillrow .cl-prov{margin-top:3px}
+.cl-cardok{position:absolute;bottom:12px;right:12px;width:36px;height:36px;border-radius:50%;
+  border:1.5px solid #cfcfcf;background:#fff;color:#cfcfcf;cursor:pointer;display:grid;place-items:center;
+  transition:all .15s}
+.cl-cardok svg{width:17px;height:17px}
+.cl-cardok.on{background:var(--red);border-color:var(--red);color:#fff}
+.cl-cardok:active{transform:scale(.92)}
+.cl-card.story{position:relative;padding-bottom:20px}
+.cl-card.story .cl-pills{padding-right:44px}
+.cl-storyname{font-family:'Oswald',var(--display),sans-serif;font-weight:500;font-size:15px;
+  letter-spacing:.03em;text-transform:uppercase;color:var(--ink)}
 .cl-pwords{display:none;font-size:12px;font-weight:400;color:var(--mid);line-height:1.45;margin-top:3px;max-width:420px}
 .cl-pill.peeked{border-radius:14px}
 .cl-pill.peeked .cl-pbody{flex-basis:100%}
