@@ -30,6 +30,7 @@ import time
 
 from auth import auth_bp, require_auth, is_hunch
 from copy_stage import copy_bp, writer_modules, options_of, move_key
+import copy_stage
 from file_it import file_bp, parcel as _parcel
 import containers as CT
 from engine import (build_facts, assemble_terms, render_terms, render_copy,
@@ -105,12 +106,17 @@ def _checklist(c):
             rows.append(row)
         groups.append({"title": g["title"], "rows": rows, "repeat": g["repeat"], "prose": g.get("prose", "")})
     types = type_options(c)
-    topics = [{"id": x["id"], "label": x["label"], "default": x["default"]} for x in c["legals"]["extras"]]
+    topics = [{"id": x["id"], "label": x["label"], "default": x["default"], "text": x.get("text", "")}
+              for x in c["legals"]["extras"]]
     for x in c["legals"]["conditional"]:
-        topics.insert(0, {"id": x["id"], "label": x["title"], "default": True, "when": "prize"})
+        topics.insert(0, {"id": x["id"], "label": x["title"], "default": True, "when": "prize",
+                          "text": x.get("text", "")})
+    fixed = [{"id": x["id"], "label": x.get("label", "") or x["id"].replace("_", " ").capitalize(),
+              "text": x["text"]} for x in c["legals"]["base"] if x.get("fixed")]
     return {"groups": groups, "types": types, "topics": topics,
-            "legals": {"title": "The legals",
-                       "sub": "Standard legals are locked in. Tick the extras this one needs."}}
+            "legals": {"title": "The legals", "fixedTitle": c["legals"].get("fixed_title", "Standard legals"),
+                       "fixed": fixed,
+                       "sub": "Tick the extras this one needs. Tap any clause to read it."}}
 
 
 def _modules(c):
@@ -141,6 +147,22 @@ def container_get(cid):
         "images": c["spec"]["images"],
         "problems": c["problems"],
     })
+
+
+@app.route("/api/peek", methods=["POST"])
+@require_auth
+def api_peek():
+    """A peek is a read. Note it, container-tagged — labels that never
+    get peeked are labels doing their job (CALIBRATE reads this later)."""
+    from datetime import datetime
+    from flask import session as _s
+    d = request.get_json(force=True, silent=True) or {}
+    entry = {"at": datetime.utcnow().isoformat(), "who": _s.get("email"),
+             "kind": "peek", "container": d.get("container", ""),
+             "clause": d.get("clause", "")}
+    copy_stage.TWEAK_LOG.append(entry)
+    copy_stage._persist(entry)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/terms", methods=["POST"])

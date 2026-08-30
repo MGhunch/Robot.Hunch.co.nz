@@ -11,7 +11,7 @@ One output for now. If a web/tile version gets commissioned, it's a new row and 
 ## Modules
 | # | module | output | fixed/optional | filled by | length |
 |---|---|---|---|---|---|
-| 1 | subject | email | fixed | writer | ≤ 50 chars. A and B. Names the best thing. |
+| 1 | subject | email | fixed | writer | ≤ 50 chars. A and B. Names the best thing. Renders in the client strip at the top of the card (from / subject / preheader), never as a card above the email. |
 | 2 | preheader | email | fixed | writer | ≤ 80 chars. The second-best thing. Not relied on. |
 | 3 | header | email | fixed | fixed | logo strip |
 | 4 | wallet | email | fixed | fixed | One Wallet ID · Phone Dollars (merge) |

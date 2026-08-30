@@ -77,22 +77,24 @@ Square-checkbox cards from LEGALS below. Standard clauses locked in; extras tick
 
 **Draw date** = next working day after `closes`. Nobody draws on a Sunday. A human-set date wins, but can't land before the close.
 
+fixed_title: Standard terms
+
 ### Base (in publish order)
 | id | fixed | default | label | text |
 |---|---|---|---|---|
-| eligibility | yes | | | All One New Zealand customers are eligible to enter the promotion which runs from {opens_long} at {opens_time} to {closes_long} at {closes_time}. |
-| entry | yes | | | To enter, click the 'Enter now' button above. There is one entry per person. |
-| winners | yes | | | There [is/are] {winners_word} ({winners}) {winner_word} for the competition. [The prize includes / Each prize includes]: |
-| prize_line | yes | | | *sub-bullet under winners — the prize-type line below* |
-| draw | yes | | | The prize draw will be conducted on {drawn_long} by representatives of One New Zealand by random electronic draw. |
-| contact | yes | | | [The winner/The winners] will be contacted on {drawn_long} using the details provided as part of your My One NZ registration. If the {winner_word} cannot be reached within 48 hours, One New Zealand will have sole and absolute discretion to draw the prize again and award the prize to a new winner. |
-| no_cash | yes | | | The prize is not redeemable for cash, cannot be substituted with an alternative prize or sold. |
+| eligibility | yes | | Eligibility | All One New Zealand customers are eligible to enter the promotion which runs from {opens_long} at {opens_time} to {closes_long} at {closes_time}. |
+| entry | yes | | Entry | To enter, click the 'Enter now' button above. There is one entry per person. |
+| winners | yes | | Winners & prize | There [is/are] {winners_word} ({winners}) {winner_word} for the competition. [The prize includes / Each prize includes]: |
+| prize_line | yes | | Prize line | *sub-bullet under winners — the prize-type line below* |
+| draw | yes | | The draw | The prize draw will be conducted on {drawn_long} by representatives of One New Zealand by random electronic draw. |
+| contact | yes | | Contacting winners | [The winner/The winners] will be contacted on {drawn_long} using the details provided as part of your My One NZ registration. If the {winner_word} cannot be reached within 48 hours, One New Zealand will have sole and absolute discretion to draw the prize again and award the prize to a new winner. |
+| no_cash | yes | | No cash | The prize is not redeemable for cash, cannot be substituted with an alternative prize or sold. |
 | expenses | no | off | Winner pays their own expenses | All expenses for items (including travel, accommodation, food and beverages, and any other costs) unless expressly stated will be at the cost of the {winner_word}. |
 | liability | no | off | Liability exclusion | One New Zealand is not liable for any loss or damage whatsoever which is suffered, including but not limited to indirect or consequential loss, or for personal injury suffered or sustained during the course of accepting or using the prize, except for any liability which cannot be excluded by law. |
 | substitution | no | off | Right to substitute the prize | The prize is subject to availability, and we reserve the right to substitute any prize with another of equivalent value without giving notice throughout the promotional period. |
 | fulfil_onenz | no | on | One NZ sends the prize out | The prize will be organised by representatives of One New Zealand and will be emailed to the {winner_word} using the email provided as part of your My One NZ registration as soon as it becomes available. |
-| acceptance | yes | | | Entry into the Competition is deemed to be acceptance of these terms and conditions. |
-| rewards_tcs | yes | | | One New Zealand Rewards Terms and Conditions also apply, see https://one.nz/legal/terms-conditions/rewards-general/ |
+| acceptance | yes | | Acceptance | Entry into the Competition is deemed to be acceptance of these terms and conditions. |
+| rewards_tcs | yes | | Rewards T&Cs | One New Zealand Rewards Terms and Conditions also apply, see https://one.nz/legal/terms-conditions/rewards-general/ |
 
 The three off-by-default extras (expenses, liability, substitution) are the ones the reference examples disagree about — present in the DOC hut pass terms, absent from Practical Magic. Every tick is Suze answering a question we'd otherwise ask in a meeting.
 

@@ -29,7 +29,7 @@ const BASE='http://127.0.0.1:5055';
   w.clRender(); E('CLS').drawn.ticked=true; w.clRender();
   console.log('drawn derived:', E('CLS').drawn.value, '| form:', JSON.stringify(w.formData()));
   await w.refreshLegals(); await sleep(200);
-  console.log('legals menu:', E('MENU').length, 'optional:', d.querySelectorAll('#clCards .cl-clause').length, '| ready:', w.detailReady(), '| door live:', d.getElementById('clDoor').classList.contains('live'));
+  console.log('legals menu:', E('MENU').length, 'optional:', d.querySelectorAll('#clCards .cl-pill').length, '| ready:', w.detailReady(), '| door live:', d.getElementById('clDoor').classList.contains('live'));
   // fake a WRITER result and mount FIX IT
   w.eval('COPY=null; REACHED=1;');
   w.fxInit({copy:{subject:['Double, double, toil and a double pass','B option','C option'],headline:'Win one of {winners_word} double passes to {prize_name}',body:'The Owens sisters are back. Enter before {closes_day}.',why:{subject:'Playful front page',headline:'Plain about what you win',body:'Story then the ask'},wants:null},facts:E('FACTS'),context:{winners_word:'five',prize_name:'Practical Magic 2',closes_day:'Sunday'},flags:[]});
@@ -53,12 +53,12 @@ const BASE='http://127.0.0.1:5055';
   w.fxWrapGo(); await sleep(100); console.log('wrap early → focus:', E('FXFOCUS'), '| wrap:', d.getElementById('fxWrapLbl').textContent);
   // one update — the lineup
   w.eval('COPY=null'); await w.enterRoom('one_update'); await sleep(300);
-  console.log('OU tabs:', [...d.querySelectorAll('.fx-tab')].map(x=>x.textContent).join('/'), '| ghost bar:', !!d.querySelector('#fdGhost .fd-gbar'), '| stories:', d.querySelectorAll('#clCards .cl-card.story').length, '| legals card:', !!d.querySelector('#clCards .cl-card.legals'));
+  console.log('OU tabs:', [...d.querySelectorAll('.fx-tabs .fx-loz')].map(x=>x.textContent).join('/'), '| ghost bar:', !!d.querySelector('#fdGhost .fd-gbar'), '| stories:', d.querySelectorAll('#clCards .cl-card.story').length, '| legals card:', !!d.querySelector('#clCards .cl-card.legals'));
   const st=E('CLR').story; const fill=(o,kv)=>Object.entries(kv).forEach(([k,v])=>{ o[k].value=v; o[k].ticked=true; });
   fill(st[0],{story_type:'prize',story_subject:'Win 500 Phone Dollars'}); fill(st[1],{story_type:'news',story_subject:'Satellite calls'}); fill(st[2],{story_type:'news',story_subject:'2G switch-off'});
   st[1].story_legals.value=['satellite']; w.clRender();
   const cards=d.querySelectorAll('#clCards .cl-card.story');
-  console.log('OU chips on prize:', cards[0].querySelectorAll('.cl-clause').length, 'ticked:', cards[0].querySelectorAll('.cl-clause.on').length, '| news chips on:', cards[1].querySelectorAll('.cl-clause.on').length, '| ready:', w.detailReady(), '| story1:', JSON.stringify(w.formData().story[0]));
+  console.log('OU pills on prize:', cards[0].querySelectorAll('.cl-pill').length, 'ticked:', cards[0].querySelectorAll('.cl-pill.on').length, '| news chips on:', cards[1].querySelectorAll('.cl-pill.on').length, '| ready:', w.detailReady(), '| story1:', JSON.stringify(w.formData().story[0]));
   await w.refreshLegals(); await sleep(200); console.log('OU menu:', E('MENU').length, '| facts story:', E('FACTS')&&E('FACTS').story&&E('FACTS').story[0].story_legals);
   w.fxInit({copy:{subject:['Toilets, and a draw','Headphones, and toilets'],preheader:'Win things',headline:'Be in to win.',"intro-copy":'Three things.',"signoff-copy":'Ngā mihi',cards:[{'card-title':'Win Phone Dollars','card-body':'One pair.','card-cta':'Enter now'},{'card-title':'Satellite','card-body':'Bear with us.','card-cta':'Find out more'},{'card-title':'2G','card-body':'Round two.','card-cta':'Learn more'}],why:{subject:'front page',card:'says what it is'},wants:null},facts:E('FACTS'),context:{},flags:[]});
   await sleep(700);

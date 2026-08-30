@@ -819,6 +819,28 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .cl-card.story{position:relative;padding-bottom:12px}
 .cl-card.story .cl-row{border-top:none;padding-top:4px}
 .cl-tag.grey{background:var(--paper);color:var(--mid)}
+
+/* ---------------- the deets pills (v019) ----------------
+   Clauses as pills: fixed grey and tickless, proposals on in red, the
+   rest greyed inline — spot it grey and add it. Tap the name and the
+   pill opens into the words as they'll print; unconfirmed facts read
+   as an ellipsis. Peek, not hover — legal text is reading matter. */
+.cl-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.cl-pill{display:flex;align-items:flex-start;gap:8px;border:1px solid var(--red);border-radius:999px;
+  padding:6px 14px 6px 8px;font-size:13px;font-weight:500;max-width:100%;background:#fff}
+.cl-pill.fixed{border-color:var(--border);padding:6px 14px}
+.cl-pill.off{border-color:var(--border);color:var(--mid);font-weight:400}
+.cl-ptick{width:18px;height:18px;border-radius:50%;background:var(--red);display:grid;place-items:center;
+  flex:none;cursor:pointer;margin-top:1px}
+.cl-ptick svg{width:11px;height:11px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.cl-pill.off .cl-ptick{background:#fff;border:1.5px solid #cfcfcf}
+.cl-pill.off .cl-ptick svg{display:none}
+.cl-pbody{min-width:0}
+.cl-pname{background:none;border:none;padding:0;font:inherit;font-weight:inherit;color:inherit;cursor:pointer;text-align:left}
+.cl-pwords{display:none;font-size:12px;font-weight:400;color:var(--mid);line-height:1.45;margin-top:3px;max-width:420px}
+.cl-pill.peeked{border-radius:14px}
+.cl-pill.peeked .cl-pbody{flex-basis:100%}
+.cl-pill.peeked .cl-pwords{display:block}
 .cl-chips{display:flex;flex-direction:column;gap:6px;margin-top:4px}
 .cl-card.story .cl-rm{position:absolute;top:12px;right:14px;float:none}
 

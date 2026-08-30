@@ -62,10 +62,15 @@ A `topics` row draws the LEGALS extras as square checkboxes under the story. Ext
 Per prize story, once read off the dump and confirmed (parked): `{prize_name}` `{prize_count}` `{closes_day}` `{closes_date}` `{closes_time}`. Engine-wide: `{year}` is the current year at render.
 
 ### Standard (locked in, client never unticks)
+fixed_title: Standard footer
+
+The words live in the brand library — brands/one_nz/legals.md. This
+table includes them by id; @brand pulls the clause in whole.
+
 | id | fixed | default | label | text |
 |---|---|---|---|---|
-| privacy | yes | | | We respect your privacy. Your details will not be given to anyone outside One New Zealand without your permission. View our Privacy Policy. Unsubscribe |
-| copyright | yes | | | © {year} One New Zealand Group Limited. 30 Daldy St, Auckland Central, Auckland 1010, New Zealand. |
+| privacy | yes | | | @brand |
+| copyright | yes | | | @brand |
 
 Order in the base: offer clauses first, then privacy, then copyright. 4px green divider above.
 

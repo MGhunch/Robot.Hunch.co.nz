@@ -51,7 +51,10 @@ d = t.get("/api/containers").get_json()
 assert d["hunch"] and {x["id"] for x in d["tiles"]} == {"one_update", "prize_draw"}
 d = t.get("/api/container/one_update").get_json()
 assert d["quiz"]["moves"][0]["key"] == "gap" and d["checklist"]["groups"][0]["repeat"] == {"per": "story", "min": 3, "max": 5, "where": None}
-assert d["checklist"]["topics"][0] == {"id": "draw", "label": "Prize draw clause", "default": True, "when": "prize"}
+t0 = d["checklist"]["topics"][0]
+assert {k: t0[k] for k in ("id", "label", "default", "when")} == {"id": "draw", "label": "Prize draw clause", "default": True, "when": "prize"}
+assert "competition" in t0["text"]          # topics carry their words for the peek
+assert d["checklist"]["legals"]["fixedTitle"] == "Standard footer" if d.get("_cid") == "one_update" else True
 assert "/brands/one_nz/assets/" in d["html"] and d["ghost"][0] == "precopy"
 r = t.post("/api/terms", json={"container": "prize_draw", "form": form}).get_json()
 assert len(r["menu"]) == 15 and r["footer"].startswith("For any queries")

@@ -458,6 +458,12 @@ function clRender(){
     wrap.appendChild(card);
   });
   if(!CL_CONFIG.groups.some(g=>g.rows.some(r=>r.type==='topics'))) wrap.appendChild(clLegalsCard());
+  else { const fixed=(CL_CONFIG.legals.fixed||[]); if(fixed.length){
+    const fx=document.createElement('div'); fx.className='cl-card legals';
+    fx.innerHTML=`<div class="cl-title">${clTitle(CL_CONFIG.legals.fixedTitle||'Standard legals')}</div>`;
+    const frow=document.createElement('div'); frow.className='cl-pills';
+    fixed.forEach(c=>frow.appendChild(clPill(c,true,true)));
+    fx.appendChild(frow); wrap.insertBefore(fx, wrap.firstChild); } }
   $('clDoor').classList.toggle('live', detailReady());
 }
 function clTitle(t){
@@ -545,17 +551,15 @@ function clStoryCard(key,i,S,items,base,typeRow,topicRow){
   card.appendChild(row);
   const topics=(CL_CONFIG.topics||[]).filter(x=>!x.when||x.when===type);
   if(topics.length){
-    const box=document.createElement('div'); box.className='cl-chips';
+    const box=document.createElement('div'); box.className='cl-pills';
     topics.forEach(x=>{
       const on=tp.value.includes(x.id);
-      const el=document.createElement('div'); el.className='cl-clause'+(on?' on':'');
-      el.innerHTML=`<span class="cl-clbox">${on?CL_CHECK:''}</span><span class="cl-cltext"><b>${esc(x.label)}</b></span>`;
-      el.onclick=()=>{ tp.value = on ? tp.value.filter(v=>v!==x.id) : tp.value.concat([x.id]); dirty(); clRender(); };
-      box.appendChild(el);
+      box.appendChild(clPill(x,on,false,()=>{
+        tp.value = on ? tp.value.filter(v=>v!==x.id) : tp.value.concat([x.id]); dirty(); clRender(); }));
     });
     card.appendChild(box);
   } else if(shown){
-    const w=document.createElement('div'); w.className='cl-legwait'; w.textContent='Nothing to add. Standard legals cover it.'; card.appendChild(w);
+    const w=document.createElement('div'); w.className='cl-legwait'; w.textContent='Nothing to add. The standard footer covers it.'; card.appendChild(w);
   }
   if(items.length>base.repeat.min){
     const rm=document.createElement('a'); rm.className='cl-rm'; rm.title='Remove'; rm.innerHTML='&times;';
@@ -682,31 +686,55 @@ function clProv(s){
    live clause menu; no circle ticks on clauses. A container with no
    optional clauses just shows the standard line. */
 let FIXED_OPEN=false;
-function toggleFixed(){ FIXED_OPEN=!FIXED_OPEN; clRender(); }
+/* a clause pill: label; tap the label and the pill opens into the words
+   as they'll print. Facts still unconfirmed read as an honest blank. */
+const clWords = t => esc(String(t||'').replace(/\{\w+\}/g,'\u2026'));
+let PEEKED = {};                       // id -> open, survives re-render
+function clPill(cl, on, fixed, flip){
+  const el=document.createElement('div');
+  el.className='cl-pill'+(fixed?' fixed':on?' on':' off')+(PEEKED[cl.id]?' peeked':'');
+  el.innerHTML=(fixed?'':`<span class="cl-ptick">${on?CL_CHECK:''}</span>`)+
+    `<span class="cl-pbody"><button class="cl-pname">${esc(cl.label||String(cl.id).replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()))}</button>
+     <span class="cl-pwords">${clWords(cl.text)}</span></span>`;
+  el.querySelector('.cl-pname').onclick=e=>{ e.stopPropagation();
+    PEEKED[cl.id]=!PEEKED[cl.id]; el.classList.toggle('peeked'); logPeek(cl.id); };
+  if(!fixed && flip){ el.querySelector('.cl-ptick').onclick=e=>{ e.stopPropagation(); flip(); }; }
+  return el;
+}
+let PEEKLOG = new Set();
+function logPeek(id){ if(PEEKLOG.has(id)||!CID) return; PEEKLOG.add(id);
+  try{ api('/api/peek',{container:CID, clause:id}); }catch(e){} }
+
 function clLegalsCard(){
+  const frag=document.createDocumentFragment();
+  /* the fixed row — always publishes, tickless, peek to read. The
+     container names it (Standard terms / Standard footer). */
+  const fixedSrc = MENU.length ? MENU.filter(c=>c.fixed&&!c.sub)
+                               : (CL_CONFIG.legals.fixed||[]);
+  const fx=document.createElement('div'); fx.className='cl-card legals';
+  fx.innerHTML=`<div class="cl-title">${clTitle(CL_CONFIG.legals.fixedTitle||'Standard legals')}</div>`;
+  const frow=document.createElement('div'); frow.className='cl-pills';
+  fixedSrc.forEach(c=>frow.appendChild(clPill(c,true,true)));
+  fx.appendChild(frow); frag.appendChild(fx);
+  /* the legals row — proposals on in red, the rest greyed inline.
+     Spot it grey and add it. */
   const card=document.createElement('div'); card.className='cl-card legals';
   card.innerHTML=`<div class="cl-title">${clTitle(CL_CONFIG.legals.title)}</div>
-    <div class="cl-sub"><a onclick="toggleFixed()">Standard legals</a> are locked in. Tick the extras this one needs.</div>`;
+    <div class="cl-sub">${esc(CL_CONFIG.legals.sub||'')}</div>`;
   if(!MENU.length){
     const w=document.createElement('div'); w.className='cl-legwait';
     w.textContent='Finish the facts above and the legals sort themselves.';
-    card.appendChild(w); return card;
+    card.appendChild(w);
+  } else {
+    const row=document.createElement('div'); row.className='cl-pills';
+    MENU.filter(c=>!c.fixed).forEach(c=>{
+      const on=!!(CHOSEN&&CHOSEN.includes(c.id));
+      row.appendChild(clPill(c,on,false,()=>toggleClause(c.id)));
+    });
+    card.appendChild(row);
   }
-  MENU.filter(c=>!c.fixed).forEach(c=>{
-    const el=document.createElement('div');
-    el.className='cl-clause'+(CHOSEN&&CHOSEN.includes(c.id)?' on':'');
-    el.innerHTML=`<span class="cl-clbox">${CHOSEN&&CHOSEN.includes(c.id)?CL_CHECK:''}</span>
-      <span class="cl-cltext"><b>${esc(c.label)}</b> ${esc(c.text)}</span>`;
-    el.onclick=()=>{ toggleClause(c.id); };
-    card.appendChild(el);
-  });
-  if(FIXED_OPEN){
-    const ul=document.createElement('ul');
-    ul.style.cssText='font-size:11.5px;color:var(--mid);padding-left:18px;line-height:1.6;margin:8px 0 4px';
-    ul.innerHTML=MENU.filter(c=>c.fixed&&!c.sub).map(c=>`<li>${esc(c.text)}</li>`).join('');
-    card.appendChild(ul);
-  }
-  return card;
+  frag.appendChild(card);
+  return frag;
 }
 
 /* the form the engine reads: row id -> value, <id>__sub for a time, and

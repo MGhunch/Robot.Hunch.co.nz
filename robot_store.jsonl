@@ -1,1 +1,6 @@
 {"at": "2026-08-27T04:42:32.750252", "who": "michael@hunch.co.nz", "container": "prize_draw", "prize": "Test Film", "block": "body", "note": "make it about passes", "before": "Win one of {winners_word} double passes.", "after": "Win one of {winners_word} passes to {prize_name}.", "declined": false}
+{"at": "2026-08-30T20:15:34.203050", "who": "word:michael", "kind": "peek", "container": "prize_draw", "clause": "movie_rating"}
+{"at": "2026-08-30T20:16:18.399660", "who": "word:michael", "kind": "peek", "container": "prize_draw", "clause": "eligibility"}
+{"at": "2026-08-30T20:16:35.985413", "who": "word:michael", "kind": "peek", "container": "prize_draw", "clause": "eligibility"}
+{"at": "2026-08-30T20:17:26.347618", "who": "word:michael", "kind": "peek", "container": "prize_draw", "clause": "eligibility"}
+{"at": "2026-08-30T20:18:17.241811", "who": "word:michael", "kind": "peek", "container": "prize_draw", "clause": "eligibility"}

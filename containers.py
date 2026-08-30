@@ -169,6 +169,14 @@ def _parse_brand(folder, bid, problems):
         if m:
             tokens[k.lower().replace(" ", "_")] = m.group(0)
     b["skin"] = {"font": kv.get("Font", ""), "logo": kv.get("Logo", ""), "tokens": tokens}
+    # legals.md — the brand's clause library (optional; validated if named)
+    b["legals"] = []
+    lp = os.path.join(folder, "legals.md")
+    if os.path.isfile(lp):
+        for r in _table(_read(lp))["rows"]:
+            b["legals"].append({"id": r.get("id", ""), "fixed": _yes(r.get("fixed")),
+                                "default": _yes(r.get("default")) if r.get("default") else True,
+                                "label": r.get("label", ""), "text": r.get("text", "")})
     assets_dir = os.path.join(folder, "assets")
     b["assets"] = sorted(os.listdir(assets_dir)) if os.path.isdir(assets_dir) else []
     if not os.path.isdir(assets_dir):
@@ -268,7 +276,10 @@ def _parse_needs(text, problems, cid):
 def _parse_legals(text, problems, cid):
     """## LEGALS -> the clause library. Tables keyed by section title."""
     lib = {"facts": "", "base": [], "conditional": [], "extras": [], "footer": "",
-           "by_type": [], "open": [], "prose": {}}
+           "by_type": [], "open": [], "prose": {}, "fixed_title": "Standard legals"}
+    ft = re.search(r"^fixed_title:\s*(.+)$", text, re.M)
+    if ft:
+        lib["fixed_title"] = ft.group(1).strip()
     for title, body in _sections(text, 3):
         tl = title.lower()
         if not title:
@@ -594,8 +605,29 @@ def containers():
             c["brand_data"] = {"id": c.get("brand", ""), "voice": "", "skin": {}, "problems": []}
         else:
             c["brand_data"] = b
+        _resolve_brand_clauses(c)
         out[c["id"]] = c
     return out
+
+
+def _resolve_brand_clauses(c):
+    """A container includes a brand clause by putting @brand in the text
+    cell against its id. The words come from brands/<b>/legals.md; a
+    missing id is a problem, not a silent blank."""
+    lib = {x["id"]: x for x in c.get("brand_data", {}).get("legals", []) or []}
+    for key in ("base", "extras"):
+        for cl in c.get("legals", {}).get(key, []):
+            if cl.get("text", "").strip() == "@brand":
+                src = lib.get(cl["id"])
+                if not src:
+                    c["problems"] = c.get("problems", []) + [
+                        f"{c['id']}: legals row '{cl['id']}' says @brand but the brand library has no such clause"]
+                    cl["text"] = ""
+                    continue
+                cl["text"] = src["text"]
+                if not cl.get("label"):
+                    cl["label"] = src["label"]
+                cl["fixed"] = src["fixed"] or cl.get("fixed", False)
 
 
 def container(cid):
