@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=017">
+<link rel="stylesheet" href="robot.css?v=018">
 </head>
 <body>
 
@@ -221,23 +221,19 @@
     <div class="fixstage" id="fixStage">
       <div class="fx-grid">
         <div>
-          <h2 class="fx-room beb">THE WORK</h2>
-          <div class="fx-tabs">
-            <span class="fx-tab on">#1: Email</span>
-            <span class="fx-tab dead">#2: Webtile</span>
-          </div>
+          <!-- which output. One lozenge per output; with more than one,
+               they're the switch. Same pill as the chat's. -->
+          <div class="fx-lozrow fx-tabs"></div>
           <div class="fx-artwrap">
             <div class="mail fx-art" id="fxArt"></div>
             <div class="fx-gutter" id="fxGutter"></div>
           </div>
         </div>
         <div class="fx-rail">
-          <h2 class="fx-room beb">THE WORKINGS</h2>
-          <!-- one card: the lozenge names the thread, the thread is the
-               section's conversation, the composer is a box, a ? and an
-               arrow. No SEND, no dashed box, no LOCK IT. -->
+          <!-- the lozenge names the thread; the card is the section's
+               conversation and the composer: a box, a ? and an arrow. -->
+          <div class="fx-lozrow"><span class="fx-loz" id="fxTopic">Need any tweaks?</span></div>
           <div class="fx-card">
-            <div class="fx-topic empty" id="fxTopic">Get started</div>
             <div class="fx-chat" id="fxChat"></div>
             <div class="fx-compose">
               <div class="fx-quote" id="fxQuote"></div>
@@ -747,7 +743,7 @@ async function enterRoom(cid){
 /* the tabs over THE WORK: one per output in the spec */
 function fxTabs(){
   const tabs=document.querySelector('.fx-tabs'); if(!tabs) return;
-  tabs.innerHTML=(CONT.outputs||[]).map((o,i)=>`<span class="fx-tab ${i?'dead':'on'}">#${i+1}: ${esc(o.id)}</span>`).join('');
+  tabs.innerHTML=(CONT.outputs||[]).map((o,i)=>`<span class="fx-loz ${i?'off':''}">${esc(o.id)}</span>`).join('');
 }
 
 /* ---------------- story -> detail ---------------- */
@@ -1356,7 +1352,7 @@ function fxPick(a){ let l; do{ l=a[Math.floor(Math.random()*a.length)]; }while(l
 function fxTopicSet(k){
   const t=$('fxTopic');
   if(k){ t.textContent='Tweaking: '+FXLBL[k]; t.classList.remove('empty'); }
-  else { t.textContent = (FXORDER.length && !fxBeat() && FXFOCUS===null && Object.keys(FXLOCK).length) ? 'All locked' : 'Get started'; t.classList.add('empty'); }
+  else { t.textContent = (FXORDER.length && !fxBeat() && Object.keys(FXLOCK).length) ? 'All locked' : 'Need any tweaks?'; t.classList.add('empty'); }
 }
 function fxQuoteSet(q){
   FXHL=q||null;

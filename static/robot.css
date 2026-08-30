@@ -225,14 +225,16 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
   padding:36px 24px 60px;margin-top:8px;}
 .fx-grid{display:grid;grid-template-columns:minmax(0,var(--fx-w,644px)) 380px;
   gap:150px;justify-content:center;align-items:start;max-width:1200px;margin:0 auto;}
-.fx-room{font-size:52px;line-height:.85;color:#fff;margin:0 0 18px;letter-spacing:1px;}
-
-/* the tabs — furniture for now; go live with the second artefact (12b) */
-.fx-tabs{display:flex;gap:7px;margin-left:22px;}
-.fx-tab{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;
-  padding:10px 18px 8px;border-radius:9px 9px 0 0;user-select:none;}
-.fx-tab.on{background:#fff;color:var(--red);}
-.fx-tab.dead{background:rgba(255,255,255,.24);color:rgba(255,255,255,.8);}
+/* the lozenge — one pill, three jobs: which output, which section, the
+   standing question. White on the red room; outlined when it's an
+   output that isn't on the table. */
+.fx-lozrow{display:flex;gap:8px;align-items:center;min-height:30px;margin:0 0 14px;}
+.fx-tabs{margin-left:22px;}
+.fx-loz{display:inline-block;background:#fff;color:var(--red);
+  font-family:'Oswald',var(--display),sans-serif;font-weight:500;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;
+  border-radius:20px;padding:6px 14px 5px;line-height:1.2;user-select:none;}
+.fx-loz.off{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.75);padding:4.5px 12.5px 3.5px;cursor:pointer;}
+.fx-loz.empty{color:var(--mid);}
 .fx-artwrap{position:relative;}
 .fx-art.mail{background:transparent;border:none;border-radius:0;overflow:visible;box-shadow:none;}
 .fx-sec{position:relative;}
@@ -262,15 +264,11 @@ mark.fx-ch{background:var(--yellow);color:inherit;border-radius:2px;padding:0 1p
 
 /* the rail */
 .fx-rail{position:sticky;top:16px;display:flex;flex-direction:column;gap:13px;}
-.fx-rail .fx-room{white-space:nowrap;}
 
 /* ── the conversation. The robot talks; the human answers. The what
    lives in the pill; the why lives in the chat; the input bar is the
    pencil; locking is a thing the robot reports, not a thing you press. */
-.fx-topic{align-self:flex-start;background:var(--red);color:#fff;
-  font-family:'Oswald',var(--display),sans-serif;font-weight:500;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;
-  border-radius:20px;padding:5px 13px 4px;}
-.fx-topic.empty{background:var(--paper);color:var(--mid);}
+
 .fx-chat{display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow-y:auto;
   padding-bottom:2px;scroll-behavior:smooth;}
 .fx-chatrow{display:flex;gap:10px;align-items:flex-end;}
@@ -348,7 +346,6 @@ mark.fx-hl{background:var(--yellow);color:var(--ink);border-radius:2px;padding:0
   .fx-rail{position:static;}
   .fx-artwrap{padding-right:56px;}
   .fx-gutter{right:0;}
-  .fx-room{font-size:42px;}
 }
 
 /* fall into place: locked receipts, the open block, the waiting queue.
@@ -824,7 +821,6 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .cl-tag.grey{background:var(--paper);color:var(--mid)}
 .cl-chips{display:flex;flex-direction:column;gap:6px;margin-top:4px}
 .cl-card.story .cl-rm{position:absolute;top:12px;right:14px;float:none}
-.fx-tab{text-transform:uppercase}
 
 /* ---------------- THE WORKINGS card (v015, reshaped v016) ----------------
    White card: lozenge on top, the section's thread, the composer. */
