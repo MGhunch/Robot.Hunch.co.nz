@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=015">
+<link rel="stylesheet" href="robot.css?v=017">
 </head>
 <body>
 
@@ -107,7 +107,7 @@
   <div class="rail">
     <button class="step on"     data-s="0" onclick="go(0)"><i>1</i>Feed it</button>
     <button class="step locked" data-s="1" onclick="go(1)"><i>2</i>Fix it</button>
-    <button class="step locked" data-s="2" onclick="go(2)"><i>3</i>Finished</button>
+    <button class="step locked" data-s="2" onclick="go(2)"><i>3</i>File it</button>
   </div>
 
   <!-- 1 BRIEF — the story, then the detail -->
@@ -261,15 +261,31 @@
       </div>
     </div>
 
-  <!-- 3 REVIEW -->
+  <!-- 3 FILE IT — the takeaway counter. Four fillings, one button. The
+       tiles render off /api/fillings; grey means the container can't or
+       this run didn't, and the line says which. file-it-mock.html is the spec. -->
   <div class="pane" data-p="2">
-    <h2 class="hed beb">HERE'S THE EMAIL</h2>
-    <p class="lede">What the customer sees, and what the specialist gets. Anything wrong, go back and fix it — nothing's gone anywhere yet.</p>
-    <div id="reviewOut"></div>
-    <div class="bar">
-      <button class="btn ghost" onclick="go(1)">CHANGE THE WORDS</button>
-      <button class="btn ghost" onclick="go(0)">CHANGE THE FACTS</button>
-      <button class="btn" onclick="location.reload()">DO ANOTHER ONE</button>
+    <div class="filestage">
+      <div class="fi-wrap">
+        <h2 class="fi-room">FILE IT</h2>
+        <div class="fi-tagline">Pick your fillings. The robot wraps it.</div>
+        <div class="fi-q">How would you like your sandwich?</div>
+        <div class="fi-tiles" id="fiTiles"></div>
+        <div class="fi-bar" id="fiBar">
+          <button class="cl-door live" id="fiWrap" onclick="fiWrap()">WRAP IT</button>
+        </div>
+        <div class="fi-done" id="fiDone">
+          <div class="fi-say">
+            <span class="botdisc" aria-hidden="true"><img src="robot-face.svg" alt=""></span>
+            <div class="fi-msg"><b>WRAPPED.</b>That's a sandwich.</div>
+          </div>
+          <div class="fi-files" id="fiFiles"></div>
+          <div class="fi-next">
+            <button class="btnw" onclick="location.reload()">YOUR NEXT PROJECT</button>
+            <button class="fi-back" onclick="fiUnwrap()">Change the order</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1516,37 +1532,49 @@ function fxFinalCopy(){
   const g=CONT.modules.groups[0]; if(g) out[g.module+'s']=COPY[g.module+'s']||[];
   return out;
 }
-async function toReview(){
-  reach(2);
-  $('reviewOut').innerHTML='<div class="load"><div class="spin"></div>Putting it together…</div>';
+/* ---------------- 3 FILE IT ----------------
+   The tiles come from the server (container + run decide grey); the
+   tick is the detail list's tick; WRAP IT builds only what's ticked and
+   the robot says it once. Nothing per-container here. */
+const FI_ICON={
+  pdf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 14h5M10 17h5"/></svg>',
+  doc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 12h6M10 15h6M10 18h4"/></svg>',
+  pics:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 15l-4.5-4.5L8 18"/></svg>',
+  code:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/></svg>'};
+const FI_TICK='<svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3L13 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+let FI_LAST=null;                                   // the last wrap, so a re-press is a re-build
+async function toReview(){ return toFileIt(); }     // FIX IT's WRAP IT UP still calls this
+async function toFileIt(){
+  reach(2); fiUnwrap();
+  $('fiTiles').innerHTML='<div class="load" style="color:#fff"><div class="spin"></div>Checking the menu…</div>';
   try{
-    const d = await api('/api/parcel',{container:CID, form:formData(), chosen:CHOSEN, copy:fxFinalCopy()});
-    const files=(CONT.outputs||[]).map(o=>`<div class="file"><div class="file-i">${esc(o.id).toUpperCase().slice(0,4)}</div>
-      <div><div class="file-n">${esc(d.slug)}-${esc(o.id)}.zip</div><div class="file-d">${esc(o.name)} — ${esc(o.files)}${TWEAKS?` · ${TWEAKS} tweak${TWEAKS>1?'s':''} logged`:''}</div></div></div>`).join('');
-    $('reviewOut').innerHTML=`<div class="mail"><iframe class="fx-frame" title="The finished piece" scrolling="no"></iframe></div>
-      <div class="sect">Your files</div>${files}
-      <div class="file"><div class="file-i">DOC</div><div><div class="file-n">terms.docx</div><div class="file-d">${d.clause_count} clauses, built from the brief</div></div></div>`;
-    const fr=$('reviewOut').querySelector('iframe');
-    fxWrite(fr, CONT.html);
-    { const D=fr.contentDocument, g=CONT.modules.groups[0];
-      D.body.style.padding='0'; D.body.style.background='transparent';
-      Object.entries(d.copy).forEach(([m,v])=>{
-        if(Array.isArray(v) && g && m===g.module+'s'){
-          const els=[...D.querySelectorAll(`[data-module="${g.module}"]`)];
-          const wrap=el=>el.closest('.cardwrap')||el;
-          while(els.length<v.length && els.length){ const c=wrap(els[els.length-1]).cloneNode(true); wrap(els[els.length-1]).after(c); els.push(c.matches(`[data-module="${g.module}"]`)?c:c.querySelector(`[data-module="${g.module}"]`)); }
-          while(els.length>v.length && els.length>1) wrap(els.pop()).remove();
-          els.forEach((el,i)=>Object.entries(v[i]||{}).forEach(([p,t])=>{ const x=el.querySelector(`[data-module="${p}"]`); if(x) x.textContent=t; }));
-        } else if(Array.isArray(v)){
-          const els=[...D.querySelectorAll(`[data-module="${m}"]`)];
-          els.forEach((el,i)=>{ el.innerHTML=(el.querySelector('.l')?el.querySelector('.l').outerHTML:'')+esc(v[i]||''); });
-        } else { const el=D.querySelector(`[data-module="${m}"]`); if(el) el.textContent=v; }
-      });
-      const t=D.querySelector('[data-module="terms"]'); if(t) t.innerHTML=esc(d.terms).replace(/\n/g,'<br>');
-      fr.style.height=Math.max(200,D.documentElement.scrollHeight)+'px';
-    }
-  }catch(e){ $('reviewOut').innerHTML=`<div class="err">${esc(e.message)}</div>`; }
+    const d=await api('/api/fillings',{container:CID, run:RUN});
+    $('fiTiles').innerHTML=d.tiles.map(t=>`<button class="tile ${t.on?'on':'off'}" data-id="${esc(t.id)}" onclick="fiFlip(this)" aria-pressed="${t.on}">
+      <span class="cl-tick" aria-hidden="true">${FI_TICK}</span>
+      <span class="tile-i">${FI_ICON[t.id]||''}</span>
+      <span class="tile-t">${esc(t.title)}</span>
+      <span class="tile-d">${esc(t.line)}</span></button>`).join('');
+    fiArm();
+  }catch(e){ $('fiTiles').innerHTML=`<div class="err">${esc(e.message)}</div>`; }
 }
+function fiFlip(t){ if(t.classList.contains('off')) return; t.classList.toggle('on'); t.setAttribute('aria-pressed',t.classList.contains('on')); fiArm(); }
+function fiArm(){ $('fiWrap').classList.toggle('live', document.querySelectorAll('#fiTiles .tile.on').length>0); }
+async function fiWrap(){
+  const w=$('fiWrap'); if(!w.classList.contains('live')) return;
+  const take=[...document.querySelectorAll('#fiTiles .tile.on')].map(t=>t.dataset.id);
+  w.classList.remove('live'); w.textContent='WRAPPING…';
+  try{
+    const d=await api('/api/wrap',{container:CID, run:RUN, form:formData(), chosen:CHOSEN, copy:fxFinalCopy(), take, tweaks:TWEAKS});
+    const row=(f,all)=>`<div class="file${all?' all':''}"><div class="file-i">${esc(all?'ZIP':f.id.toUpperCase())}</div>
+      <div><div class="file-n">${esc(f.name)}</div><div class="file-d">${esc(f.line)}</div></div>
+      <a class="file-go" href="${esc(f.url)}" download>${all?'Take the lot':'Take it'}</a></div>`;
+    $('fiFiles').innerHTML=(d.all?row(d.all,true):'')+d.files.map(f=>row(f)).join('');
+    $('fiTiles').classList.add('wrapped'); $('fiBar').style.display='none'; $('fiDone').classList.add('on');
+    $('fiDone').scrollIntoView({behavior:'smooth',block:'nearest'});
+  }catch(e){ alert(e.message); }
+  w.textContent='WRAP IT'; fiArm();
+}
+function fiUnwrap(){ $('fiDone').classList.remove('on'); $('fiBar').style.display=''; $('fiTiles').classList.remove('wrapped'); }
 
 /* ── the hamburger: ABOUT + FAQS ── */
 const HM_FAQS = [

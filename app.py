@@ -13,6 +13,8 @@ ARCHITECTURE, and the reason for it:
   engine.py      Deterministic. Facts from NEEDS, clauses from LEGALS, the
                  copy check. The model never touches it.
   copy_stage.py  The only part the model touches. Writes prose, never facts.
+  file_it.py     The takeaway counter. Which fillings are on the menu, the
+                 copy doc, the pics zip, the wrap. No model.
   auth.py        The door. A word today, OTP when clients arrive. A Hunch
                  login sees containers in testing.
 
@@ -28,6 +30,7 @@ import time
 
 from auth import auth_bp, require_auth, is_hunch
 from copy_stage import copy_bp, writer_modules, options_of, move_key
+from file_it import file_bp, parcel as _parcel
 import containers as CT
 from engine import (build_facts, assemble_terms, render_terms, render_copy,
                     clause_menu, type_options, TermsError)
@@ -40,6 +43,7 @@ app.permanent_session_lifetime = timedelta(hours=24)
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(copy_bp)
+app.register_blueprint(file_bp)
 
 
 # ---------------------------------------------------------------------------
@@ -161,39 +165,26 @@ def terms():
 @app.route("/api/parcel", methods=["POST"])
 @require_auth
 def parcel():
-    """Final render. Placeholders filled from the same facts as the terms."""
+    """Final render. Placeholders filled from the same facts as the terms.
+    The builder lives in file_it.py; FILE IT's wrap uses the same one."""
     data = request.get_json() or {}
     c = CT.container(data.get("container", ""))
     if not c:
         return jsonify({"error": "No such container."}), 404
     try:
-        facts = build_facts(c, data.get("form") or {})
+        P = _parcel(c, data)
     except TermsError as e:
         return jsonify({"error": str(e)}), 400
-    cp = data.get("copy") or {}
-    out = {}
-    for k, v in cp.items():
-        if isinstance(v, str):
-            out[k] = render_copy(c, v, facts)
-        elif isinstance(v, list):
-            out[k] = [({kk: render_copy(c, vv, facts) for kk, vv in x.items()} if isinstance(x, dict)
-                       else render_copy(c, x, facts)) for x in v]
-    name = next((facts[r["id"]] for g in c["needs"]["groups"] for r in g["rows"]
-                 if r["type"] == "text" and facts.get(r["id"])), c["id"])
-    return jsonify({
-        "success": True, "copy": out,
-        "terms": render_terms(c, facts, data.get("chosen")),
-        "clause_count": len(assemble_terms(c, facts, data.get("chosen"))),
-        "slug": "".join(ch if ch.isalnum() else "-" for ch in str(name).lower()).strip("-"),
-    })
+    return jsonify({"success": True, "copy": P["copy"], "terms": P["terms"], "slug": P["slug"],
+                    "clause_count": len(assemble_terms(c, P["facts"], data.get("chosen")))})
 
 
 # ---------------------------------------------------------------------------
 # IMAGES — the uploads page (FEED IT page three).
 # Deterministic storage, no model. Files land under ROBOT_IMAGES/<run>/,
 # which should live on the Railway volume (ROBOT_IMAGES=/data/images) so the
-# pics survive a redeploy alongside the tweak log. FINISHED (hit list 5) will
-# zip them; the respec (hit list 6) will cut them. For now they just wait.
+# pics survive a redeploy alongside the tweak log. FILE IT (file_it.py) zips
+# them as they came; the respec (hit list 6) will cut them.
 # ---------------------------------------------------------------------------
 
 IMAGES_DIR = os.environ.get("ROBOT_IMAGES", os.path.join(
