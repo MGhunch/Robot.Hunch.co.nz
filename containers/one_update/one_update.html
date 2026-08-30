@@ -28,14 +28,17 @@
   body{background:var(--canvas);font-family:var(--font);color:var(--ink);padding:32px 0 64px;-webkit-font-smoothing:antialiased}
   a{color:inherit}
 
-  /* pre-copy — inbox, not email */
-  .precopy{width:600px;margin:0 auto 20px;background:var(--card);border-radius:6px;padding:14px 18px;font-size:14px;line-height:1.35}
-  .precopy .subj{font-weight:600}
-  .precopy .subj + .subj{margin-top:4px}
-  .precopy .pre{color:var(--ink-faint);margin-top:6px}
-  .precopy .l{display:inline-block;width:20px;color:var(--ink-faint)}
+  .email{width:600px;margin:0 auto;background:var(--card);border-radius:14px;overflow:hidden}
 
-  .email{width:600px;margin:0 auto}
+  /* the client strip — from, subject (A/B), preheader — the top of the
+     email card, the way an inbox shows it. First tagged module; the
+     padlock sits on it. */
+  .precopy{background:var(--ground);border-bottom:1px solid var(--canvas);padding:14px 24px 12px;font-size:14px;line-height:1.35}
+  .precopy .from{font-size:12px;color:var(--ink-faint);margin-bottom:5px}
+  .precopy .subj{font-weight:600}
+  .precopy .subj + .subj{margin-top:3px}
+  .precopy .pre{color:var(--ink-faint);margin-top:5px}
+  .precopy .l{display:inline-block;width:20px;color:var(--ink-faint)}
   .readonline{text-align:center;font-size:12px;color:var(--ink-soft);padding:0 0 10px;text-decoration:underline}
 
   /* header block — logo strip 80 / grey strip 40 / no texture strip (dark block below) */
@@ -97,13 +100,13 @@
 </head>
 <body>
 
-<div class="precopy" data-module="precopy">
-  <div class="subj" data-module="subject" data-variant="A"><span class="l">A.</span>Toilet talk has taken over, plus new chances to wi</div>
-  <div class="subj" data-module="subject" data-variant="B"><span class="l">B.</span>Satellite innovation, refurbished phones + be in t</div>
-  <div class="pre" data-module="preheader">Win epic prizes, unlock extra value, and learn what we're doing to keep you bett</div>
-</div>
-
 <div class="email">
+  <div class="precopy" data-module="precopy">
+    <div class="from">One NZ &lt;hello@one.nz&gt;</div>
+    <div class="subj" data-module="subject" data-variant="A"><span class="l">A.</span>Toilet talk has taken over, plus new chances to wi</div>
+    <div class="subj" data-module="subject" data-variant="B"><span class="l">B.</span>Satellite innovation, refurbished phones + be in t</div>
+    <div class="pre" data-module="preheader">Win epic prizes, unlock extra value, and learn what we're doing to keep you bett</div>
+  </div>
   <div class="readonline" data-module="readonline">Read online</div>
 
   <div class="logo" data-module="header"><span class="mark"><i></i>one.nz</span></div>
