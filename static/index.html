@@ -14,6 +14,32 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="robot.css?v=020">
+
+<!-- THINKING — the beat between FEED IT and FIX IT. Inline only because
+     this cut ships without touching robot.css (we're mid-sync on it);
+     fold it in there under its own block at the next sync, delete this. -->
+<style>
+.think{background:var(--red);width:100vw;margin-left:calc(50% - 50vw);
+  min-height:min(62vh,540px);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:48px 20px}
+.think-bot{width:min(120px,30vw);height:auto;margin:0 0 26px;
+  animation:think-bob 2.6s ease-in-out infinite;transform-origin:50% 90%}
+@keyframes think-bob{0%,100%{transform:translateY(0) rotate(-1.5deg)}
+  50%{transform:translateY(-6px) rotate(1.5deg)}}
+.think-say{position:relative;color:#fff;text-align:center;width:100%;
+  font-size:clamp(36px,6vw,56px);min-height:1.1em}
+.think-say span{display:block}
+.think-say .in{animation:think-land .55s cubic-bezier(.2,1.1,.3,1) both}
+.think-say .out{position:absolute;left:0;right:0;top:0;
+  animation:think-drop .32s ease-in both}
+@keyframes think-land{from{opacity:0;transform:translateY(-.35em)}
+  60%{transform:translateY(.05em)}to{opacity:1;transform:translateY(0)}}
+@keyframes think-drop{to{opacity:0;transform:translateY(.35em)}}
+@media(prefers-reduced-motion:reduce){
+  .think-bot{animation:none}
+  .think-say .in,.think-say .out{animation:none}
+}
+</style>
 </head>
 <body>
 
@@ -108,6 +134,14 @@
     <button class="step on"     data-s="0" onclick="go(0)"><i>1</i>Feed it</button>
     <button class="step locked" data-s="1" onclick="go(1)"><i>2</i>Fix it</button>
     <button class="step locked" data-s="2" onclick="go(2)"><i>3</i>File it</button>
+  </div>
+
+  <!-- THINKING — not a room, a moment. Sits where the panes sit, so the
+       engine bar and the stepper are untouched: FEED IT still on, FIX IT
+       still unlit. Status is an event, not a meter. -->
+  <div class="think" id="thinking" hidden>
+    <img class="think-bot" src="robot-burger.svg" alt="">
+    <div class="think-say beb" id="thinkSay"></div>
   </div>
 
   <!-- 1 BRIEF — the story, then the detail -->
@@ -1209,31 +1243,87 @@ const RUN = (crypto.randomUUID ? crypto.randomUUID()
              : Date.now()+'-'+Math.random().toString(36).slice(2)).replace(/[^a-z0-9-]/gi,'');
 function toPics(){ buildIt(); }
 
+/* ---------------- THINKING ----------------
+   The beat while the WRITER runs. The lines are the robot's own, so they
+   live here in the engine and never in a container's config.md. Sequential,
+   looping if the wait outlasts the list. No meter, no dots, no ellipsis —
+   status is an event, not a percentage. */
+const THINK_LINES = [
+  'Working it out',
+  'Reading the brief',
+  'Doing my thing',
+  'Sharpening my pencil',
+  'Spelling the long words',
+  'Shuffling the commas',
+  'Losing the adjectives',
+  'Trying not to rhyme',
+  'Arguing with myself',
+  "Crossing the T's",
+  'Catching a rainbow',
+];
+const THINK_HOLD = 2600;    // how long a line sits before the next one lands
+const THINK_MIN  = 1000;    // armCraft often wins the race; don't let it flash
+let THINK_T = null, THINK_I = 0;
+
+function thinkLine(){
+  const say = $('thinkSay'); if(!say) return;
+  const old = say.querySelector('.in');
+  if(old){ old.className = 'out';
+    old.addEventListener('animationend', () => old.remove(), {once:true}); }
+  const s = document.createElement('span');
+  s.className = 'in';
+  s.textContent = THINK_LINES[THINK_I % THINK_LINES.length];
+  THINK_I++;
+  say.appendChild(s);
+}
+
+/* Panes off, the beat on. The rail isn't touched — reach(1) hasn't run, so
+   FIX IT stays unlit exactly as the brief asks. Returns the start time. */
+function thinkStart(){
+  const el = $('thinking'); if(!el) return 0;
+  THINK_I = 0; $('thinkSay').innerHTML = '';
+  document.querySelectorAll('#room .pane').forEach(p => p.classList.remove('on'));
+  el.hidden = false;
+  thinkLine();
+  THINK_T = setInterval(thinkLine, THINK_HOLD);
+  return Date.now();
+}
+
+/* Cut straight out when the draft lands — no "done" beat, no waiting for the
+   current line to finish. The only floor is THINK_MIN, so a draft that was
+   already sitting there doesn't strobe the screen on its way past. */
+async function thinkEnd(started){
+  if(!started) return;
+  const left = THINK_MIN - (Date.now() - started);
+  if(left > 0) await new Promise(r => setTimeout(r, left));
+  clearInterval(THINK_T); THINK_T = null;
+  const el = $('thinking'); if(el) el.hidden = true;
+}
+
 async function buildIt(){
   if(!detailReady()){ subView('detail'); armDetail();
     alert("A couple of facts still need a tick."); return; }
-  reach(1);
-  if(COPY) return;
+  if(COPY){ reach(1); return; }             // already written; no beat to play
   const key = craftKey();
+  const beat = thinkStart();
+  let d = null;
   if(CRAFT && key===CRAFT_KEY){
-    fxLoading();
-    const d = await CRAFT;
-    if(d.__err){ genCopy(); return; }       // the background try failed; go live
-    fxInit(d);
-  } else genCopy();
-}
-function fxLoading(){
-  $('fxArt').innerHTML='<div class="load" style="margin:40px auto"><img class="robotwork" src="robot-sandwich.png" alt="">The robot is writing…</div>';
-  $('fxGutter').innerHTML=''; $('fxChat').innerHTML=''; fxTopicSet(null);
-}
-async function genCopy(){
-  fxLoading();
-  try{
-    const d = await api('/api/copy',{container:CID, form:formData(), story:storyData(), source:val('blurb')});
-    fxInit(d);
-  }catch(e){
-    $('fxArt').innerHTML=`<div class="err" style="margin:20px">${esc(e.message)}</div>`;
+    d = await CRAFT;
+    if(d && d.__err) d = null;              // the background try failed; go live
   }
+  if(!d){
+    try{
+      d = await api('/api/copy',{container:CID, form:formData(), story:storyData(), source:val('blurb')});
+    }catch(e){
+      await thinkEnd(beat); reach(1);       // the existing failure surface, unchanged
+      $('fxGutter').innerHTML=''; $('fxChat').innerHTML=''; fxTopicSet(null);
+      $('fxArt').innerHTML=`<div class="err" style="margin:20px">${esc(e.message)}</div>`;
+      return;
+    }
+  }
+  await thinkEnd(beat);
+  reach(1);
+  fxInit(d);
 }
 
 /* The blocks the tour walks: every writer module, in the html's order;
@@ -1680,12 +1770,16 @@ function fiUnwrap(){ $('fiDone').classList.remove('on'); $('fiBar').style.displa
 const HM_FAQS = [
   ["How can I be sure the robot won't go off on one?",
    "You're in the driver's seat at every turn. You feed it. You fix stuff. You press go on the finished outputs. Human in every loop."],
+  ["Who's on the block if it all goes wrong?",
+   "Everyone, really. But ultimately the human in the loop is checking all the detail. The robot is just a robot at the end of the day."],
   ["Isn't robot copy pretty average?",
    "Straight from the machine, it can be. But great context and a smart prompt can get your robot to pretty damn good most days."],
   ["How can I be sure it sounds like us?",
    "That's all in the set up and the prompt. Your tone of voice, your best examples, your rules. So your robot should sound more like you than you do."],
   ["What's a container and why does it matter?",
    "Literally, it's the thing you put content in. The structure, the design, the word lengths, all that stuff. A smart container is the difference between consistent work and robots painting with beige."],
+  ["How does the robot learn?",
+   "The robot catches all your tweaks and writes them down in its robot notebook. Every now and then we check this list and use it to refine your prompts."],
   ["Will the robot spill my secrets?",
    "Nope. Robot Sandwich runs on Anthropic's API. And there's clear rules that prevent the robots from grabbing stuff and running away. Your copy is yours. Stays yours. No worries."],
   ["Why would Hunch give this away?",
