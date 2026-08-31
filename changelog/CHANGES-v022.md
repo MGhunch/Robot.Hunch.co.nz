@@ -84,6 +84,19 @@ was holding stale words. New defaults are in there. Which also means the
 schema change the brief flagged isn't needed: the defaults already live in
 the engine, and nothing ripples out to SCHEMA-v3.
 
+## Fixed — THINKING showed on arrival
+
+The beat was visible from first paint: a red band with the burger and no
+words, because `thinkStart()` hadn't run to put a line in it.
+
+`.think` sets `display:flex`, and `[hidden]{display:none}` is a *user
+agent* rule — any author `display` beats it, so the `hidden` attribute did
+nothing. `.think[hidden]{display:none}` now carries it.
+
+Shipped in v021 and missed because the test asked the element whether it
+was `hidden` (it said yes, truthfully) instead of asking the browser what
+it was actually painting. Checked on computed style now.
+
 ## Housekeeping
 
 THINKING's rules move from an inline `<style>` in `index.html` into

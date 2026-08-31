@@ -989,6 +989,9 @@ mark.fx-hl{background:var(--paper);color:var(--red);padding:0 2px;border-radius:
 /* ---- THINKING: the beat while the WRITER runs --------------------------
    Was inline in index.html while the stylesheet was mid-sync between two
    machines. Folded in here 31 Aug; the <style> block is gone. */
+/* the hidden attribute is a UA rule, and any author display: beats it —
+   so the beat needs its own way to stay out of sight. */
+.think[hidden]{display:none}
 .think{background:var(--red);width:100vw;margin-left:calc(50% - 50vw);
   min-height:min(62vh,540px);display:flex;flex-direction:column;
   align-items:center;justify-content:center;padding:48px 20px}
