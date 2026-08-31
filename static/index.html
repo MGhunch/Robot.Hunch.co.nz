@@ -166,7 +166,7 @@
                     <svg class="fd-chev" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </button>
                   <div class="fd-bod">
-                    <div class="fd-chat" id="fdChat"></div>
+                    <div class="chat" id="fdChat"></div>
                     <div class="fd-answer">
                       <div class="fd-say">
                         <textarea id="fdBox" rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fdNext();}"></textarea>
@@ -234,7 +234,7 @@
                conversation and the composer: a box, a ? and an arrow. -->
           <div class="fx-lozrow"><span class="fx-loz" id="fxTopic">Need any tweaks?</span></div>
           <div class="fx-card">
-            <div class="fx-chat" id="fxChat"></div>
+            <div class="chat narrow" id="fxChat"></div>
             <div class="fx-compose">
               <div class="fx-quote" id="fxQuote"></div>
               <textarea id="fxNote" rows="2" placeholder="Tap a padlock or highlight some words."
@@ -869,7 +869,7 @@ function backToStory(){ subView('story'); }
 let QZ=null, QN=0, QANS={}, QANGLE='';   // config, current move n, answers by key, proposed angle
 const FD_SLOT={gap:'storyPrize', benefit:'storyCare', angle:'storyAngle'};
 const BOT_AV='<span class="botdisc"><img src="robot-face.svg" alt=""></span>';
-const FD_ROBOT='<div class="fd-cav">'+BOT_AV+'</div>';
+const FD_ROBOT='<div class="chat-cav">'+BOT_AV+'</div>';
 let FAR=0;                                // furthest stop reached
 
 /* the concertina: one open, the rest closed; you can reopen anything reached */
@@ -1026,17 +1026,17 @@ async function fdDumpNext(){
 const fdScroll=()=>{ const c=$('fdChat'); c.scrollTop=c.scrollHeight; };
 function fdBubble(html, me){
   const row=document.createElement('div');
-  row.className='fd-row'+(me?' me':'');
-  row.innerHTML = me ? `<div class="fd-msg"></div>` : FD_ROBOT+`<div class="fd-msg">${html}</div>`;
-  if(me) row.querySelector('.fd-msg').textContent=html;
+  row.className='chat-row'+(me?' me':'');
+  row.innerHTML = me ? `<div class="chat-msg"></div>` : FD_ROBOT+`<div class="chat-msg">${html}</div>`;
+  if(me) row.querySelector('.chat-msg').textContent=html;
   $('fdChat').appendChild(row); fdScroll();
 }
 /* thinking — the face does it, same pool as FIX IT (thinkFace) */
 function fdThink(on){
-  $('fdChat').querySelectorAll('.fd-think').forEach((x,i)=>{ if(!on||i>0) x.remove(); });
-  let t=$('fdChat').querySelector('.fd-think');
-  if(on&&!t){ t=document.createElement('div'); t.className='fd-row fd-think';
-    t.innerHTML=`<div class="fd-cav">${thinkFace()}</div>`;
+  $('fdChat').querySelectorAll('.chat-think').forEach((x,i)=>{ if(!on||i>0) x.remove(); });
+  let t=$('fdChat').querySelector('.chat-think');
+  if(on&&!t){ t=document.createElement('div'); t.className='chat-row chat-think';
+    t.innerHTML=`<div class="chat-cav">${thinkFace()}</div>`;
     $('fdChat').appendChild(t); fdScroll(); }
   if(!on&&t) t.remove();
 }
@@ -1047,8 +1047,8 @@ function fdAsk(n, d){
   fdThink(false);
   const m=QZ.moves[n-1]; QN=n;
   let html='';
-  if(d.confirm) html+=`<span class="fd-confirm">${esc(d.confirm)}</span>`;
-  if(n===3 && d.angle){ QANGLE=d.angle; html+=`<span class="fd-angle">${esc(d.angle)}</span>`; }
+  if(d.confirm) html+=`<span class="confirm">${esc(d.confirm)}</span>`;
+  if(n===3 && d.angle){ QANGLE=d.angle; html+=`<span class="angle">${esc(d.angle)}</span>`; }
   else QANGLE='';
   html+=esc(d.enrich||m.plain);
   fdBubble(html);
@@ -1495,13 +1495,13 @@ function fxKeep(say){
    you come back. Rows are stored as html; the drawer's buttons rebind. ── */
 function fxThreadRender(){
   const c=$('fxChat'); c.innerHTML=(FXTHREAD[FXFOCUS]||[]).join('');
-  c.querySelectorAll('.fx-opt').forEach(b=>{ b.onclick=()=>fxPickOption(b.dataset.k,+b.dataset.i); });
+  c.querySelectorAll('.chat-opt').forEach(b=>{ b.onclick=()=>fxPickOption(b.dataset.k,+b.dataset.i); });
   c.scrollTop=c.scrollHeight;
 }
 function fxSay(html,who,withAv){
   const row = who==='me'
-    ? `<div class="fx-chatrow me"><div class="fx-msg">${html}</div></div>`
-    : `<div class="fx-chatrow"><div class="fx-cav ${withAv?'':'ghost'}">${BOT_AV}</div><div class="fx-msg">${html}</div></div>`;
+    ? `<div class="chat-row me"><div class="chat-msg">${html}</div></div>`
+    : `<div class="chat-row"><div class="chat-cav ${withAv?'':'ghost'}">${BOT_AV}</div><div class="chat-msg">${html}</div></div>`;
   if(FXFOCUS){ (FXTHREAD[FXFOCUS]=FXTHREAD[FXFOCUS]||[]).push(row); fxThreadRender(); }
   else { $('fxChat').insertAdjacentHTML('beforeend',row); $('fxChat').scrollTop=$('fxChat').scrollHeight; }
 }
@@ -1514,13 +1514,13 @@ function thinkFace(){ let p; do{ p=THINK_POOL[Math.floor(Math.random()*THINK_POO
   return `<span class="botdisc think ${p}">${BOT_FACE}</span>`; }
 function fxThink(){
   const t=document.createElement('div');
-  t.className='fx-chatrow fx-thinkrow'; t.innerHTML=`<div class="fx-cav">${thinkFace()}</div>`;
+  t.className='chat-row chat-think'; t.innerHTML=`<div class="chat-cav">${thinkFace()}</div>`;
   $('fxChat').appendChild(t); $('fxChat').scrollTop=$('fxChat').scrollHeight;
   const t0=Date.now();
   t.done = ()=>new Promise(r=>setTimeout(()=>{ t.remove(); r(); }, Math.max(0,1200-(Date.now()-t0))));
   return t;
 }
-function fxClearOpts(){ if(FXFOCUS&&FXTHREAD[FXFOCUS]) FXTHREAD[FXFOCUS]=FXTHREAD[FXFOCUS].filter(r=>!r.startsWith('<button class="fx-opt"')); fxThreadRender(); }
+function fxClearOpts(){ if(FXFOCUS&&FXTHREAD[FXFOCUS]) FXTHREAD[FXFOCUS]=FXTHREAD[FXFOCUS].filter(r=>!r.startsWith('<button class="chat-opt"')); fxThreadRender(); }
 
 /* the drawer: a three-option module offers its other two */
 function fxDrawer(k){
@@ -1528,7 +1528,7 @@ function fxDrawer(k){
   if(fxN(k)||!Array.isArray(v)||fxOpts(m)!==3) return;
   v.forEach((opt,i)=>{
     if(i===PICK) return;
-    FXTHREAD[k].push(`<button class="fx-opt" data-k="${k}" data-i="${i}">Or from the drawer: ${fillPh(opt)}</button>`);
+    FXTHREAD[k].push(`<button class="chat-opt" data-k="${k}" data-i="${i}">Or from the drawer: ${fillPh(opt)}</button>`);
   });
   fxThreadRender();
 }
@@ -1586,7 +1586,7 @@ async function fxSend(){
   if(!note || !COPY || !FXFOCUS) return;
   const k=FXFOCUS;
   $('fxNote').value='';
-  fxSay(FXHL?`<i class="fx-hlq">\u201c${esc(FXHL)}\u201d</i>${esc(note)}`:esc(note),'me');
+  fxSay(FXHL?`<i class="quote">\u201c${esc(FXHL)}\u201d</i>${esc(note)}`:esc(note),'me');
   if(FX_KEEP_RE.test(note)){ fxQuoteSet(null); fxKeep(); return; }
   const cur = fxText(k), hl=FXHL;
   fxQuoteSet(null);

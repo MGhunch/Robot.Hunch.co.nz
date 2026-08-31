@@ -36,11 +36,11 @@ const BASE='http://127.0.0.1:5055';
   await sleep(600);
   const fr=d.querySelector('#fxArt iframe');
   console.log('FXORDER:', E('FXORDER').join(','), '| pads:', d.querySelectorAll('#fxGutter .fx-pad').length, '| topic:', d.getElementById('fxTopic').textContent, '| wrap:', d.getElementById('fxWrapLbl').textContent);
-  const D=E('FXDOC'); console.log('poured headline:', D&&D.querySelector('[data-module="headline"]').textContent, '| terms starts:', D&&D.querySelector('[data-module="terms"]').textContent.slice(0,40), '| chat:', d.querySelectorAll('#fxChat .fx-chatrow').length, 'drawer:', d.querySelectorAll('#fxChat .fx-opt').length);
+  const D=E('FXDOC'); console.log('poured headline:', D&&D.querySelector('[data-module="headline"]').textContent, '| terms starts:', D&&D.querySelector('[data-module="terms"]').textContent.slice(0,40), '| chat:', d.querySelectorAll('#fxChat .chat-row').length, 'drawer:', d.querySelectorAll('#fxChat .chat-opt').length);
   // the loop: tap a padlock → pencil, thread opens; tap again → kept, next opens
   w.fxPadTap('subject'); await sleep(100);
-  console.log('focus:', E('FXFOCUS'), '| topic:', d.getElementById('fxTopic').textContent, '| chat:', d.querySelectorAll('#fxChat .fx-chatrow').length, 'drawer:', d.querySelectorAll('#fxChat .fx-opt').length, '| pad states:', [...d.querySelectorAll('#fxGutter .fx-pad')].map(b=>b.className.replace('fx-pad ','')).join(','), '| lifted:', D.querySelectorAll('.fx-sec.editing').length, '| wrap:', d.getElementById('fxWrapLbl').textContent);
-  w.fxPickOption('subject',1); await sleep(100); console.log('after pick:', D.querySelector('[data-module="subject"]').textContent, '| drawer left:', d.querySelectorAll('#fxChat .fx-opt').length);
+  console.log('focus:', E('FXFOCUS'), '| topic:', d.getElementById('fxTopic').textContent, '| chat:', d.querySelectorAll('#fxChat .chat-row').length, 'drawer:', d.querySelectorAll('#fxChat .chat-opt').length, '| pad states:', [...d.querySelectorAll('#fxGutter .fx-pad')].map(b=>b.className.replace('fx-pad ','')).join(','), '| lifted:', D.querySelectorAll('.fx-sec.editing').length, '| wrap:', d.getElementById('fxWrapLbl').textContent);
+  w.fxPickOption('subject',1); await sleep(100); console.log('after pick:', D.querySelector('[data-module="subject"]').textContent, '| drawer left:', d.querySelectorAll('#fxChat .chat-opt').length);
   w.fxPadTap('subject'); await sleep(600);
   console.log('after keep — focus:', E('FXFOCUS'), '| locks:', JSON.stringify(E('FXLOCK')), '| wrap:', d.getElementById('fxWrapLbl').textContent, '| pads:', [...d.querySelectorAll('#fxGutter .fx-pad')].map(b=>b.className.replace('fx-pad ','')).join(','));
   // a typed keep never leaves the browser
@@ -48,7 +48,7 @@ const BASE='http://127.0.0.1:5055';
   console.log('after typed keep — focus:', E('FXFOCUS'), '| wrap:', d.getElementById('fxWrapLbl').textContent);
   // back to a locked one: thread remembered
   w.fxPadTap('subject'); await sleep(100);
-  console.log('reopened subject — rows:', d.querySelectorAll('#fxChat .fx-chatrow').length, '| topic:', d.getElementById('fxTopic').textContent, '| headline now:', E('FXLOCK').headline);
+  console.log('reopened subject — rows:', d.querySelectorAll('#fxChat .chat-row').length, '| topic:', d.getElementById('fxTopic').textContent, '| headline now:', E('FXLOCK').headline);
   // wrap early takes you to the open bit
   w.fxWrapGo(); await sleep(100); console.log('wrap early → focus:', E('FXFOCUS'), '| wrap:', d.getElementById('fxWrapLbl').textContent);
   // one update — the lineup

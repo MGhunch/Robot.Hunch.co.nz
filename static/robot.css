@@ -265,31 +265,46 @@ mark.fx-ch{background:var(--yellow);color:inherit;border-radius:2px;padding:0 1p
 /* the rail */
 .fx-rail{position:sticky;top:16px;display:flex;flex-direction:column;gap:13px;}
 
-/* ── the conversation. The robot talks; the human answers. The what
+/* ── THE CHAT — one family (v020). The robot talks; the human answers,
+   in every room. FEED IT's values are the base; the rail adds .narrow,
+   and .narrow is only allowed to touch padding and margin. The what
    lives in the pill; the why lives in the chat; the input bar is the
    pencil; locking is a thing the robot reports, not a thing you press. */
 
-.fx-chat{display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow-y:auto;
-  padding-bottom:2px;scroll-behavior:smooth;}
-.fx-chatrow{display:flex;gap:10px;align-items:flex-end;}
-.fx-cav{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:#fff;
-  display:flex;align-items:center;justify-content:center;}
-.fx-cav img{width:24px;height:24px;object-fit:contain;}
-.fx-cav .botdisc img{width:19px;height:19px;}
-.fx-cav.ghost{visibility:hidden;}
-.fx-msg{background:#fff;border-radius:14px;border-bottom-left-radius:4px;
-  padding:10px 14px;font-size:12.5px;line-height:1.55;max-width:268px;}
-.fx-msg .small{display:block;font-size:11px;color:var(--mid);margin-top:5px;}
-.fx-chatrow.me{justify-content:flex-end;}
-.fx-chatrow.me .fx-msg{background:var(--paper);color:var(--ink);border:1px solid var(--border);
-  border-radius:14px;border-bottom-right-radius:4px;}
-.fx-hlq{display:block;font-style:normal;color:var(--mid);font-size:11.5px;margin-bottom:3px;}
+.chat{display:flex;flex-direction:column;gap:10px;overflow-y:auto;scroll-behavior:smooth}
+.chat-row{display:flex;gap:10px;align-items:flex-end}
+.chat-row.me{justify-content:flex-end;margin-left:60px}
+.chat-cav{flex:0 0 auto;width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center}
+.chat-cav.ghost{visibility:hidden}
+.chat-msg{background:var(--paper);color:var(--ink);border-radius:14px;border-bottom-left-radius:4px;
+  padding:13px 16px;font-size:13.5px;line-height:1.55;max-width:430px}
+.chat-row.me .chat-msg{background:#fff;border:1px solid var(--border);
+  border-radius:14px;border-bottom-right-radius:4px;white-space:pre-wrap}
+.chat-think{min-height:36px}
+/* things that ride inside a bubble — same in both rooms */
+.chat-msg .small{display:block;font-size:11px;color:var(--mid);margin-top:5px}
+.chat-msg .quote{display:block;font-style:normal;color:var(--mid);font-size:11.5px;margin-bottom:3px}
+.chat-msg .confirm{display:block;margin-bottom:6px}
+.chat-msg .angle{display:block;font-weight:600;color:var(--red);margin-bottom:6px}
 mark.fx-hl{background:var(--yellow);color:var(--ink);border-radius:2px;padding:0 2px;}
-.fx-opt{margin-left:46px;align-self:flex-start;max-width:280px;background:transparent;
-  border:1.5px solid rgba(255,255,255,.75);color:#fff;border-radius:14px;padding:9px 13px;
-  font-size:12.5px;line-height:1.5;cursor:pointer;text-align:left;font-family:inherit;
-  transition:background .15s,color .15s;}
-.fx-opt:hover{background:#fff;color:var(--red);border-color:#fff;}
+/* the fixer's two options — a bubble you can press */
+.chat-opt{margin-left:46px;align-self:flex-start;max-width:280px;background:transparent;color:var(--red);
+  border:1px solid var(--red);border-radius:14px;padding:9px 13px;font-size:13.5px;line-height:1.5;
+  text-align:left;font-family:inherit;cursor:pointer;transition:background .15s,color .15s}
+.chat-opt:hover{background:var(--red);color:#fff}
+/* the rail is 352 wide inside its card: tighter bubble, tighter me-margin */
+.chat.narrow .chat-msg{padding:11px 14px}
+.chat.narrow .chat-row.me{margin-left:40px}
+
+/* the constant: the white face on its red disc, everywhere the robot
+   speaks. The disc is the mark; the white chip is just the seat. One
+   size in the chat, one shadow, and it never reskins. */
+.botdisc{width:27px;height:27px;border-radius:50%;background:var(--red);
+  display:flex;align-items:center;justify-content:center}
+.botdisc img{width:19px;height:19px;object-fit:contain;display:block}
+.chat-cav .botdisc{width:36px;height:36px;box-shadow:0 3px 10px rgba(0,0,0,.22)}
+.chat-cav .botdisc img{width:25px;height:25px}
 /* the composer: quote (if any), the box, ? and the arrow. Paper is
    enough — no dashed box, no rule, no SEND. */
 .fx-compose{border-top:1px solid var(--border);padding-top:12px;position:relative;}
@@ -322,7 +337,7 @@ mark.fx-hl{background:var(--yellow);color:var(--ink);border-radius:2px;padding:0
 
 /* thinking — the face, one behaviour per wait. Shared by FEED IT and FIX IT. */
 .botdisc.think svg{width:19px;height:19px;display:block;overflow:visible;}
-.fd-cav .botdisc.think svg{width:25px;height:25px;}
+.chat-cav .botdisc.think svg{width:25px;height:25px;}
 .botdisc.think .eye,.botdisc.think .bulb{transform-box:fill-box;transform-origin:center;}
 .botdisc.think.eyeroll .eye{animation:thEyeroll 2.2s infinite ease-in-out;}
 .botdisc.think.eyeroll .bulb{animation:thBulb 2.2s infinite;}
@@ -337,7 +352,6 @@ mark.fx-hl{background:var(--yellow);color:var(--ink);border-radius:2px;padding:0
 .botdisc.think.blink .bulb{animation:thBulb 1.6s infinite;}
 @keyframes thBlink{0%,80%,100%{transform:scaleY(1)}86%{transform:scaleY(.1)}}
 @media (prefers-reduced-motion:reduce){.botdisc.think *{animation:none!important;}}
-.fx-thinkrow{min-height:36px;}
 
 /* don't touch */
 
@@ -531,33 +545,6 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .fd-zone{background:var(--paper);color:var(--red);font-size:9px;font-weight:700;
   letter-spacing:2px;text-transform:uppercase;border-radius:20px;padding:5px 12px;
   margin-bottom:14px;display:inline-block}
-.fd-chat{display:flex;flex-direction:column;gap:10px;max-height:52vh;overflow-y:auto;
-  padding-top:14px;scroll-behavior:smooth}
-/* the fade only wakes once something's actually scrolled beneath the pill —
-   at rest the top bubble sits crisp and aligned */
-.fd-chat.scrolled{
-  mask-image:linear-gradient(to bottom,transparent 0,#000 44px);
-  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 44px)}
-.fd-row{display:flex;gap:10px;align-items:flex-end;margin-right:34px}
-.fd-row.me{justify-content:flex-end;margin-right:0;margin-left:80px}
-.fd-cav{flex:0 0 auto;width:36px;height:36px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center}
-.fd-cav .botdisc{width:36px;height:36px;box-shadow:0 3px 10px rgba(0,0,0,.22)}
-.fd-cav .botdisc img{width:25px;height:25px}
-/* the constant: the white face rides its red disc everywhere the robot
-   speaks. The disc is the mark; the white chip is just the seat. */
-.botdisc{width:27px;height:27px;border-radius:50%;background:var(--red);
-  display:flex;align-items:center;justify-content:center}
-.botdisc img{width:19px;height:19px;object-fit:contain;display:block}
-.fd-msg{background:#fff;border-radius:14px;border-bottom-left-radius:4px;
-  padding:13px 16px;font-size:13.5px;line-height:1.55;max-width:430px}
-.fd-row.me .fd-msg{background:var(--paper);color:var(--ink);border-radius:14px;
-  border-bottom-right-radius:4px;white-space:pre-wrap}
-.fd-msg .fd-q{font-family:'Oswald',var(--display),sans-serif;font-weight:500;
-  font-size:18px;letter-spacing:1.5px;text-transform:uppercase;display:block;
-  margin-bottom:5px;color:var(--red)}
-.fd-msg .fd-q i{font-style:normal;color:var(--mid);margin-right:2px}
-.fd-think{min-height:36px}
 .fd-answer{margin-left:46px;margin-top:6px}
 .fd-say{background:#fff;border-radius:var(--r-lg);padding:4px}
 .fd-say textarea{width:100%;border:none;outline:none;background:none;resize:none;
@@ -614,7 +601,7 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
    + sub; open = the action; one open at a time. The gutter numbers are
    engine chrome and never reskin. Everything inside a stop is the
    furniture the tool already had — the pad borrows the pics page's
-   dropzone, the chat is .fd-chat, the deets are .cl-card — it just
+   dropzone, the chat is .chat, the deets are .cl-card — it just
    loses its own card. */
 .fd-wrap{max-width:1000px}
 .fd-grid{grid-template-columns:300px minmax(0,600px)}
@@ -649,15 +636,8 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .fd-bod .fd-answer{margin-left:0;margin-top:0}
 .fd-bod .fd-say{padding:0}
 .fd-bod .fd-foot{margin:0;padding:8px 0 0}
-.fd-bod .fd-chat{padding-top:0;max-height:none;margin-bottom:10px}
-.fd-bod .fd-chat.scrolled{mask-image:none;-webkit-mask-image:none}
-.fd-bod .fd-row.me{margin-left:60px}
-.fd-bod .fd-msg{background:var(--paper)}
-.fd-bod .fd-row.me .fd-msg{background:#fff;border:1px solid var(--border)}
+.fd-bod .chat{margin-bottom:10px}
 .fd-bod .fd-say textarea{min-height:0;padding:9px 4px}
-/* the two beats of a move, and the proposal */
-.fd-confirm{display:block;margin-bottom:6px}
-.fd-angle{display:block;font-weight:600;color:var(--red);margin-bottom:6px}
 /* no display type inside the stops — the sections don't perform */
 .fd-bod .fd-go,.fd-bod .cl-door{font-family:var(--body);font-weight:600;font-size:12px;letter-spacing:1.5px;padding:0 20px}
 .fd-bod .cl-title{font-family:var(--body);font-weight:600;font-size:11.5px;letter-spacing:2px;color:var(--mid);margin-bottom:4px}
@@ -881,12 +861,7 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 /* ---------------- THE WORKINGS card (v015, reshaped v016) ----------------
    White card: lozenge on top, the section's thread, the composer. */
 .fx-card{background:#fff;border-radius:var(--r-lg);padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px}
-.fx-card .fx-chat{max-height:46vh;min-height:120px}
-.fx-card .fx-msg{background:var(--paper);color:var(--ink)}
-.fx-card .fx-chatrow.me .fx-msg{background:#FBFAF6;color:var(--ink);border:1px solid #e3e0d6;border-bottom-right-radius:4px}
-.fx-card .fx-cav{background:transparent}
-.fx-card .fx-opt{background:transparent;color:var(--red);border:1px solid var(--red)}
-.fx-card .fx-opt:hover{background:var(--red);color:#fff}
+.fx-card .chat{max-height:46vh;min-height:120px}
 mark.fx-hl{background:var(--paper);color:var(--red);padding:0 2px;border-radius:2px}
 
 /* ---------------- FILE IT — the takeaway counter (v017) ----------------
