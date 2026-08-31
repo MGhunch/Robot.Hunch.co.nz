@@ -13,33 +13,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=020">
+<link rel="stylesheet" href="robot.css?v=022">
 
-<!-- THINKING — the beat between FEED IT and FIX IT. Inline only because
-     this cut ships without touching robot.css (we're mid-sync on it);
-     fold it in there under its own block at the next sync, delete this. -->
-<style>
-.think{background:var(--red);width:100vw;margin-left:calc(50% - 50vw);
-  min-height:min(62vh,540px);display:flex;flex-direction:column;
-  align-items:center;justify-content:center;padding:48px 20px}
-.think-bot{width:min(120px,30vw);height:auto;margin:0 0 26px;
-  animation:think-bob 2.6s ease-in-out infinite;transform-origin:50% 90%}
-@keyframes think-bob{0%,100%{transform:translateY(0) rotate(-1.5deg)}
-  50%{transform:translateY(-6px) rotate(1.5deg)}}
-.think-say{position:relative;color:#fff;text-align:center;width:100%;
-  font-size:clamp(36px,6vw,56px);min-height:1.1em}
-.think-say span{display:block}
-.think-say .in{animation:think-land .55s cubic-bezier(.2,1.1,.3,1) both}
-.think-say .out{position:absolute;left:0;right:0;top:0;
-  animation:think-drop .32s ease-in both}
-@keyframes think-land{from{opacity:0;transform:translateY(-.35em)}
-  60%{transform:translateY(.05em)}to{opacity:1;transform:translateY(0)}}
-@keyframes think-drop{to{opacity:0;transform:translateY(.35em)}}
-@media(prefers-reduced-motion:reduce){
-  .think-bot{animation:none}
-  .think-say .in,.think-say .out{animation:none}
-}
-</style>
 </head>
 <body>
 
@@ -175,15 +150,35 @@
                     </div>
                     <svg class="fd-chev" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </button>
-                  <div class="fd-bod">
-                    <div class="picdrop fd-pad" id="fdPad" tabindex="0" role="button">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5"/><path d="M8 9l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-                      <div class="pichead" id="fdPadHead"></div>
-                      <div class="picsub"><a id="fdBrowse"></a> <span id="fdPadLine"></span><br><span id="fdPadHint"></span></div>
-                      <div class="fd-docs" id="fdDocs"></div>
-                      <textarea class="fd-paste" id="fdDump" rows="3"></textarea>
+                  <div class="fd-bod" id="fdCard0">
+                    <!-- three doors, one box. Everything that lands, whichever
+                         door, is the same dump the FEEDER reads. -->
+                    <div class="dump-doors">
+                      <button class="dump-door on" id="fdDoorDocs" onclick="fdDoor('docs')">
+                        <span class="dump-disc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/></svg></span><b>DOCS</b>
+                      </button>
+                      <button class="dump-door" id="fdDoorWords" onclick="fdDoor('words')">
+                        <span class="dump-disc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg></span><b>WORDS</b>
+                      </button>
+                      <button class="dump-door" id="fdDoorSearch" onclick="fdDoor('search')">
+                        <span class="dump-disc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.7 3 2.7 15 0 18c-2.7-3-2.7-15 0-18z"/></svg></span><b>SEARCH</b>
+                      </button>
                     </div>
-                    <div class="fd-foot"><div class="fd-tools"></div><button class="fd-go" id="fdDumpGo" onclick="fdDumpNext()">NEXT</button></div>
+                    <div class="dump-nudge" id="fdPadHint"></div>
+                    <div class="dump-plate" id="fdPlate">
+                      <div class="dump-view on" id="fdViewDocs">
+                        <div class="fd-docs" id="fdDocs"></div>
+                        <div class="dump-empty">
+                          <svg class="dump-baby" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5"/><path d="M8 9l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+                          <p class="dump-hint"><a id="fdBrowse"></a> <span id="fdPadLine"></span></p>
+                        </div>
+                      </div>
+                      <div class="dump-view" id="fdViewWords">
+                        <svg class="dump-baby" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.6 15.4"/><path d="M14.5 14.5L20 20"/><path d="M8.6 8.6L12 12"/></svg>
+                        <textarea class="fd-paste" id="fdDump" rows="3"></textarea>
+                      </div>
+                    </div>
+                    <div class="fd-foot"><div class="fd-tools"></div><button class="fd-go" id="fdDumpGo" onclick="fdDumpNext()">DONE</button></div>
                   </div>
                 </div>
               </div>
@@ -532,6 +527,7 @@ function clRender(){
     fixed.forEach(c=>frow.appendChild(clPill(c,true,true)));
     fx.appendChild(frow); wrap.insertBefore(fx, wrap.firstChild); } }
   $('clDoor').classList.toggle('live', detailReady());
+  fdStages();
 }
 function clTitle(t){
   const w=String(t).split(' '); if(w.length<2) return esc(t);
@@ -904,21 +900,51 @@ let QZ=null, QN=0, QANS={}, QANGLE='';   // config, current move n, answers by k
 const FD_SLOT={gap:'storyPrize', benefit:'storyCare', angle:'storyAngle'};
 const BOT_AV='<span class="botdisc"><img src="robot-face.svg" alt=""></span>';
 const FD_ROBOT='<div class="chat-cav">'+BOT_AV+'</div>';
-let FAR=0;                                // furthest stop reached
+let ACC=0;                                // which stop is open
 
-/* the concertina: one open, the rest closed; you can reopen anything reached */
-function acc(i){
-  if(i>FAR) return;
+/* The concertina: one open, the rest closed, and all three reachable from
+   the off. Wander in any order — the gate is the door, not the navigation.
+   A stop is 'done' when it actually holds something, never because you
+   happen to be standing past it. */
+function fdDone(j){
+  if(j===0) return !!fdDumpText().trim();
+  if(j===1) return !!QZ && (QZ.moves||[]).every(m=>String(QANS[m.key]||'').trim());
+  if(j===2) return detailReady();
+  return false;
+}
+function fdStages(){
   document.querySelectorAll('.fd-stage').forEach((st,j)=>{
-    st.className='fd-stage '+(j===i?'on':j<i?'done':'todo');
+    st.className='fd-stage '+(j===ACC?'on':fdDone(j)?'done':'todo');
   });
+}
+function acc(i){
+  ACC=i; fdStages();
   if(i===2){ clRender(); armDetail(); }
 }
-function accReach(i){ FAR=Math.max(FAR,i); acc(i); if(i!==1) fdThink(false); }
+function accReach(i){ acc(i); if(i!==1) fdThink(false); }
+
+/* The robot, saying one short thing in the stop you've just been sent to.
+   Its own words, so they live here in the engine, never in config.md. */
+const FD_SHORT=[
+  [0, 'Nothing to write about yet.'],
+  [1, "Let's quickly bounce it first."],
+  [2, 'Just need to check the deets.'],
+];
+let SAID=null;
+function fdShort(){ return FD_SHORT.find(([j])=>!fdDone(j)) || null; }
+function fdSay(j,line){
+  const st=document.querySelectorAll('.fd-stage')[j]; if(!st) return;
+  const bod=st.querySelector('.fd-bod'); if(!bod) return;
+  let el=$('fdSaid');
+  if(!el){ el=document.createElement('div'); el.id='fdSaid'; el.className='fd-said'; }
+  el.textContent=line;
+  bod.insertBefore(el, bod.firstChild);
+  clearTimeout(SAID); SAID=setTimeout(()=>{ if(el.parentNode) el.remove(); }, 7000);
+}
 
 async function quizInit(){
   if(!CONT) return;
-  QZ = CONT.quiz; QN=0; QANS={}; QANGLE=''; FAR=0;
+  QZ = CONT.quiz; QN=0; QANS={}; QANGLE=''; ACC=0;
   $('fdChat').innerHTML=''; acc(0);
   if(QZ.tagline) $('fdTagline').textContent = QZ.tagline;
   (QZ.stops||[]).forEach((st,i)=>{
@@ -926,10 +952,11 @@ async function quizInit(){
     if(t) t.textContent=st.title||''; if(su) su.textContent=st.sub||'';
   });
   const pad=(QZ.stops&&QZ.stops[0]&&QZ.stops[0].pad)||{};
-  $('fdPadHead').textContent = pad.head||'DROP IT HERE';
   $('fdBrowse').textContent  = pad.browse||'Browse';
-  $('fdPadLine').textContent = pad.line||'or drag and drop.';
+  FD_LINE = pad.line||'or drag it in.';
   $('fdPadHint').textContent = pad.hint||'';
+  $('fdDump').placeholder    = pad.paste||'Cut and paste anything.';
+  DUMPDOOR='docs'; FD_DOCS=[]; fdDocsDraw();
   $('fdDump').placeholder    = pad.paste||'Or paste it in here.';
   fdGhostDraw();
   fdToolsDraw(QZ.tools||{});
@@ -1005,6 +1032,7 @@ function fdToolsDraw(t){
 
 /* ---------- STOP 1: the landing pad ---------- */
 const FD_TEXT = f => /\.(txt|md|csv)$/i.test(f.name) || (f.type||'').startsWith('text/');
+let FD_LINE='or drag it in.';
 let FD_DOCS=[];                            // {name, text} — what's been dropped
 async function fdTake(files){
   for(const f of files){
@@ -1019,16 +1047,54 @@ async function fdTake(files){
 }
 function fdDocsDraw(){
   $('fdDocs').innerHTML = FD_DOCS.map((d,i)=>
-    `<span class="fd-doc${d.bad?' bad':''}" title="${d.bad?'Can\'t read this one yet — paste the words in':''}">${esc(d.name)}<button onclick="fdDocDrop(${i});event.stopPropagation()" aria-label="Remove">&times;</button></span>`).join('');
+    `<div class="dump-row${d.bad?' bad':''}">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/></svg>
+       <span class="dump-name">${esc(d.name)}</span>
+       <button class="dump-x" onclick="fdDocDrop(${i});event.stopPropagation()" aria-label="Remove">&times;</button>
+       <span class="dump-tick" aria-label="${d.bad?'Not read':'Read'}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-6.5"/></svg></span>
+     </div>`).join('')
+    + (FD_DOCS.some(d=>d.bad) ? `<p class="dump-bad">Couldn't read that one. Paste the words in instead.</p>` : '');
+  fdDumpDraw();
 }
-function fdDocDrop(i){ FD_DOCS.splice(i,1); fdDocsDraw(); }
+function fdDocDrop(i){ FD_DOCS.splice(i,1); fdDocsDraw(); fdStages(); }
+
+/* ---- the three doors ----------------------------------------------------
+   DOCS and WORDS open the box. SEARCH is hollow until the engine's web tool
+   lands (hit list 9) — tapping it says so and leaves the open door alone. */
+let DUMPDOOR='docs';
+function fdDoor(d){
+  if(d==='search'){ fdSay(0, "Can't go looking yet. Paste it in for now."); return; }
+  DUMPDOOR=d; fdDumpDraw();
+  if(d==='words') setTimeout(()=>{ const t=$('fdDump'); if(t) t.focus(); },0);
+}
+function fdDumpDraw(){
+  const docs=FD_DOCS.length>0, words=!!($('fdDump')||{}).value.trim();
+  const set=(id,on,has)=>{ const el=$(id); if(!el) return;
+    el.className='dump-door'+(on?' on':has?' has':''); };
+  set('fdDoorDocs',   DUMPDOOR==='docs',  docs);
+  set('fdDoorWords',  DUMPDOOR==='words', words);
+  set('fdDoorSearch', false, false);
+  const vd=$('fdViewDocs'), vw=$('fdViewWords');
+  if(vd) vd.className='dump-view'+(DUMPDOOR==='docs' ?' on':'')+(docs?' filled':'');
+  if(vw) vw.className='dump-view'+(DUMPDOOR==='words'?' on':'')+(words?' filled':'');
+  const plate=$('fdPlate');
+  if(plate) plate.classList.toggle('filled', (DUMPDOOR==='docs'&&docs)||(DUMPDOOR==='words'&&words));
+  const line=$('fdPadLine');
+  if(line) line.textContent = docs ? (QZ&&QZ.stops&&QZ.stops[0]&&QZ.stops[0].pad&&QZ.stops[0].pad.more)
+    || 'or drag in another.' : (FD_LINE||'or drag it in.');
+}
 $('fdBrowse').addEventListener('click', e=>{ e.stopPropagation(); $('fdFile').click(); });
 $('fdFile').addEventListener('change', async e=>{ await fdTake(e.target.files); e.target.value=''; });
 {
-  const pad=$('fdPad');
-  ['dragenter','dragover'].forEach(ev=>pad.addEventListener(ev,e=>{e.preventDefault();pad.classList.add('dragover');}));
-  ['dragleave','drop'].forEach(ev=>pad.addEventListener(ev,e=>{e.preventDefault();pad.classList.remove('dragover');}));
-  pad.addEventListener('drop', e=>fdTake(e.dataTransfer.files));
+  /* a file over the card, whichever door is open: DOCS takes it. */
+  const card=$('fdCard0'), plate=$('fdPlate');
+  const over=on=>{ if(plate) plate.classList.toggle('over',on);
+    if(on && DUMPDOOR!=='docs'){ DUMPDOOR='docs'; fdDumpDraw(); plate.classList.add('over'); } };
+  ['dragenter','dragover'].forEach(ev=>card.addEventListener(ev,e=>{e.preventDefault();over(true);}));
+  ['dragleave','drop'].forEach(ev=>card.addEventListener(ev,e=>{e.preventDefault();over(false);}));
+  card.addEventListener('drop', e=>fdTake(e.dataTransfer.files));
+  const t=$('fdDump');
+  if(t) t.addEventListener('input', ()=>{ fdDumpDraw(); fdStages(); });
 }
 /* the dump is everything on the pad: pasted words plus every readable doc */
 function fdDumpText(){
@@ -1101,6 +1167,7 @@ async function fdNext(){
     a = yes ? QANGLE : a;
   }
   QANS[m.key]=a;
+  fdStages();
   const slot=$(FD_SLOT[m.key]); if(slot){ slot.value=a; }
   dirty();
   $('fdGo').disabled=true;
@@ -1301,8 +1368,14 @@ async function thinkEnd(started){
 }
 
 async function buildIt(){
-  if(!detailReady()){ subView('detail'); armDetail();
-    alert("A couple of facts still need a tick."); return; }
+  /* typed into the pad but never pressed DONE: take it anyway, and drop the
+     background craft, which went out with an empty source. */
+  const typed=fdDumpText().trim();
+  if(typed && !val('blurb').trim()){ $('blurb').value=typed; CRAFT=null; CRAFT_KEY=''; }
+  /* every stop has to hold something. Press early and the robot names the
+     short one and opens it — the line explains, the navigation solves. */
+  const short=fdShort();
+  if(short){ acc(short[0]); fdSay(short[0], short[1]); return; }
   if(COPY){ reach(1); return; }             // already written; no beat to play
   const key = craftKey();
   const beat = thinkStart();

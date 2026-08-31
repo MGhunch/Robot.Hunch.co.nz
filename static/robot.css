@@ -606,6 +606,15 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .fd-wrap{max-width:1000px}
 .fd-grid{grid-template-columns:300px minmax(0,600px)}
 .fd-acc{display:flex;flex-direction:column;gap:12px;position:relative;margin-left:46px}
+/* the robot naming the short stop, in the stop it just sent you to.
+   Says its piece and gets out of the way after a few seconds. */
+.fd-said{background:var(--delta);border-left:3px solid var(--red);
+  color:var(--red);font-weight:500;font-size:14.5px;line-height:1.35;
+  padding:10px 14px;border-radius:var(--r-sm);margin:0 0 14px;
+  animation:fd-said-in .28s ease-out both}
+@keyframes fd-said-in{from{opacity:0;transform:translateY(-4px)}
+  to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.fd-said{animation:none}}
 .fd-stage{position:relative}
 .fd-card{background:#fff;border-radius:var(--r-lg);overflow:hidden;
   box-shadow:0 4px 16px rgba(0,0,0,.10)}
@@ -644,9 +653,71 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .fd-bod .cl-title em{color:var(--mid)}
 .fd-bod .cl-fact.date{font-family:var(--body);font-size:15px;letter-spacing:0;text-transform:none}
 /* stop one is a landing pad: the pics page's dropzone, borrowed whole */
-.fd-pad{padding:26px 20px 12px;margin-bottom:0;cursor:default}
-.fd-pad svg{width:34px;height:34px;margin-bottom:8px;color:var(--ink)}
-.fd-pad .pichead{font-size:20px}
+/* ---- DUMP YOUR DOCS: three doors, one box ------------------------------
+   The discs are engine chrome, same family as the padlocks and the card
+   ticks — they never reskin. Three states: hollow (nothing landed), has
+   (something's in that box, even closed), on (this box is open). The `has`
+   ring is the only tell for a closed door, so no badges and no counts. */
+.dump-doors{display:flex;justify-content:center;gap:34px;margin:4px 0 14px}
+.dump-door{background:none;border:none;padding:0;cursor:pointer;display:flex;
+  flex-direction:column;align-items:center;gap:7px}
+.dump-door b{font-family:var(--display);font-weight:500;font-size:13px;
+  letter-spacing:.6px;color:var(--mid);transition:color .15s}
+.dump-disc{width:44px;height:44px;border-radius:50%;border:1.5px solid #cfcfcf;
+  background:#fff;color:#cfcfcf;display:grid;place-items:center;transition:all .15s}
+.dump-disc svg{width:20px;height:20px}
+.dump-door:hover .dump-disc{transform:scale(1.08)}
+.dump-door.has .dump-disc{border-color:var(--red);color:var(--red)}
+.dump-door.has b{color:var(--ink)}
+.dump-door.on .dump-disc{background:var(--red);border-color:var(--red);color:#fff;
+  box-shadow:0 4px 14px rgba(0,0,0,.22)}
+.dump-door.on b{color:var(--ink)}
+.dump-door:active .dump-disc{transform:scale(.94)}
+
+/* the container's own nudge, under the doors */
+.dump-nudge{text-align:center;font-size:11.5px;color:var(--mid);margin:0 0 12px}
+.dump-nudge:empty{display:none}
+
+/* one box. Solid at rest, never dashed — dashed is reserved for a live
+   drag. Centred while empty, top-aligned and growing once anything lands. */
+.dump-plate{border:1.5px solid var(--border);border-radius:10px;
+  min-height:150px;padding:18px;display:flex;flex-direction:column;
+  justify-content:center;transition:border-color .15s,background .15s}
+.dump-plate.filled{justify-content:flex-start}
+.dump-plate.over{border:2px dashed var(--red);background:rgba(237,28,36,.05)}
+.dump-view{display:none;flex-direction:column;align-items:center;gap:12px;width:100%}
+.dump-view.on{display:flex}
+.dump-view.filled{align-items:stretch}
+.dump-baby{width:30px;height:30px;color:var(--mid);flex:none}
+.dump-view.filled .dump-baby{display:none}
+.dump-plate.over .dump-baby{color:var(--red);display:block}
+.dump-hint{margin:0;font-size:12.5px;color:var(--mid);text-align:center}
+.dump-hint a{color:var(--red);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.dump-view.filled .dump-empty{margin-top:12px}
+
+/* a landed file. Doc icon, name, tick. Hollow tick means it didn't read. */
+.dump-row{display:flex;align-items:center;gap:10px;padding:9px 12px;
+  border:1px solid var(--border);border-radius:8px;background:#fff;margin-bottom:8px}
+.dump-row svg{width:17px;height:17px;color:var(--mid);flex:none}
+.dump-name{flex:1;font-size:13.5px;color:var(--ink);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.dump-x{background:none;border:none;color:var(--mid);font-size:17px;line-height:1;
+  cursor:pointer;padding:0 4px}
+.dump-x:hover{color:var(--red)}
+.dump-tick{width:22px;height:22px;border-radius:50%;background:var(--red);color:#fff;
+  display:grid;place-items:center;flex:none}
+.dump-tick svg{width:12px;height:12px;color:#fff}
+.dump-row.bad .dump-tick{background:#fff;border:1.5px solid #cfcfcf;color:transparent}
+.dump-bad{margin:2px 0 0;font-size:12px;color:var(--red)}
+
+/* WORDS: the placeholder sits centred until they type, then it's an
+   ordinary textarea. One element, not a hint that swaps for a field. */
+.fd-paste{display:block;width:100%;border:none;background:none;resize:vertical;
+  min-height:96px;font:inherit;font-size:14px;color:var(--ink);outline:none}
+.fd-paste:placeholder-shown{text-align:center}
+.fd-paste::placeholder{color:var(--mid)}
+.fd-paste:focus{text-align:left}
+
 .fd-docs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
 .fd-docs:empty{margin-top:0}
 .fd-doc{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border-radius:var(--pill);
@@ -734,14 +805,6 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 /* ---------------- the pics page (FEED IT page three) ----------------
    The robot's writing; the human fills the window with pictures.
    Optional by design — the exit works empty or full, only the label flips. */
-.picdrop{border:2px dashed var(--border);border-radius:10px;padding:34px 20px;
-  text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
-.picdrop:hover,.picdrop:focus-visible{border-color:var(--red);outline:none}
-.picdrop.dragover{border-color:var(--red);background:rgba(237,28,36,.05)}
-.picdrop svg{width:44px;height:44px;margin:0 auto 12px;display:block}
-.pichead{font-family:var(--display);font-size:24px;color:var(--ink);line-height:1;letter-spacing:.5px}
-.picsub{margin-top:8px;font-size:11.5px;color:var(--mid)}
-.picsub a{color:var(--red);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .picgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:9px;margin-top:12px}
 .picgrid:empty{margin-top:0}
 .pic{position:relative;border-radius:7px;overflow:hidden;border:1px solid var(--border);aspect-ratio:1}
@@ -922,3 +985,28 @@ mark.fx-hl{background:var(--paper);color:var(--red);padding:0 2px;border-radius:
   .fi-room{font-size:42px}
 }
 @media(max-width:480px){.fi-tiles{grid-template-columns:1fr}.tile{min-height:0}}
+
+/* ---- THINKING: the beat while the WRITER runs --------------------------
+   Was inline in index.html while the stylesheet was mid-sync between two
+   machines. Folded in here 31 Aug; the <style> block is gone. */
+.think{background:var(--red);width:100vw;margin-left:calc(50% - 50vw);
+  min-height:min(62vh,540px);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:48px 20px}
+.think-bot{width:min(120px,30vw);height:auto;margin:0 0 26px;
+  animation:think-bob 2.6s ease-in-out infinite;transform-origin:50% 90%}
+@keyframes think-bob{0%,100%{transform:translateY(0) rotate(-1.5deg)}
+  50%{transform:translateY(-6px) rotate(1.5deg)}}
+.think-say{position:relative;color:#fff;text-align:center;width:100%;
+  font-size:clamp(36px,6vw,56px);min-height:1.1em}
+.think-say span{display:block}
+.think-say .in{animation:think-land .55s cubic-bezier(.2,1.1,.3,1) both}
+.think-say .out{position:absolute;left:0;right:0;top:0;
+  animation:think-drop .32s ease-in both}
+@keyframes think-land{from{opacity:0;transform:translateY(-.35em)}
+  60%{transform:translateY(.05em)}to{opacity:1;transform:translateY(0)}}
+@keyframes think-drop{to{opacity:0;transform:translateY(.35em)}}
+@media(prefers-reduced-motion:reduce){
+  .think-bot{animation:none}
+  .think-say .in,.think-say .out{animation:none}
+}
+

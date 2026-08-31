@@ -73,8 +73,9 @@ def _quiz(c):
         "tagline": "Fill in the blanks. The robot does the rest.",
         "stops": [
             {"key": "dump", "title": "Dump your docs", "sub": "Drop in anything you've got.",
-             "pad": {"head": "DROP IT HERE", "browse": "Browse", "line": "or drag and drop.",
-                     "hint": fi["dump"], "paste": "Or paste it in here."}},
+             "pad": {"browse": "Browse", "line": "or drag it in.",
+                     "more": "or drag in another.", "hint": fi["dump"],
+                     "paste": "Cut and paste anything."}},
             {"key": "bounce", "title": "Bounce ideas", "sub": "Quick chat to land an angle."},
             {"key": "deets", "title": "Check your deets", "sub": "Dates, times, legals. Lock it in."},
         ],
