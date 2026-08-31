@@ -97,6 +97,8 @@ def _checklist(c):
             if r.get("notsure"): row["notsure"] = r["notsure"]
             if r.get("sub"): row["sub"] = r["sub"]
             if r.get("options"): row["options"] = r["options"]
+            if r.get("unit"):
+                row["unit"] = r["unit"]
             if r.get("when"):
                 m = re.match(r"(\w+)\s+in\s+(.+)", r["when"])
                 if m: row["showIf"] = {"row": m.group(1), "in": [v.strip() for v in m.group(2).split(",")]}

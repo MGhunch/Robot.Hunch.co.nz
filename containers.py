@@ -237,6 +237,7 @@ def _parse_needs(text, problems, cid):
                 "ask": r.get("ask", ""),
                 "notsure": r.get("not-sure line", ""),
                 "diggable": _yes(r.get("diggable")),
+                "unit": r.get("unit", ""),
             }
             for opt in ("sub", "when", "derive", "after"):
                 if r.get(opt):
@@ -302,6 +303,7 @@ def _parse_legals(text, problems, cid):
                 ptype, label, blk = m.group(1), m.group(2).strip(), m.group(3)
                 pl = re.search(r"prize_line:\s*(.*)", blk)
                 nd = re.search(r"needs:\s*(.*)", blk)
+                cn = re.search(r"counts:\s*(.*)", blk)      # the noun a number fact wears
                 extras = []
                 for r in _table(blk)["rows"]:
                     extras.append({"id": r.get("id", ""), "after": r.get("after", ""),
@@ -311,6 +313,7 @@ def _parse_legals(text, problems, cid):
                     [n.strip() for n in nd.group(1).split(",")]
                 lib["by_type"].append({"type": ptype, "label": label,
                                        "line": pl.group(1).strip() if pl else "",
+                                       "counts": cn.group(1).strip() if cn else "",
                                        "needs": needs, "extra": extras})
         elif tl.startswith("extras"):
             for r in _table(body)["rows"]:

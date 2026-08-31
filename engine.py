@@ -316,7 +316,7 @@ def render_terms(c, facts, chosen=None):
 
 def type_options(c):
     """For the checklist's select: the types the clause library knows."""
-    return [{"value": t["type"], "label": t["label"], "needs": t["needs"]}
+    return [{"value": t["type"], "label": t["label"], "needs": t["needs"], "counts": t.get("counts", "")}
             for t in c["legals"]["by_type"]]
 
 
