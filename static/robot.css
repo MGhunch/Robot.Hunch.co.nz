@@ -845,9 +845,10 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
    row (the what, the when). A missing fact sits awake — dashed red, the
    ask inside. Click any pill to update; the circle moved to the card,
    bottom-right, one confirm per group. */
+.cl-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+@media(max-width:700px){.cl-pair{grid-template-columns:1fr}}
 .cl-card.facts{position:relative;padding-bottom:20px;padding-right:16px}
-.cl-factgrid{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:8px;padding-right:52px}
-.cl-row.pillrow{white-space:nowrap}
+.cl-factgrid{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding-right:44px}
 .cl-row.pillrow{border:1px solid var(--border);border-radius:999px;padding:8px 16px;cursor:pointer;
   transition:border-color .12s}
 .cl-row.pillrow:hover{border-color:#9a9a9a}

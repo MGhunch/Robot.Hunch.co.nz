@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=018">
+<link rel="stylesheet" href="robot.css?v=020">
 </head>
 <body>
 
@@ -46,9 +46,9 @@
       </button>
     </div>
     <div class="hm-body about">
-      <p>Robots are brilliant at squirting words into well designed containers. So if you have a good story (and good containers) this should work well.</p>
-      <p>If you need help deciding what to say or designing great containers, humans are the way to go. Hunch is pretty good at both.</p>
-      <p>Once you've nailed both, you can roll with a robot every day of the week. Just feed it, fix it and you'll be done in a flash. Happy days.</p>
+      <p>Robots are brilliant at squirting words into well designed containers. Good story, good container, good as gold.</p>
+      <p>The trick is knowing what to say and designing a great container. That's the human bit. Hunch can help with both.</p>
+      <p>Once locked and loaded you can roll with the robot every day of the week. Feed it. Fix it. File it. Happy days.</p>
     </div>
   </div>
 </div>
@@ -467,11 +467,17 @@ function clDerive(r,S){
 function clRender(){
   const wrap=$('clCards'); if(!wrap||!CONT) return; wrap.innerHTML='';
   const done=new Set();
-  const place=card=>wrap.appendChild(card);   // cards stack; one pill per line
+  let pair=null;                       // two fact cards share a row
+  const place=card=>{
+    if(!card.classList||!card.classList.contains('facts')){ pair=null; wrap.appendChild(card); return; }
+    if(pair&&pair.children.length<2){ pair.appendChild(card); return; }
+    pair=document.createElement('div'); pair.className='cl-pair';
+    pair.appendChild(card); wrap.appendChild(pair);
+  };
   CL_CONFIG.groups.forEach(g=>{
     if(g.repeat){
       const key=repKey(g); if(done.has(key)) return; done.add(key);
-      clRepeatCards(key).forEach(c=>wrap.appendChild(c));
+      clRepeatCards(key).forEach(c=>{ pair=null; wrap.appendChild(c); });
       return;
     }
     if(!g.rows.some(r=>r.type!=='legals')) return;      // a prose-only group draws nothing
@@ -619,12 +625,13 @@ function clRowEl(r,S){
       ? (s.value==='other' ? (s.other||'') : (clOptions(r).find(o=>o[0]===s.value)||[])[1])
       : s.value;
     let v;
-    if(!shown) v='TBC';
+    if(!shown) v=`<span class="cl-ask">${esc(clAsk(r)||'TBC')}</span>`;
     else if(r.type==='date') v=clFmtDate(s.value);
     else if(r.type==='number'){ const u=clUnit(r,S); v=esc(clFmtNum(shown)+(u?' '+u:'')); }
     else v=esc(shown);
     row.classList.add('pillrow'); if(!shown) row.classList.add('awake');
-    valEl.innerHTML=`<span class="cl-pilllabel">${esc(r.label)}</span> <span class="cl-pillval">${v}</span>`;
+    valEl.innerHTML=`<span class="cl-pilllabel">${esc(r.label)}</span> <span class="cl-pillval">${v}</span>`
+      +clProv(s);
     valEl.onclick=()=>{ s.mode='edit'; clRender(); };
   }
   else if(s.mode==='edit'){
