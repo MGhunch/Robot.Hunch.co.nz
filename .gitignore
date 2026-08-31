@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# The reader's compiled cache. Rebuilt from the folder whenever a file in
+# it changes — never the source of truth, never worth committing.
+*.compiled.json
+
+# The tweak log. This is the asset, but it belongs on the Railway volume
+# (ROBOT_STORE=/data/robot_store.jsonl), not in the repo. A copy in here
+# ships stale data to production and hides whether the volume is working.
+robot_store.jsonl
+
+# Gold copy for the voice. Same reasoning as the log — data, not code.
+voice_examples.json
+
+# Run artefacts. Both are rebuilt on demand and both should point at the
+# volume in production (ROBOT_IMAGES, ROBOT_WRAPS).
+images/
+wraps/
+
+# Node — only ever installed locally to run smoke_ui.js
+node_modules/
+package-lock.json
+package.json
+
+# OS
+.DS_Store

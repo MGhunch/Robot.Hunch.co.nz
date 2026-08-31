@@ -25,10 +25,21 @@ shutil.copytree(os.path.join(C.CONTAINERS_DIR, "prize_draw"), broken)
 os.remove(os.path.join(broken, "spec.md"))
 os.rename(os.path.join(broken, "prize_draw.html"), os.path.join(broken, "broken.html"))
 cfg = open(os.path.join(broken, "config.md"), encoding="utf-8").read()
-cfg = cfg.replace("brand:   one_nz", "brand:   sky")
-cfg = cfg.replace("| winners | Prize |", "| prize_name | Prize |")
-cfg = cfg.replace("{opens_long} at {opens_time}", "{opens_long} at {kickoff}")
-cfg = cfg.replace("| 3 | the angle |", "| 4 | encore | Again? | | |\n| 3 | the angle |")
+
+
+def break_it(text, old, new):
+    """Plant one fault. A substitution that matches nothing means config.md
+    has moved on and this fixture is stale — say so here, where it's obvious,
+    rather than letting the assert below fail for a reason that isn't true."""
+    if old not in text:
+        raise AssertionError(f"fixture is stale: config.md no longer contains {old!r}")
+    return text.replace(old, new)
+
+
+cfg = break_it(cfg, "brand:   one_nz", "brand:   sky")
+cfg = break_it(cfg, "| winners | Prizes |", "| prize_name | Prizes |")
+cfg = break_it(cfg, "{opens_long} at {opens_time}", "{opens_long} at {kickoff}")
+cfg = break_it(cfg, "| 3 | the angle |", "| 4 | encore | Again? | | |\n| 3 | the angle |")
 open(os.path.join(broken, "config.md"), "w", encoding="utf-8").write(cfg)
 reasons = C.validate(broken)
 print("\n".join("  ! " + r for r in reasons))
