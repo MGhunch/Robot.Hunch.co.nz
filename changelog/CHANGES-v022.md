@@ -97,6 +97,17 @@ Shipped in v021 and missed because the test asked the element whether it
 was `hidden` (it said yes, truthfully) instead of asking the browser what
 it was actually painting. Checked on computed style now.
 
+**And the rule shouldn't have been called `.think` at all.** `.botdisc.think`
+is the robot's thinking face — a whole existing family, shared by FEED IT
+and FIX IT. A bare `.think` matched those spans too, so every face would
+have blown up into a full-bleed red band the moment the bounce started.
+The beat's classes are `.beat`, `.beat-bot`, `.beat-say` now, and the face
+keeps the name it had first.
+
+Cache tag to `?v=023`. The `[hidden]` fix went out under an unchanged
+`?v=022`, so browsers that had already loaded the Drop Zone stylesheet kept
+serving it — the fix was deployed and invisible.
+
 ## Housekeeping
 
 THINKING's rules move from an inline `<style>` in `index.html` into

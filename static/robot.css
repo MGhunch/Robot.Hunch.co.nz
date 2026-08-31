@@ -991,25 +991,25 @@ mark.fx-hl{background:var(--paper);color:var(--red);padding:0 2px;border-radius:
    machines. Folded in here 31 Aug; the <style> block is gone. */
 /* the hidden attribute is a UA rule, and any author display: beats it —
    so the beat needs its own way to stay out of sight. */
-.think[hidden]{display:none}
-.think{background:var(--red);width:100vw;margin-left:calc(50% - 50vw);
+.beat[hidden]{display:none}
+.beat{background:var(--red);width:100vw;margin-left:calc(50% - 50vw);
   min-height:min(62vh,540px);display:flex;flex-direction:column;
   align-items:center;justify-content:center;padding:48px 20px}
-.think-bot{width:min(120px,30vw);height:auto;margin:0 0 26px;
-  animation:think-bob 2.6s ease-in-out infinite;transform-origin:50% 90%}
-@keyframes think-bob{0%,100%{transform:translateY(0) rotate(-1.5deg)}
+.beat-bot{width:min(120px,30vw);height:auto;margin:0 0 26px;
+  animation:beat-bob 2.6s ease-in-out infinite;transform-origin:50% 90%}
+@keyframes beat-bob{0%,100%{transform:translateY(0) rotate(-1.5deg)}
   50%{transform:translateY(-6px) rotate(1.5deg)}}
-.think-say{position:relative;color:#fff;text-align:center;width:100%;
+.beat-say{position:relative;color:#fff;text-align:center;width:100%;
   font-size:clamp(36px,6vw,56px);min-height:1.1em}
-.think-say span{display:block}
-.think-say .in{animation:think-land .55s cubic-bezier(.2,1.1,.3,1) both}
-.think-say .out{position:absolute;left:0;right:0;top:0;
-  animation:think-drop .32s ease-in both}
-@keyframes think-land{from{opacity:0;transform:translateY(-.35em)}
+.beat-say span{display:block}
+.beat-say .in{animation:beat-land .55s cubic-bezier(.2,1.1,.3,1) both}
+.beat-say .out{position:absolute;left:0;right:0;top:0;
+  animation:beat-drop .32s ease-in both}
+@keyframes beat-land{from{opacity:0;transform:translateY(-.35em)}
   60%{transform:translateY(.05em)}to{opacity:1;transform:translateY(0)}}
-@keyframes think-drop{to{opacity:0;transform:translateY(.35em)}}
+@keyframes beat-drop{to{opacity:0;transform:translateY(.35em)}}
 @media(prefers-reduced-motion:reduce){
-  .think-bot{animation:none}
-  .think-say .in,.think-say .out{animation:none}
+  .beat-bot{animation:none}
+  .beat-say .in,.beat-say .out{animation:none}
 }
 
