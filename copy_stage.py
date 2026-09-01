@@ -28,12 +28,13 @@ from datetime import datetime
 
 from auth import require_auth
 import containers as CT
+import robots
 from engine import build_facts, check_copy, copy_context, TermsError
 
 copy_bp = Blueprint("copy", __name__)
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
-MODEL = os.environ.get("ROBOT_MODEL", "claude-opus-4-8")
+# Which robot where lives in robots.py — site plan §6, one file, one edit.
 
 # ---------------------------------------------------------------------------
 # THE WORKERS live in /prompts as markdown: writer, fixer, feeder, extract.
@@ -165,10 +166,13 @@ def _json_from(text):
         return None
 
 
-def _call(system, user, max_tokens=1200):
+def _call(worker, system, user, max_tokens=1200):
+    """`worker` is the lane, not a model id — robots.py decides which model
+    that lane rides. Same string as the prompt filename, so the two can't
+    drift apart unnoticed."""
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     resp = client.messages.create(
-        model=MODEL, max_tokens=max_tokens, system=system,
+        model=robots.robot(worker), max_tokens=max_tokens, system=system,
         messages=[{"role": "user", "content": user}],
     )
     return (resp.content[0].text or "").strip()
@@ -323,7 +327,7 @@ def generate():
             + json.dumps(shape, ensure_ascii=False)
             + "\n\nMODULE BY MODULE:\n" + "\n".join(f"- {n}" for n in notes))
     try:
-        result = _json_from(_call(_system(c, "writer"), user, 2000))
+        result = _json_from(_call("writer", _system(c, "writer"), user, 2000))
     except Exception as e:
         print(f"[robot/copy] generate failed: {e}")
         return jsonify({"error": "The robot fell over. Try again?"}), 500
@@ -378,7 +382,7 @@ def extract():
     user = ("THE DUMP:\n" + text + "\n\nTHE FIELDS:\n" + "\n".join(f"- {n}" for n in notes)
             + "\n\nRETURN EXACTLY THIS SHAPE:\n" + json.dumps(shape))
     try:
-        result = _json_from(_call(prompt("extract"), user, 600)) or {}
+        result = _json_from(_call("extract", prompt("extract"), user, 600)) or {}
     except Exception as e:
         print(f"[robot/extract] failed: {e}")
         return jsonify({"success": True, "found": {}})     # a favour, not a gate
@@ -439,7 +443,7 @@ def tweak():
     if data.get("history"):
         user += "\n\nEARLIER IN THIS EXCHANGE:\n" + "\n".join(data["history"])[:2000]
     try:
-        result = _json_from(_call(_system(c, "fixer"), user, 700))
+        result = _json_from(_call("fixer", _system(c, "fixer"), user, 700))
     except Exception as e:
         print(f"[robot/tweak] failed: {e}")
         return jsonify({"error": "The robot fell over. Try again?"}), 500
@@ -508,7 +512,7 @@ def feeder():
             + "\n\nANSWERS SO FAR:\n" + ("\n\n".join(got) or "(nothing yet)")
             + f"\n\nNEXT UP: MOVE {m['n']} — {m['job']} — plain version: {m['plain']}")
     try:
-        result = _json_from(_call(prompt("feeder"), user, 400))
+        result = _json_from(_call("feeder", prompt("feeder"), user, 400))
     except Exception as e:
         print(f"[robot/feeder] fell back to plain: {e}")
         return jsonify(fallback)
@@ -539,7 +543,6 @@ def feeder():
 #   * a fact that smells of money is barred and shown as barred, not hidden
 # ---------------------------------------------------------------------------
 
-SEARCH_MODEL = os.environ.get("ROBOT_MODEL_SEARCH", "claude-sonnet-4-8")
 SEARCH_TOOL = os.environ.get("ROBOT_SEARCH_TOOL", "web_search_20250305")
 SEARCH_MAX = 4
 
@@ -563,7 +566,7 @@ def _search_call(system, user, tools=None, max_tokens=1400):
     apart from _call because the model and the tool differ, and because a
     tool call's content is a list of blocks rather than one lump of text."""
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-    kwargs = dict(model=SEARCH_MODEL, max_tokens=max_tokens, system=system,
+    kwargs = dict(model=robots.robot("search"), max_tokens=max_tokens, system=system,
                   messages=[{"role": "user", "content": user}])
     if tools:
         kwargs["tools"] = tools
@@ -606,7 +609,7 @@ def search():
             text, _ = _search_call(prompt("search"), user, max_tokens=400)
             out = _json_from(text) or {}
         except Exception as e:
-            print(f"[robot/search] plan failed: {e}")
+            print(f"[robot/search] plan failed ({robots.robot('search')}): {e}")
             return jsonify({"error": "Couldn't work out what to look for. Try saying it another way?"}), 502
         queries = [str(q).strip()[:120] for q in (out.get("queries") or []) if str(q).strip()]
         return jsonify({"success": True, "queries": queries[:SEARCH_MAX]})
@@ -624,7 +627,9 @@ def search():
         text, resp = _search_call(prompt("search"), user, tools=tools)
         out = _json_from(text) or {}
     except Exception as e:
-        print(f"[robot/search] run failed: {e}")
+        print(f"[robot/search] run failed ({robots.robot('search')}, {SEARCH_TOOL}): {e}")
+        if "model" in str(e).lower():
+            return jsonify({"error": "The search model isn't right. Check /api/health."}), 502
         return jsonify({"error": "Couldn't go looking just then. Try again in a moment?"}), 502
 
     read = _cited_urls(resp)

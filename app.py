@@ -33,6 +33,7 @@ from copy_stage import copy_bp, writer_modules, options_of, move_key
 import copy_stage
 from file_it import file_bp, parcel as _parcel
 import containers as CT
+import robots
 from engine import (build_facts, assemble_terms, render_terms, render_copy,
                     clause_menu, type_options, TermsError)
 
@@ -269,9 +270,16 @@ def brand_asset(bid, name):
     return send_from_directory(folder, name)
 
 
+# Checked once at boot, reported for ever after — a bad model id should be
+# visible at a URL, not something a client discovers mid-search.
+_MODELS_OK, _MODELS = robots.check(os.environ.get("ANTHROPIC_API_KEY"))
+
+
 @app.route("/api/health")
 def health():
-    return jsonify({"status": "ok", "service": "robot"})
+    return jsonify({"status": "ok", "service": "robot",
+                    "lanes": robots.lanes(),
+                    "models_ok": _MODELS_OK, "models": _MODELS})
 
 
 @app.route("/")

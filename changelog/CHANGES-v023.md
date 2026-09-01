@@ -211,6 +211,18 @@ approved list and runs it. Sonnet via `ROBOT_MODEL_SEARCH`, per site plan §6
 — worth noting `_call` still sends everything else to one model, so the
 plan's Sonnet/Opus split remains half-done elsewhere.
 
+**A model id I got wrong, and the lesson in it.** `ROBOT_MODEL_SEARCH` first
+shipped defaulting to `claude-sonnet-4-8` — pattern-matched off the
+`ROBOT_MODEL` default sitting above it rather than checked. No such model,
+so every call 404'd and surfaced as the robot saying it couldn't go looking.
+Now `claude-sonnet-5`, and a model error says so instead of hiding behind
+the robot's manners.
+
+Worth noting `ROBOT_MODEL` defaults to `claude-opus-4-8`, which is also not
+a current id. It has never bitten because Railway sets the variable — but it
+is a live trap for anyone running this without one, and the reason I copied
+a bad pattern in the first place. Both defaults should be real.
+
 **Cost.** Searches are $10 per 1,000, so four is four cents. Tokens for
 reading the results are the bigger half and won't be known until it's run
 a few times. Comfortably inside the plan's under-50c-a-run, but not free.
