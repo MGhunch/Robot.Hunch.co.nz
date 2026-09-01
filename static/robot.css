@@ -787,26 +787,27 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .sr-head .botdisc{width:36px;height:36px;box-shadow:0 3px 10px rgba(0,0,0,.22)}
 .sr-head .botdisc.think svg{width:25px;height:25px}
 
-/* a search: proposed, running, or done. The field sits above at every
-   stage now, so the list keeps a step of air below it — unless the
-   thinking head is between them, which brings its own. */
+/* the subheads: Bebas in ink — a section signal inside the card, sitting
+   between the red title's register and the body's. */
+.sr-sub{display:none;font-family:var(--display);font-size:19px;letter-spacing:.04em;
+  color:var(--ink);text-align:center;margin:10px 0 12px}
+.sr-sub.on{display:block}
+
+/* a search: proposed (tick to opt in), running, or done */
 .sr-list{display:none;width:100%}
-.sr-list.on{display:block;margin-top:12px}
-.sr-head.on + .sr-list.on{margin-top:0}
+.sr-list.on{display:block}
+
+/* GO DIGGING: the door's action lives in the flow it commits, centred.
+   Hollow until a search is ticked — the button teaches the rule. */
+.sr-dig{align-self:center;margin-top:6px}
 .sr-line{display:flex;align-items:center;gap:10px;padding:9px 12px;
   border:1px solid var(--border);border-radius:8px;background:#fff;margin-bottom:8px;
   font-size:13.5px;color:var(--ink)}
 .sr-line svg{width:15px;height:15px;color:var(--mid);flex:none}
 .sr-line.doing{border-color:var(--red)}
 .sr-line.done{color:var(--mid)}
-.sr-line button{margin-left:auto;background:none;border:none;color:var(--mid);
-  font-size:17px;line-height:1;cursor:pointer;padding:0 2px}
-.sr-line button:hover{color:var(--red)}
 
-/* the catch. An ordinary line, not the robot interrupting. */
-.sr-plain{display:none;font-size:13.5px;line-height:1.5;color:var(--ink);
-  text-align:center;margin:12px 0 14px}
-.sr-plain.on{display:block}
+/* the catch */
 .sr-hits{display:none;width:100%}
 .sr-hits.on{display:block}
 /* a found fact. Hollow on arrival — the line says tick what's handy. */
@@ -826,12 +827,8 @@ a.sr-src{width:fit-content;text-decoration:underline;text-underline-offset:2px;p
 a.sr-src:hover{color:var(--red)}
 /* the hit was a button; as a div it needs its keyboard tell back */
 .sr-hit:focus-visible{outline:2px solid var(--red);outline-offset:2px}
-/* barred: found, named, and not carried. Hiding it would look like it
-   never looked. */
-.sr-hit.barred{background:var(--paper);border-style:dashed;cursor:default}
-.sr-hit.barred .sr-tick{border-style:dashed;border-color:var(--border)}
-.sr-hit.barred .sr-fact{color:var(--mid);text-decoration:line-through}
-.sr-bar{display:block;font-size:11.5px;color:var(--red);margin-top:3px}
+/* barred facts (prices) are filtered server-side and never rendered —
+   the rules run, they don't perform. */
 
 /* the peek: a landed row opens to show what was found and where from.
    Without it, "no source, no fact" dies the moment the row collapses to a

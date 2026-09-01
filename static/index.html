@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=026">
+<link rel="stylesheet" href="robot.css?v=027">
 
 </head>
 <body>
@@ -188,8 +188,9 @@
                           </div>
                         </div>
                         <div class="sr-head" id="srHead"></div>
+                        <div class="sr-sub" id="srSub"></div>
                         <div class="sr-list" id="srList"></div>
-                        <p class="sr-plain" id="srPlain"></p>
+                        <button class="fd-go sr-dig" id="srDig" onclick="srRun()" style="display:none">GO DIGGING</button>
                         <div class="sr-hits" id="srHits"></div>
                       </div>
                       <div class="dump-view" id="fdViewWords">
@@ -197,7 +198,7 @@
                         <textarea class="fd-paste" id="fdDump" rows="3"></textarea>
                       </div>
                     </div>
-                    <div class="fd-foot"><div class="fd-tools"><button class="fd-go" id="srBtn" onclick="srRun()" style="display:none">SEARCH</button></div><button class="fd-go" id="fdDumpGo" onclick="fdDumpNext()">DONE</button></div>
+                    <div class="fd-foot"><div class="fd-tools"></div><button class="fd-go" id="fdDumpGo" onclick="fdDumpNext()">DONE</button></div>
                   </div>
                 </div>
               </div>
@@ -1112,17 +1113,19 @@ function fdDoor(d){
   if(d==='search') setTimeout(()=>{ const f=$('srField'); if(f&&SRSTAGE!=='looking') f.focus(); },0);
 }
 /* ---- SEARCH ------------------------------------------------------------
-   ask -> plan -> looking -> hits. The arrow proposes, the button commits;
-   two weights for two sizes of decision. The field never leaves the screen:
-   at any stage but looking, retype and hit the arrow for a fresh plan —
-   that IS the way back, so there's no separate restart button. Everything
-   landed lives in SR_FACTS, which is dump like any other dump; ticked
-   facts ride across searches via SR_KEPT. */
-let SRSTAGE='ask', SR_QS=[], SR_HITS=[], SR_BARRED=[], SR_FACTS=[], SR_KEPT=[], SR_DOING=-1;
+   ask -> plan -> looking -> hits, one grammar throughout: tick what we dig
+   for, tick what's handy. Queries arrive UNTICKED — opt in, so nothing
+   runs and nothing is spent that wasn't chosen. The field never leaves the
+   screen: at any stage but looking, retype and hit the arrow for a fresh
+   plan — that IS the way back. Everything landed lives in SR_FACTS, which
+   is dump like any other dump; ticked facts ride across searches via
+   SR_KEPT. Barred facts (prices) are filtered server-side and simply not
+   shown — we don't perform the rules. */
+let SRSTAGE='ask', SR_QS=[], SR_HITS=[], SR_FACTS=[], SR_KEPT=[], SR_DOING=-1;
 
 function srDraw(){
   const ask=$('srAsk'); if(!ask) return;
-  const f=$('srField'), go=$('srGo'), btn=$('srBtn');
+  const f=$('srField'), go=$('srGo');
   ask.className='sr-ask on';
   if(f) f.disabled = SRSTAGE==='looking';
   if(go) go.disabled = SRSTAGE==='looking' || !(f&&f.value.trim());
@@ -1130,24 +1133,46 @@ function srDraw(){
   if(SRSTAGE==='looking'&&!$('srHead').innerHTML) $('srHead').innerHTML=thinkFace();
   if(SRSTAGE!=='looking') $('srHead').innerHTML='';
 
+  /* the subheads: a question over the plan, an instruction over the
+     catch. Bebas in ink — a section signal, not a second title. */
+  const sub=$('srSub');
+  sub.className='sr-sub'+(SRSTAGE==='plan'||SRSTAGE==='hits'?' on':'');
+  sub.textContent = SRSTAGE==='plan' ? 'What shall we dig for?'
+                  : SRSTAGE==='hits' ? "Tick what's handy" : '';
+
   const list=$('srList');
   list.className='sr-list'+(SRSTAGE==='plan'||SRSTAGE==='looking'?' on':'');
-  if(SRSTAGE==='plan'||SRSTAGE==='looking'){
-    list.innerHTML=SR_QS.map((q,i)=>{
-      const st = SRSTAGE==='plan' ? '' : (i<SR_DOING?'done':i===SR_DOING?'doing':'');
+  if(SRSTAGE==='plan'){
+    /* opt-in: same tick furniture as the hits, so screen one teaches
+       screen two. Nothing runs that wasn't chosen. */
+    list.innerHTML=SR_QS.map((x,i)=>
+      `<div class="sr-hit${x.on?' on':''}" role="button" tabindex="0" onclick="srQTick(${i})"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();srQTick(${i});}">
+         <span class="sr-tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+         <span><span class="sr-fact">${esc(x.q)}</span></span>
+       </div>`).join('');
+  } else if(SRSTAGE==='looking'){
+    const run=SR_QS.filter(x=>x.on);
+    list.innerHTML=run.map((x,i)=>{
+      const st = i<SR_DOING?'done':i===SR_DOING?'doing':'';
       const ico = st==='done'
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></svg>';
-      const x = SRSTAGE==='plan' ? `<button onclick="srDrop(${i})" aria-label="Bin this search">&times;</button>` : '';
-      return `<div class="sr-line ${st}">${ico}${esc(q)}${x}</div>`;
+      return `<div class="sr-line ${st}">${ico}${esc(x.q)}</div>`;
     }).join('');
   } else list.innerHTML='';
 
-  const plain=$('srPlain'), hits=$('srHits');
-  plain.className='sr-plain'+(SRSTAGE==='hits'?' on':'');
+  /* GO DIGGING lives in the flow it commits, centred, and sits hollow
+     until at least one search is ticked — the button teaches the rule. */
+  const dig=$('srDig');
+  if(dig){
+    dig.style.display = SRSTAGE==='plan' ? '' : 'none';
+    dig.classList.toggle('dormant', !SR_QS.some(x=>x.on));
+  }
+
+  const hits=$('srHits');
   hits.className='sr-hits'+(SRSTAGE==='hits'?' on':'');
   if(SRSTAGE==='hits'){
-    plain.textContent = SR_HITS.length ? "Here you go. Tick what's handy." : '';
     /* a div, not a button: the source is a real link now, and a link
        can't legally live inside a button. Keyboard keeps its tick. */
     hits.innerHTML = SR_HITS.map((x,i)=>
@@ -1155,24 +1180,11 @@ function srDraw(){
          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();srTick(${i});}">
          <span class="sr-tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
          <span><span class="sr-fact">${esc(x.fact)}</span>${srSrc(x)}</span>
-       </div>`).join('')
-      + SR_BARRED.map(x=>
-      `<div class="sr-hit barred"><span class="sr-tick"></span>
-         <span><span class="sr-fact">${esc(x.fact)}</span>
-         <span class="sr-bar">Not mine to quote. Prices go in the deets, from you.</span></span></div>`).join('');
-  } else { plain.textContent=''; hits.innerHTML=''; }
-
-  if(btn){
-    /* only while there's a plan to commit. After hits, the field is the
-       way back, so the button has nothing left to say. */
-    const show = DUMPDOOR==='search' && (SRSTAGE==='plan'||SRSTAGE==='looking');
-    btn.style.display = show ? '' : 'none';
-    btn.textContent = 'SEARCH';
-    btn.className = 'fd-go';
-    btn.disabled = SRSTAGE==='looking';
-    btn.onclick = srRun;
-  }
+       </div>`).join('');
+  } else hits.innerHTML='';
 }
+
+function srQTick(i){ SR_QS[i].on=!SR_QS[i].on; srDraw(); }
 
 /* the source line is the receipt — click it to read the page it came
    from, in a new tab. stopPropagation so checking never ticks. */
@@ -1181,8 +1193,6 @@ function srSrc(x){
     ? `<a class="sr-src" href="${esc(x.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(x.source)}</a>`
     : `<span class="sr-src">${esc(x.source)}</span>`;
 }
-
-function srDrop(i){ SR_QS.splice(i,1); if(!SR_QS.length) SRSTAGE='ask'; srDraw(); }
 
 async function srPlan(){
   if(SRSTAGE==='looking') return;
@@ -1197,7 +1207,7 @@ async function srPlan(){
       SR_HITS.filter(x=>x.on).forEach(({fact,source,url})=>{
         if(!SR_KEPT.some(k=>k.fact===fact)) SR_KEPT.push({fact,source,url});
       });
-      SR_QS=d.queries; SR_HITS=[]; SR_BARRED=[]; SRSTAGE='plan';
+      SR_QS=d.queries.map(q=>({q, on:false})); SR_HITS=[]; SRSTAGE='plan';
     }
   }catch(e){ fdSay(0, e.message); }
   if(go) go.classList.remove('spin');
@@ -1205,21 +1215,22 @@ async function srPlan(){
 }
 
 async function srRun(){
-  if(!SR_QS.length) return;
+  const run=SR_QS.filter(x=>x.on).map(x=>x.q);
+  if(!run.length) return;
   SRSTAGE='looking'; SR_DOING=0; fdDumpDraw();
   /* the rows tick along on their own clock — the API doesn't report which
      search it's on, so this is honest about pace, not about position. */
-  const tick=setInterval(()=>{ if(SR_DOING<SR_QS.length-1){ SR_DOING++; srDraw(); } }, 2600);
+  const tick=setInterval(()=>{ if(SR_DOING<run.length-1){ SR_DOING++; srDraw(); } }, 2600);
   try{
     const d=await api('/api/search',{container:CID, stage:'run',
-      subject:($('srField').value||'').trim(), queries:SR_QS});
-    /* kept facts land first, still ticked, so they can be unticked here */
+      subject:($('srField').value||'').trim(), queries:run});
+    /* kept facts land first, still ticked, so they can be unticked here.
+       Barred facts never render — the server filters, we don't perform. */
     const kept=SR_KEPT.map(x=>Object.assign({on:true},x));
     const fresh=(d.facts||[]).filter(x=>!SR_KEPT.some(k=>k.fact===x.fact))
       .map(x=>Object.assign({on:false},x));
     SR_HITS=kept.concat(fresh); SR_KEPT=[];
     SR_FACTS=SR_HITS.filter(x=>x.on).map(({fact,source,url})=>({fact,source,url}));
-    SR_BARRED=d.barred||[];
     SRSTAGE='hits';
     if(!SR_HITS.length) fdSay(0, "Couldn't find a thing worth keeping. Paste it in and I'll work from that.");
   }catch(e){ fdSay(0, e.message); SRSTAGE='plan'; }
@@ -1253,7 +1264,17 @@ function fdDumpDraw(){
   if(line) line.textContent = docs ? (QZ&&QZ.stops&&QZ.stops[0]&&QZ.stops[0].pad&&QZ.stops[0].pad.more)
     || 'or drag in another.' : (FD_LINE||'or drag it in.');
   const go=$('fdDumpGo');
-  if(go) go.classList.toggle('dormant', !(docs||words||SR_FACTS.length));
+  if(go){
+    /* mid-search the card holds exactly one decision. DONE comes back
+       once facts land or you're back at the ask. */
+    const midflow = DUMPDOOR==='search' && (SRSTAGE==='plan'||SRSTAGE==='looking');
+    go.style.display = midflow ? 'none' : '';
+    go.classList.toggle('dormant', !(docs||words||SR_FACTS.length));
+  }
+  /* the mirror: the hidden field the robots read from tracks the dump
+     live, so a fact ticked after DONE still reaches everyone. DONE is
+     navigation now, not the courier. */
+  const bl=$('blurb'); if(bl) bl.value=fdDumpText();
 }
 $('fdBrowse').addEventListener('click', e=>{ e.stopPropagation(); $('fdFile').click(); });
 $('fdFile').addEventListener('change', async e=>{ await fdTake(e.target.files); e.target.value=''; });
