@@ -771,6 +771,14 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .sr-arrow:hover{background:var(--red-dark)}
 .sr-arrow:disabled{background:#e9b7b9;cursor:default}
 .sr-arrow svg{width:16px;height:16px}
+/* planning: the arrow turns like a clock hand — the full rotation is the
+   loading gesture everyone already knows (thinkFace settled that). It
+   stays red while it turns: pink means can't, motion means busy. */
+.sr-arrow.spin,.sr-arrow.spin:disabled{background:var(--red)}
+.sr-arrow.spin svg{animation:srspin 1s linear infinite}
+@keyframes srspin{to{transform:rotate(360deg)}}
+/* looking: the field waits its turn but doesn't leave */
+.sr-field:disabled{color:var(--mid);background:none}
 
 /* the thinking head, over the searches it's working through */
 .sr-head{display:none;justify-content:center;padding:2px 0 14px}
@@ -779,9 +787,12 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .sr-head .botdisc{width:36px;height:36px;box-shadow:0 3px 10px rgba(0,0,0,.22)}
 .sr-head .botdisc.think svg{width:25px;height:25px}
 
-/* a search: proposed, running, or done */
+/* a search: proposed, running, or done. The field sits above at every
+   stage now, so the list keeps a step of air below it — unless the
+   thinking head is between them, which brings its own. */
 .sr-list{display:none;width:100%}
-.sr-list.on{display:block}
+.sr-list.on{display:block;margin-top:12px}
+.sr-head.on + .sr-list.on{margin-top:0}
 .sr-line{display:flex;align-items:center;gap:10px;padding:9px 12px;
   border:1px solid var(--border);border-radius:8px;background:#fff;margin-bottom:8px;
   font-size:13.5px;color:var(--ink)}
@@ -794,7 +805,7 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 
 /* the catch. An ordinary line, not the robot interrupting. */
 .sr-plain{display:none;font-size:13.5px;line-height:1.5;color:var(--ink);
-  text-align:center;margin:0 0 14px}
+  text-align:center;margin:12px 0 14px}
 .sr-plain.on{display:block}
 .sr-hits{display:none;width:100%}
 .sr-hits.on{display:block}
@@ -809,6 +820,12 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .sr-hit.on .sr-tick{background:var(--red);border-color:var(--red);color:#fff}
 .sr-fact{display:block;font-size:13.5px;line-height:1.45;color:var(--ink)}
 .sr-src{display:block;font-size:11.5px;color:var(--mid);margin-top:3px}
+/* the receipt: a linked source is underlined so it reads as clickable,
+   and sized generously enough to hit without ticking the row */
+a.sr-src{width:fit-content;text-decoration:underline;text-underline-offset:2px;padding:2px 0}
+a.sr-src:hover{color:var(--red)}
+/* the hit was a button; as a div it needs its keyboard tell back */
+.sr-hit:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 /* barred: found, named, and not carried. Hiding it would look like it
    never looked. */
 .sr-hit.barred{background:var(--paper);border-style:dashed;cursor:default}
@@ -833,17 +850,20 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .peek-fact{font-size:13px;line-height:1.45;color:var(--ink)}
 .peek-src{font-size:11.5px;color:var(--mid);margin-top:2px}
 
-/* can, but isn't the main event — SEARCH once something's already landed */
-.fd-go.ghost{background:none;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
-.fd-go.ghost:hover{background:none;color:var(--red);box-shadow:inset 0 0 0 1.5px var(--red)}
-
-/* WORDS: the placeholder sits centred until they type, then it's an
-   ordinary textarea. One element, not a hint that swaps for a field. */
-.fd-paste{display:block;width:100%;border:none;background:none;resize:vertical;
-  min-height:96px;font:inherit;font-size:14px;color:var(--ink);outline:none}
-.fd-paste:placeholder-shown{text-align:center}
+/* WORDS: mirrors DOCS while empty — scissors, then a centred grey
+   invitation at the hint's 12px, and it stays centred whether you've
+   clicked in or not. Type or paste and it becomes an ordinary
+   left-aligned textarea at reading size. One element, not a hint that
+   swaps for a field. The radius is for the focus ring, which follows
+   the corners and reads as a ring rather than a validation rectangle.
+   (This used to be two rules 12px apart fighting over one selector —
+   v023 flagged the tidy; this is it.) */
+.fd-paste{display:block;width:100%;border:none;background:none;resize:none;
+  min-height:96px;font-family:inherit;font-size:14px;line-height:1.6;
+  color:var(--ink);outline:none;padding:0 4px 2px;border-radius:8px;
+  text-align:left}
+.fd-paste:placeholder-shown{text-align:center;font-size:12px}
 .fd-paste::placeholder{color:var(--mid)}
-.fd-paste:focus{text-align:left}
 
 .fd-docs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
 .fd-docs:empty{margin-top:0}
@@ -852,10 +872,6 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .fd-doc.bad{color:var(--mid);text-decoration:line-through}
 .fd-doc button{width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;font-size:11px;line-height:1;padding:0}
 .fd-doc button:hover{background:var(--red)}
-.fd-paste{display:block;width:100%;border:none;
-  background:none;outline:none;resize:none;font-family:inherit;font-size:11.5px;line-height:1.6;
-  color:var(--ink);padding:0 4px 2px;text-align:center}
-.fd-paste::placeholder{color:var(--mid)}
 .fd-bod>.fd-foot{border-top:none;padding-top:10px}
 /* the deets live inside stop three: cards become sections */
 .fd-bod .cl-cards{max-width:none;gap:0}

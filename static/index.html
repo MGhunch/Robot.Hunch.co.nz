@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=023b">
+<link rel="stylesheet" href="robot.css?v=026">
 
 </head>
 <body>
@@ -1109,19 +1109,23 @@ let DUMPDOOR='docs';
 function fdDoor(d){
   DUMPDOOR=d; fdDumpDraw();
   if(d==='words') setTimeout(()=>{ const t=$('fdDump'); if(t) t.focus(); },0);
-  if(d==='search') setTimeout(()=>{ const f=$('srField'); if(f&&SRSTAGE==='ask') f.focus(); },0);
+  if(d==='search') setTimeout(()=>{ const f=$('srField'); if(f&&SRSTAGE!=='looking') f.focus(); },0);
 }
 /* ---- SEARCH ------------------------------------------------------------
    ask -> plan -> looking -> hits. The arrow proposes, the button commits;
-   two weights for two sizes of decision. Everything landed lives in
-   SR_FACTS, which is dump like any other dump. */
-let SRSTAGE='ask', SR_QS=[], SR_HITS=[], SR_BARRED=[], SR_FACTS=[], SR_DOING=-1;
+   two weights for two sizes of decision. The field never leaves the screen:
+   at any stage but looking, retype and hit the arrow for a fresh plan —
+   that IS the way back, so there's no separate restart button. Everything
+   landed lives in SR_FACTS, which is dump like any other dump; ticked
+   facts ride across searches via SR_KEPT. */
+let SRSTAGE='ask', SR_QS=[], SR_HITS=[], SR_BARRED=[], SR_FACTS=[], SR_KEPT=[], SR_DOING=-1;
 
 function srDraw(){
   const ask=$('srAsk'); if(!ask) return;
   const f=$('srField'), go=$('srGo'), btn=$('srBtn');
-  ask.className='sr-ask'+(SRSTAGE==='ask'?' on':'');
-  if(go) go.disabled = !(f&&f.value.trim());
+  ask.className='sr-ask on';
+  if(f) f.disabled = SRSTAGE==='looking';
+  if(go) go.disabled = SRSTAGE==='looking' || !(f&&f.value.trim());
   $('srHead').className='sr-head'+(SRSTAGE==='looking'?' on':'');
   if(SRSTAGE==='looking'&&!$('srHead').innerHTML) $('srHead').innerHTML=thinkFace();
   if(SRSTAGE!=='looking') $('srHead').innerHTML='';
@@ -1144,11 +1148,14 @@ function srDraw(){
   hits.className='sr-hits'+(SRSTAGE==='hits'?' on':'');
   if(SRSTAGE==='hits'){
     plain.textContent = SR_HITS.length ? "Here you go. Tick what's handy." : '';
+    /* a div, not a button: the source is a real link now, and a link
+       can't legally live inside a button. Keyboard keeps its tick. */
     hits.innerHTML = SR_HITS.map((x,i)=>
-      `<button class="sr-hit${x.on?' on':''}" onclick="srTick(${i})">
+      `<div class="sr-hit${x.on?' on':''}" role="button" tabindex="0" onclick="srTick(${i})"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();srTick(${i});}">
          <span class="sr-tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
-         <span><span class="sr-fact">${esc(x.fact)}</span><span class="sr-src">${esc(x.source)}</span></span>
-       </button>`).join('')
+         <span><span class="sr-fact">${esc(x.fact)}</span>${srSrc(x)}</span>
+       </div>`).join('')
       + SR_BARRED.map(x=>
       `<div class="sr-hit barred"><span class="sr-tick"></span>
          <span><span class="sr-fact">${esc(x.fact)}</span>
@@ -1156,27 +1163,44 @@ function srDraw(){
   } else { plain.textContent=''; hits.innerHTML=''; }
 
   if(btn){
-    const show = DUMPDOOR==='search' && SRSTAGE!=='ask';
+    /* only while there's a plan to commit. After hits, the field is the
+       way back, so the button has nothing left to say. */
+    const show = DUMPDOOR==='search' && (SRSTAGE==='plan'||SRSTAGE==='looking');
     btn.style.display = show ? '' : 'none';
     btn.textContent = 'SEARCH';
-    btn.className = 'fd-go'+(SRSTAGE==='plan'?'':' ghost');
+    btn.className = 'fd-go';
     btn.disabled = SRSTAGE==='looking';
-    btn.onclick = SRSTAGE==='plan' ? srRun : srAgain;
+    btn.onclick = srRun;
   }
 }
 
+/* the source line is the receipt — click it to read the page it came
+   from, in a new tab. stopPropagation so checking never ticks. */
+function srSrc(x){
+  return x.url
+    ? `<a class="sr-src" href="${esc(x.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(x.source)}</a>`
+    : `<span class="sr-src">${esc(x.source)}</span>`;
+}
+
 function srDrop(i){ SR_QS.splice(i,1); if(!SR_QS.length) SRSTAGE='ask'; srDraw(); }
-function srAgain(){ SRSTAGE='ask'; SR_QS=[]; SR_HITS=[]; SR_BARRED=[]; fdDumpDraw();
-  setTimeout(()=>{ const f=$('srField'); if(f) f.focus(); },0); }
 
 async function srPlan(){
+  if(SRSTAGE==='looking') return;
   const f=$('srField'), q=(f?f.value:'').trim(); if(!q) return;
-  $('srGo').disabled=true;
+  const go=$('srGo');
+  if(go){ go.disabled=true; go.classList.add('spin'); }
   try{
     const d=await api('/api/search',{container:CID, stage:'plan', subject:q});
-    if(!(d.queries||[]).length){ fdSay(0, 'Not much to go on. Give me a bit more.'); srDraw(); return; }
-    SR_QS=d.queries; SRSTAGE='plan';
+    if(!(d.queries||[]).length){ fdSay(0, 'Not much to go on. Give me a bit more.'); }
+    else{
+      /* anything already ticked rides along to the next round */
+      SR_HITS.filter(x=>x.on).forEach(({fact,source,url})=>{
+        if(!SR_KEPT.some(k=>k.fact===fact)) SR_KEPT.push({fact,source,url});
+      });
+      SR_QS=d.queries; SR_HITS=[]; SR_BARRED=[]; SRSTAGE='plan';
+    }
   }catch(e){ fdSay(0, e.message); }
+  if(go) go.classList.remove('spin');
   fdDumpDraw();
 }
 
@@ -1189,7 +1213,12 @@ async function srRun(){
   try{
     const d=await api('/api/search',{container:CID, stage:'run',
       subject:($('srField').value||'').trim(), queries:SR_QS});
-    SR_HITS=(d.facts||[]).map(x=>Object.assign({on:false},x));
+    /* kept facts land first, still ticked, so they can be unticked here */
+    const kept=SR_KEPT.map(x=>Object.assign({on:true},x));
+    const fresh=(d.facts||[]).filter(x=>!SR_KEPT.some(k=>k.fact===x.fact))
+      .map(x=>Object.assign({on:false},x));
+    SR_HITS=kept.concat(fresh); SR_KEPT=[];
+    SR_FACTS=SR_HITS.filter(x=>x.on).map(({fact,source,url})=>({fact,source,url}));
     SR_BARRED=d.barred||[];
     SRSTAGE='hits';
     if(!SR_HITS.length) fdSay(0, "Couldn't find a thing worth keeping. Paste it in and I'll work from that.");
