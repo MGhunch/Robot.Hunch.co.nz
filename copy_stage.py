@@ -12,6 +12,7 @@ Every route takes a container id and reads that container's definition
   POST /api/tweak     container + one module + a human note -> lock / change / ask / decline
   POST /api/extract   container + the dump -> checklist pre-fill
   POST /api/feeder    container + dump + answers -> the next move, dressed
+  POST /api/search    container + a subject -> the searches, then the facts
   GET  /api/log       the tweak log
 
 Every tweak is logged to ROBOT_STORE, container-tagged. That log is the
@@ -521,3 +522,125 @@ def feeder():
             return jsonify(fallback)
         out["angle"] = ang[:300]
     return jsonify(out)
+
+
+# ---------------------------------------------------------------------------
+# SEARCH — the third door. A tool, not a worker: it gathers sourced raw
+# material and hands it to the dump. Two stages, because the plan says the
+# human confirms before anything runs.
+#
+#   stage "plan" -> up to four searches, for the client to approve
+#   stage "run"  -> those searches, run, and the facts worth keeping
+#
+# Three rules live here in code, not only in the prompt, because a prompt
+# is a request and this is a promise:
+#   * max_uses caps the searches at four in the API itself
+#   * a fact without a citation URL never reaches the screen
+#   * a fact that smells of money is barred and shown as barred, not hidden
+# ---------------------------------------------------------------------------
+
+SEARCH_MODEL = os.environ.get("ROBOT_MODEL_SEARCH", "claude-sonnet-4-8")
+SEARCH_TOOL = os.environ.get("ROBOT_SEARCH_TOOL", "web_search_20250305")
+SEARCH_MAX = 4
+
+# Money in any of its usual clothes. Prices are the client's to state, not
+# the robot's to find — see prompts/search.md.
+_MONEY = re.compile(
+    r"(\$|£|€|\bNZD?\b|\bAUD\b|\busd\b)\s?\d"
+    r"|\d+\s?(dollars|bucks|cents)\b"
+    r"|\bfrom \$?\d"
+    r"|\b(price|priced|pricing|cost|costs|fee|fees|surcharge)\b",
+    re.I)
+
+
+def _host(url):
+    m = re.match(r"https?://(?:www\.)?([^/]+)", url or "")
+    return m.group(1) if m else "the web"
+
+
+def _search_call(system, user, tools=None, max_tokens=1400):
+    """Sonnet, and the web search tool when the stage asks for it. Kept
+    apart from _call because the model and the tool differ, and because a
+    tool call's content is a list of blocks rather than one lump of text."""
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    kwargs = dict(model=SEARCH_MODEL, max_tokens=max_tokens, system=system,
+                  messages=[{"role": "user", "content": user}])
+    if tools:
+        kwargs["tools"] = tools
+    resp = client.messages.create(**kwargs)
+    text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
+    return text.strip(), resp
+
+
+def _cited_urls(resp):
+    """Every URL the model actually read in this call. This is the whole of
+    'no source, no fact' — a claim whose url isn't in here didn't come from
+    a page, it came from memory, and memory is not a source."""
+    urls = set()
+    for block in resp.content:
+        for c in (getattr(block, "citations", None) or []):
+            u = getattr(c, "url", None) or (c.get("url") if isinstance(c, dict) else None)
+            if u:
+                urls.add(u.split("#")[0].rstrip("/"))
+    return urls
+
+
+@copy_bp.route("/api/search", methods=["POST"])
+@require_auth
+def search():
+    c, data = _container()
+    if not c:
+        return jsonify({"error": "No such container."}), 404
+    stage = (data.get("stage") or "plan").strip()
+    subject = (data.get("subject") or "").strip()[:200]
+    if not subject:
+        return jsonify({"success": True, "queries": [], "facts": []})
+    if not ANTHROPIC_API_KEY:
+        return jsonify({"error": "No API key configured on the server."}), 500
+    needs = ((c.get("feed_it") or {}).get("needs") or "")[:1200]
+
+    # ---- plan: what it would look for, before it looks -------------------
+    if stage == "plan":
+        user = f"STAGE: PLAN\n\nTHE SUBJECT:\n{subject}\n\nWHAT THIS IS FOR:\n{needs}"
+        try:
+            text, _ = _search_call(prompt("search"), user, max_tokens=400)
+            out = _json_from(text) or {}
+        except Exception as e:
+            print(f"[robot/search] plan failed: {e}")
+            return jsonify({"error": "Couldn't work out what to look for. Try saying it another way?"}), 502
+        queries = [str(q).strip()[:120] for q in (out.get("queries") or []) if str(q).strip()]
+        return jsonify({"success": True, "queries": queries[:SEARCH_MAX]})
+
+    # ---- run: the approved searches, and what survives them --------------
+    queries = [str(q).strip()[:120] for q in (data.get("queries") or []) if str(q).strip()][:SEARCH_MAX]
+    if not queries:
+        return jsonify({"success": True, "facts": [], "barred": []})
+    user = ("STAGE: RUN\n\nTHE SUBJECT:\n" + subject
+            + "\n\nRUN THESE SEARCHES, AND ONLY THESE:\n"
+            + "\n".join(f"- {q}" for q in queries)
+            + f"\n\nWHAT THIS IS FOR:\n{needs}")
+    tools = [{"type": SEARCH_TOOL, "name": "web_search", "max_uses": len(queries)}]
+    try:
+        text, resp = _search_call(prompt("search"), user, tools=tools)
+        out = _json_from(text) or {}
+    except Exception as e:
+        print(f"[robot/search] run failed: {e}")
+        return jsonify({"error": "Couldn't go looking just then. Try again in a moment?"}), 502
+
+    read = _cited_urls(resp)
+    facts, barred = [], []
+    for item in (out.get("facts") or [])[:12]:
+        if not isinstance(item, dict):
+            continue
+        fact = str(item.get("fact") or "").strip()[:220]
+        url = str(item.get("url") or "").strip()
+        source = str(item.get("source") or "").strip()[:60]
+        if not fact or not url:
+            continue
+        # no source, no fact — the url has to be one it actually read
+        if read and url.split("#")[0].rstrip("/") not in read:
+            print(f"[robot/search] dropped an uncited claim: {fact[:60]}")
+            continue
+        row = {"fact": fact, "source": source or _host(url), "url": url}
+        (barred if _MONEY.search(fact) else facts).append(row)
+    return jsonify({"success": True, "facts": facts[:8], "barred": barred[:3]})

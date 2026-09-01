@@ -173,12 +173,31 @@
                           <p class="dump-hint"><a id="fdBrowse"></a> <span id="fdPadLine"></span></p>
                         </div>
                       </div>
+                      <!-- SEARCH: ask -> plan -> looking -> hits. One view,
+                           four faces; SRSTAGE says which. -->
+                      <div class="dump-view" id="fdViewSearch">
+                        <div class="sr-ask" id="srAsk">
+                          <svg class="dump-baby" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+                          <div class="sr-fieldrow">
+                            <input class="sr-field" id="srField" placeholder="What are you digging for?"
+                              onkeydown="if(event.key==='Enter'){event.preventDefault();srPlan();}"
+                              oninput="srDraw()">
+                            <button class="sr-arrow" id="srGo" onclick="srPlan()" aria-label="Look it up" disabled>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                            </button>
+                          </div>
+                        </div>
+                        <div class="sr-head" id="srHead"></div>
+                        <div class="sr-list" id="srList"></div>
+                        <p class="sr-plain" id="srPlain"></p>
+                        <div class="sr-hits" id="srHits"></div>
+                      </div>
                       <div class="dump-view" id="fdViewWords">
                         <svg class="dump-baby" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.6 15.4"/><path d="M14.5 14.5L20 20"/><path d="M8.6 8.6L12 12"/></svg>
                         <textarea class="fd-paste" id="fdDump" rows="3"></textarea>
                       </div>
                     </div>
-                    <div class="fd-foot"><div class="fd-tools"></div><button class="fd-go" id="fdDumpGo" onclick="fdDumpNext()">DONE</button></div>
+                    <div class="fd-foot"><div class="fd-tools"><button class="fd-go" id="srBtn" onclick="srRun()" style="display:none">SEARCH</button></div><button class="fd-go" id="fdDumpGo" onclick="fdDumpNext()">DONE</button></div>
                   </div>
                 </div>
               </div>
@@ -655,7 +674,9 @@ function clRowEl(r,S){
       ? (s.value==='other' ? (s.other||'') : (clOptions(r).find(o=>o[0]===s.value)||[])[1])
       : s.value;
     let v;
-    if(!shown) v=`<span class="cl-ask">${esc(clAsk(r)||'TBC')}</span>`;
+    /* an unknown fact reads TBC, not its own question — a grid of asks is
+       noise at a glance. The question survives as the edit placeholder. */
+    if(!shown) v='<span class="cl-ask">TBC</span>';
     else if(r.type==='date') v=clFmtDate(s.value);
     else if(r.type==='number'){ const u=clUnit(r,S); v=esc(clFmtNum(shown)+(u?' '+u:'')); }
     else v=esc(shown);
@@ -958,7 +979,6 @@ async function quizInit(){
   const pad=(QZ.stops&&QZ.stops[0]&&QZ.stops[0].pad)||{};
   $('fdBrowse').textContent  = pad.browse||'Browse';
   FD_LINE = pad.line||'or drag it in.';
-  $('fdPadHint').textContent = pad.hint||'';
   $('fdDump').placeholder    = pad.paste||'Cut and paste anything.';
   DUMPDOOR='docs'; FD_DOCS=[]; fdDocsDraw();
   $('fdDump').placeholder    = pad.paste||'Or paste it in here.';
@@ -1067,27 +1087,124 @@ function fdDocDrop(i){ FD_DOCS.splice(i,1); fdDocsDraw(); fdStages(); }
    lands (hit list 9) — tapping it says so and leaves the open door alone. */
 let DUMPDOOR='docs';
 function fdDoor(d){
-  if(d==='search'){ fdSay(0, "Can't go looking yet. Paste it in for now."); return; }
   DUMPDOOR=d; fdDumpDraw();
   if(d==='words') setTimeout(()=>{ const t=$('fdDump'); if(t) t.focus(); },0);
+  if(d==='search') setTimeout(()=>{ const f=$('srField'); if(f&&SRSTAGE==='ask') f.focus(); },0);
 }
+/* ---- SEARCH ------------------------------------------------------------
+   ask -> plan -> looking -> hits. The arrow proposes, the button commits;
+   two weights for two sizes of decision. Everything landed lives in
+   SR_FACTS, which is dump like any other dump. */
+let SRSTAGE='ask', SR_QS=[], SR_HITS=[], SR_BARRED=[], SR_FACTS=[], SR_DOING=-1;
+
+function srDraw(){
+  const ask=$('srAsk'); if(!ask) return;
+  const f=$('srField'), go=$('srGo'), btn=$('srBtn');
+  ask.className='sr-ask'+(SRSTAGE==='ask'?' on':'');
+  if(go) go.disabled = !(f&&f.value.trim());
+  $('srHead').className='sr-head'+(SRSTAGE==='looking'?' on':'');
+  if(SRSTAGE==='looking'&&!$('srHead').innerHTML) $('srHead').innerHTML=thinkFace();
+  if(SRSTAGE!=='looking') $('srHead').innerHTML='';
+
+  const list=$('srList');
+  list.className='sr-list'+(SRSTAGE==='plan'||SRSTAGE==='looking'?' on':'');
+  if(SRSTAGE==='plan'||SRSTAGE==='looking'){
+    list.innerHTML=SR_QS.map((q,i)=>{
+      const st = SRSTAGE==='plan' ? '' : (i<SR_DOING?'done':i===SR_DOING?'doing':'');
+      const ico = st==='done'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></svg>';
+      const x = SRSTAGE==='plan' ? `<button onclick="srDrop(${i})" aria-label="Bin this search">&times;</button>` : '';
+      return `<div class="sr-line ${st}">${ico}${esc(q)}${x}</div>`;
+    }).join('');
+  } else list.innerHTML='';
+
+  const plain=$('srPlain'), hits=$('srHits');
+  plain.className='sr-plain'+(SRSTAGE==='hits'?' on':'');
+  hits.className='sr-hits'+(SRSTAGE==='hits'?' on':'');
+  if(SRSTAGE==='hits'){
+    plain.textContent = SR_HITS.length ? "Here you go. Tick what's handy." : '';
+    hits.innerHTML = SR_HITS.map((x,i)=>
+      `<button class="sr-hit${x.on?' on':''}" onclick="srTick(${i})">
+         <span class="sr-tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+         <span><span class="sr-fact">${esc(x.fact)}</span><span class="sr-src">${esc(x.source)}</span></span>
+       </button>`).join('')
+      + SR_BARRED.map(x=>
+      `<div class="sr-hit barred"><span class="sr-tick"></span>
+         <span><span class="sr-fact">${esc(x.fact)}</span>
+         <span class="sr-bar">Not mine to quote. Prices go in the deets, from you.</span></span></div>`).join('');
+  } else { plain.textContent=''; hits.innerHTML=''; }
+
+  if(btn){
+    const show = DUMPDOOR==='search' && SRSTAGE!=='ask';
+    btn.style.display = show ? '' : 'none';
+    btn.textContent = 'SEARCH';
+    btn.className = 'fd-go'+(SRSTAGE==='plan'?'':' ghost');
+    btn.disabled = SRSTAGE==='looking';
+    btn.onclick = SRSTAGE==='plan' ? srRun : srAgain;
+  }
+}
+
+function srDrop(i){ SR_QS.splice(i,1); if(!SR_QS.length) SRSTAGE='ask'; srDraw(); }
+function srAgain(){ SRSTAGE='ask'; SR_QS=[]; SR_HITS=[]; SR_BARRED=[]; fdDumpDraw();
+  setTimeout(()=>{ const f=$('srField'); if(f) f.focus(); },0); }
+
+async function srPlan(){
+  const f=$('srField'), q=(f?f.value:'').trim(); if(!q) return;
+  $('srGo').disabled=true;
+  try{
+    const d=await api('/api/search',{container:CID, stage:'plan', subject:q});
+    if(!(d.queries||[]).length){ fdSay(0, 'Not much to go on. Give me a bit more.'); srDraw(); return; }
+    SR_QS=d.queries; SRSTAGE='plan';
+  }catch(e){ fdSay(0, e.message); }
+  fdDumpDraw();
+}
+
+async function srRun(){
+  if(!SR_QS.length) return;
+  SRSTAGE='looking'; SR_DOING=0; fdDumpDraw();
+  /* the rows tick along on their own clock — the API doesn't report which
+     search it's on, so this is honest about pace, not about position. */
+  const tick=setInterval(()=>{ if(SR_DOING<SR_QS.length-1){ SR_DOING++; srDraw(); } }, 2600);
+  try{
+    const d=await api('/api/search',{container:CID, stage:'run',
+      subject:($('srField').value||'').trim(), queries:SR_QS});
+    SR_HITS=(d.facts||[]).map(x=>Object.assign({on:false},x));
+    SR_BARRED=d.barred||[];
+    SRSTAGE='hits';
+    if(!SR_HITS.length) fdSay(0, "Couldn't find a thing worth keeping. Paste it in and I'll work from that.");
+  }catch(e){ fdSay(0, e.message); SRSTAGE='plan'; }
+  clearInterval(tick); SR_DOING=-1; fdDumpDraw();
+}
+
+function srTick(i){
+  SR_HITS[i].on=!SR_HITS[i].on;
+  SR_FACTS=SR_HITS.filter(x=>x.on).map(({fact,source,url})=>({fact,source,url}));
+  fdDumpDraw(); fdStages();
+}
+
 function fdDumpDraw(){
   const docs=FD_DOCS.length>0, words=!!($('fdDump')||{}).value.trim();
   const set=(id,on,has)=>{ const el=$(id); if(!el) return;
     el.className='dump-door'+(on?' on':has?' has':''); };
   set('fdDoorDocs',   DUMPDOOR==='docs',  docs);
   set('fdDoorWords',  DUMPDOOR==='words', words);
-  set('fdDoorSearch', false, false);
-  const vd=$('fdViewDocs'), vw=$('fdViewWords');
+  set('fdDoorSearch', DUMPDOOR==='search', SR_FACTS.length>0);
+  const vd=$('fdViewDocs'), vw=$('fdViewWords'), vs=$('fdViewSearch');
   if(vd) vd.className='dump-view'+(DUMPDOOR==='docs' ?' on':'')+(docs?' filled':'');
   if(vw) vw.className='dump-view'+(DUMPDOOR==='words'?' on':'')+(words?' filled':'');
+  /* `filled` top-aligns the plate AND hides the baby icon (a pre-existing
+     rule) — so it only goes on once the ask screen is behind us. */
+  if(vs) vs.className='dump-view'+(DUMPDOOR==='search'?' on':'')+(SRSTAGE!=='ask'?' filled':'');
+  srDraw();
   const plate=$('fdPlate');
-  if(plate) plate.classList.toggle('filled', (DUMPDOOR==='docs'&&docs)||(DUMPDOOR==='words'&&words));
+  if(plate) plate.classList.toggle('filled', (DUMPDOOR==='docs'&&docs)
+    ||(DUMPDOOR==='words'&&words)||(DUMPDOOR==='search'&&SRSTAGE!=='ask'));
   const line=$('fdPadLine');
   if(line) line.textContent = docs ? (QZ&&QZ.stops&&QZ.stops[0]&&QZ.stops[0].pad&&QZ.stops[0].pad.more)
     || 'or drag in another.' : (FD_LINE||'or drag it in.');
   const go=$('fdDumpGo');
-  if(go) go.classList.toggle('dormant', !(docs||words));
+  if(go) go.classList.toggle('dormant', !(docs||words||SR_FACTS.length));
 }
 $('fdBrowse').addEventListener('click', e=>{ e.stopPropagation(); $('fdFile').click(); });
 $('fdFile').addEventListener('change', async e=>{ await fdTake(e.target.files); e.target.value=''; });
@@ -1105,6 +1222,11 @@ $('fdFile').addEventListener('change', async e=>{ await fdTake(e.target.files); 
 /* the dump is everything on the pad: pasted words plus every readable doc */
 function fdDumpText(){
   const parts=FD_DOCS.filter(d=>d.text).map(d=>`--- ${d.name} ---\n${d.text}`);
+  /* found facts carry their source into the dump. The FEEDER and the WRITER
+     never see a bare claim — if it can't say where it came from it never
+     got this far. */
+  if(SR_FACTS.length) parts.push('--- FOUND ---\n'
+    + SR_FACTS.map(f=>`${f.fact} (${f.source})`).join('\n'));
   const typed=$('fdDump').value.trim();
   if(typed) parts.unshift(typed);
   return parts.join('\n\n');

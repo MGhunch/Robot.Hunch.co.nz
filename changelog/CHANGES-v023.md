@@ -1,5 +1,6 @@
 # CHANGES — v023
-*1 September 2026 — the landing zone stops wobbling, and the concertina shuts*
+*1 September 2026 — the landing zone stops wobbling, the concertina shuts,
+and the third door opens*
 
 *A format pass on stop one plus one behaviour fix. No copy changes, no new
 furniture — the doors, the plate and the discs are all as v022 left them.*
@@ -13,6 +14,16 @@ furniture — the doors, the plate and the discs are all as v022 left them.*
 - `static/robot.css` — the nudge's measure and size, the hint's size, the
   doors' bottom margin, and the dormant DONE.
 - `containers/prize_draw/config.md` — the nudge copy, cut to one line.
+  *(Committed in the first pass; not in the later zips.)*
+- `copy_stage.py` — `/api/search`, two stages, and the three promises kept
+  in code rather than only in the prompt.
+
+**New**
+- `prompts/search.md` — the SEARCH tool. A tool, not a worker.
+
+**Not in the zip**
+- `search-mock.html` — the SEARCH design, six states. A mock, like
+  `dump-mock.html` before it. Lives outside the repo until it's built.
 
 **New**
 - `changelog/CHANGES-v023.md` — this.
@@ -115,6 +126,126 @@ than asserted in passing at stop one.
 
 The 42ch cap stays regardless. `one_update` gets its own hint, and the next
 person writing one shouldn't be able to sprawl it across the card again.
+
+## The second sitting — the card as seen
+
+The first pass fixed the measure. Looking at it live turned up six more.
+
+**The nudge is gone.** Not emptied — `containers.py` requires the *What a good
+dump looks like* section and files a problem if it's blank, so the container
+would bounce itself. Instead nothing feeds `fdPadHint` any more. The div and
+its CSS stay, `.dump-nudge:empty{display:none}` hides it, and one line brings
+it back. Worth knowing: `feed_it.dump` now renders nowhere. It's a required
+field read by nothing — either wire it into the FEEDER or stop requiring it,
+but don't leave it drifting.
+
+**Discs to 56px**, glyphs to 25px. They're the door furniture; they were
+smaller than the words under them.
+
+**The red rectangle was our own focus ring.** `robot.css:8` puts
+`outline:2px solid var(--red)` on every focusable thing — fine on an input,
+but round a door it boxes disc and label together, a hard rectangle around a
+circle. Moved onto `.dump-disc`, where the outline follows the border-radius
+and reads as a ring. Keyboard focus still shows; it just stopped looking like
+a validation error.
+
+**WORDS lost its rule.** A second `.fd-paste` block further down the file was
+overriding the first with `border-top:1px dashed` and `margin-top:18px` — the
+line across the box, and the gap that stranded the scissors above it. Both
+gone. Two rules for one selector, 12px apart in the file, is worth a tidy at
+some point.
+
+**DOCS was never centred.** `.dump-empty` was a plain block, so the upload
+icon sat inline at the left edge while `.dump-hint` centred its own text. It
+only looked centred because the block shrank to fit. Now a centred flex column
+with the same 12px gap as WORDS, so both doors stack icon-over-line the same
+way.
+
+**The deets read TBC.** `clRowEl` fell back to the row's own question and only
+used TBC if the question was missing. A grid of full questions — *"Is it movie
+passes, gig tickets, sports tickets, or something else?"* — wraps to four
+lines and turns the card into noise. Now every unknown is TBC. The question
+isn't lost: it's still the placeholder in the edit field, which is where
+someone actually needs it.
+
+*Not touched:* the story card at `clRepeatCards` has its own unknown state,
+still showing `subjRow.ask`. Different card, so it's left alone pending a word.
+
+## SEARCH — designed, not built
+
+`search-mock.html`, six states, off site plan §6. The ask, the confirm, the
+looking, the catch, the landing, and the empty catch.
+
+Three things the mock decides that the plan doesn't. The confirm gets its own
+screen, which is what turns four searches into a visible budget rather than an
+invisible limit. The tick leads on the left, against the plate's convention,
+because choosing is not the same job as reporting. And a refused fact is shown
+struck through with its reason, because silently dropping the price reads as a
+worse search rather than a deliberate line.
+
+## SEARCH — built
+
+Hit list 9. `/api/search` didn't exist, `prompts/search.md` didn't exist,
+and nothing in `app.py` mentioned searching — this was greenfield, not
+half-wired.
+
+**Claude's own web search tool**, so no second vendor and no extra key.
+`anthropic` was already a dependency. Three things that changes:
+
+- **The four-search cap is real.** `max_uses` is an API parameter, so the
+  budget is enforced by the tool rather than requested in a prompt. Ask for
+  more and the call errors.
+- **Citations come back automatically**, each with a URL. So *no source, no
+  fact* stopped being a hope. `_cited_urls()` collects every page the model
+  actually read in that call, and any returned claim whose URL isn't in that
+  set gets dropped and logged. A thing it "knows" but didn't read never
+  reaches the screen.
+- **The price bar is a regex, not a request.** `_MONEY` catches currency,
+  amounts and the words around them. A fact that trips it is moved to
+  `barred` rather than binned, so the screen can show it struck through with
+  its reason — found, named, not carried.
+
+Two stages, because the plan says the human confirms first. `stage:"plan"`
+returns up to four searches and spends nothing. `stage:"run"` takes the
+approved list and runs it. Sonnet via `ROBOT_MODEL_SEARCH`, per site plan §6
+— worth noting `_call` still sends everything else to one model, so the
+plan's Sonnet/Opus split remains half-done elsewhere.
+
+**Cost.** Searches are $10 per 1,000, so four is four cents. Tokens for
+reading the results are the bigger half and won't be known until it's run
+a few times. Comfortably inside the plan's under-50c-a-run, but not free.
+
+### The front end
+
+`ask -> plan -> looking -> hits`, one view with four faces. The arrow
+proposes and the button commits, which is two weights for two sizes of
+decision — and the arrow is FIX IT's, whose own comment already settled
+that a field gets an arrow and not a SEND button.
+
+DONE stayed in the footer and SEARCH went into `.fd-tools`, the empty slot
+that was already sitting there in stop one's markup. Left is the door's
+action, right is the stop's exit. One new button state — `.ghost`, hollow
+with ink — so SEARCH can stay reachable after results land without shouting
+as loudly as DONE. The states work out so two solid red pills never appear
+together.
+
+Ticked facts join `fdDumpText()` carrying their source, so the FEEDER and
+the WRITER never see a bare claim.
+
+### Three bugs the screenshots caught
+
+Rendered every state in headless Chromium and looked at them, which was
+worth doing:
+
+- The magnifier was an `<svg>` nested inside an `<svg>` — legal, invisible.
+- The search view was getting `filled` unconditionally, and the pre-existing
+  `.dump-view.filled .dump-baby{display:none}` was eating the icon. It now
+  only lands once the ask screen is behind us, which is what `filled` means
+  anyway.
+- `.sr-fact` and `.sr-src` were inline, so every source ran on from the end
+  of its fact — *"…14 March.Spark Arena"*.
+
+None of the three would have shown up in a syntax check.
 
 ## Not done — the clickable ghost
 
