@@ -7,6 +7,10 @@ furniture — the doors, the plate and the discs are all as v022 left them.*
 
 ## Files
 
+*The zip carries only what's outstanding at the time it was built. Earlier
+passes in this changelog — SEARCH, robots.py, the readers — are already on
+`main`; this zip is the thinking head and the composer line.*
+
 **Replaced**
 - `static/index.html` — `accToggle()` added, the three stop heads pointed at
   it, DONE's dormant class, and an empty-DONE guard. **Cache tag bumped to
@@ -360,6 +364,53 @@ went wrong". There's a JSON handler on 413 now, so the row can say "too big".
 And `.fd-docs` is a wrapping flex row, so `.dump-bad` sat *beside* whichever
 row wrapped last instead of below the lot. Invisible with one file, obvious
 with three — which is exactly what this change makes normal.
+
+## The thinking head, and a line that shouldn't have been there
+
+`.botdisc.think` has four behaviours and picks one at random per wait. Two
+of them had never been legible.
+
+**The measurement.** An eye is `r="2.2"` in a 34-unit viewBox. In a 25px svg
+that's an eye **1.6px across**, and `thEyeroll` moved it **1.9px** — smaller
+than the antialiasing around it. Not a subtle animation; an invisible one.
+The amplitudes were calibrated for a head two or three times bigger than any
+head this tool draws.
+
+The four aren't the same kind of thing, which is what the pool didn't know:
+`rollboth` and `rock` move the **whole head** and read at any size.
+`eyeroll` and `blink` move **features inside** it, and need the features to
+be big enough to see.
+
+- **rollboth, rock** — untouched. They were always fine.
+- **eyeroll** — travel roughly doubled, to the edge of the face, plus a 4°
+  cast of the head so something large moves too. Travel alone still wouldn't
+  have carried it. Eyes stay at r 2.2: this behaviour is about where they
+  point, not about the eye.
+- **blink** — a double blink on a **1.4s** loop, down from 1.6s of stillness
+  to 824ms. The lid keeps its 144ms. **The eye grows to r 3 for this
+  behaviour only**, because a blink is a lid acting on an eye and squash
+  needs something to squash. Michael's call, and the right one.
+
+**A trap worth writing down:** keyframes are percentages, so shortening the
+loop squashes every phase with it. An early attempt at "same blink, sooner"
+silently took the lid from 144ms to 96ms — it *looked* like the blink had
+been sped up because it had been. The stops here are worked back from the
+duration. Change the 1.4s and they have to be recomputed with it.
+
+**The first wait is always `rollboth`.** Every later wait is read against an
+expectation the first one taught, so the first has to be the least ambiguous
+motion there is, and a full rotation is the loading gesture everyone already
+knows. Variety after that.
+
+### The line across the bounce composer
+
+`.fd-foot` carries `border-top:1px solid var(--border)` in its base rule, and
+the reset that removes it is written `.fd-bod>.fd-foot` — direct children
+only. The composer's footer sits one deeper, inside `.fd-say`, so the reset
+sailed past it and left a rule across the box. It was never a deliberate
+divider; it was a reset that didn't reach. Killed with `.fd-say .fd-foot`
+rather than by loosening the original selector, which would have un-lined
+footers nobody has looked at.
 
 ## Not done — the clickable ghost
 

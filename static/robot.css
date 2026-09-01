@@ -339,18 +339,36 @@ mark.fx-hl{background:var(--yellow);color:var(--ink);border-radius:2px;padding:0
 .botdisc.think svg{width:19px;height:19px;display:block;overflow:visible;}
 .chat-cav .botdisc.think svg{width:25px;height:25px;}
 .botdisc.think .eye,.botdisc.think .bulb{transform-box:fill-box;transform-origin:center;}
+/* eyeroll — the eyes travel to the edge of the face, and the head casts
+   4° with them. The old travel was 2.6 units, which on a 25px svg is a
+   1.6px eye moving 1.9px: smaller than the antialiasing around it. Travel
+   alone still wouldn't carry it at this size, so something large moves too.
+   Eyes stay at r 2.2 here — this behaviour is about where they point, not
+   about the eye itself. */
 .botdisc.think.eyeroll .eye{animation:thEyeroll 2.2s infinite ease-in-out;}
 .botdisc.think.eyeroll .bulb{animation:thBulb 2.2s infinite;}
-@keyframes thEyeroll{0%,100%{transform:translate(0,0)}15%{transform:translate(-2.4px,-1px)}35%{transform:translate(0,-2.6px)}55%{transform:translate(2.4px,-1px)}70%{transform:translate(0,0)}}
+.botdisc.think.eyeroll svg{animation:thCast 2.2s infinite ease-in-out;}
+@keyframes thEyeroll{0%,100%{transform:translate(0,0)}15%{transform:translate(-4.4px,-1.6px)}35%{transform:translate(0,-4.6px)}55%{transform:translate(4.4px,-1.6px)}70%{transform:translate(0,0)}}
+@keyframes thCast{0%,100%{transform:rotate(0)}15%{transform:rotate(-4deg)}35%{transform:rotate(0)}55%{transform:rotate(4deg)}70%{transform:rotate(0)}}
 @keyframes thBulb{0%,100%{opacity:1}50%{opacity:.3}}
 .botdisc.think.rollboth{animation:thRollboth 3.2s infinite cubic-bezier(.45,0,.2,1);}
 @keyframes thRollboth{0%{transform:rotate(0)}38%{transform:rotate(360deg)}50%{transform:rotate(360deg)}88%{transform:rotate(0)}100%{transform:rotate(0)}}
 .botdisc.think.rock svg{animation:thRock 1.2s infinite ease-in-out;transform-origin:50% 80%;}
 @keyframes thRock{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(10deg)}}
-.botdisc.think.blink .eye{animation:thBlink 1.6s infinite;}
-.botdisc.think.blink .eye:nth-of-type(2){animation-delay:.08s;}
-.botdisc.think.blink .bulb{animation:thBulb 1.6s infinite;}
-@keyframes thBlink{0%,80%,100%{transform:scaleY(1)}86%{transform:scaleY(.1)}}
+/* blink — a double blink on a 1.4s loop. Keyframes are percentages, so
+   the stops are worked back from the duration to keep each lid movement at
+   a true 144ms; change the 1.4s and these have to be recomputed with it.
+   576ms of gesture, 824ms of stillness.
+   The eye grows to r 3 for this behaviour alone. A blink is a lid acting on
+   an eye, so there has to be enough eye for the closing to be an event —
+   squash needs something to squash. The roll is about where the eyes point
+   and doesn't need it. */
+.botdisc.think.blink .eye{r:3px;animation:thBlink 1.4s infinite;}
+.botdisc.think.blink .eye:nth-of-type(2){animation-delay:.06s;}
+.botdisc.think.blink .bulb{animation:thBulb 1.4s infinite;}
+@keyframes thBlink{0%,48%,100%{transform:scaleY(1)}
+  58.3%{transform:scaleY(.08)}68.6%{transform:scaleY(1)}
+  78.9%{transform:scaleY(.08)}89.2%{transform:scaleY(1)}}
 @media (prefers-reduced-motion:reduce){.botdisc.think *{animation:none!important;}}
 
 /* don't touch */
@@ -966,7 +984,12 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
    The bounce box wears the pad's dashed box: a white box with a cursor
    in it, NEXT underneath, no placeholder. Stop 3's lineup: a story is a
    row with its topics as chips beneath. */
+/* The bounce composer. Its footer sits inside .fd-say, so the reset at
+   `.fd-bod>.fd-foot` — direct children only — sailed straight past it and
+   left a rule across the box. Killed here rather than by loosening that
+   selector, which would un-line footers this hasn't looked at. */
 .fd-bod .fd-say{border:2px dashed var(--border);border-radius:10px;padding:8px 10px 4px}
+.fd-say .fd-foot{border-top:none}
 .fd-bod .fd-say textarea{font-size:15px;line-height:1.5}
 .cl-card.story{position:relative;padding-bottom:12px}
 .cl-card.story .cl-row{border-top:none;padding-top:4px}
