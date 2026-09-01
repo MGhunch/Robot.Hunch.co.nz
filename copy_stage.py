@@ -177,7 +177,11 @@ def _call(worker, system, user, max_tokens=1200):
         model=robots.robot(worker), max_tokens=max_tokens, system=system,
         messages=[{"role": "user", "content": user}],
     )
-    return (resp.content[0].text or "").strip()
+    # Join the text blocks, same as _search_call and _call_blocks: a
+    # response is a list of blocks, not one lump of text, and content[0]
+    # is not promised to be the text. This line silently killed the
+    # FEEDER and EXTRACT after the sonnet-5 bump (v029).
+    return "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
 
 
 # ---------------------------------------------------------------------------
@@ -385,6 +389,8 @@ def extract():
             + "\n\nRETURN EXACTLY THIS SHAPE:\n" + json.dumps(shape))
     try:
         result = _json_from(_call("extract", prompt("extract"), user, 600)) or {}
+        if not result:
+            print("[robot/extract] answer empty or unparseable")
     except Exception as e:
         print(f"[robot/extract] failed: {e}")
         return jsonify({"success": True, "found": {}})     # a favour, not a gate
@@ -519,6 +525,7 @@ def feeder():
         print(f"[robot/feeder] fell back to plain: {e}")
         return jsonify(fallback)
     if not result or not (result.get("enrich") or "").strip():
+        print("[robot/feeder] fell back to plain: answer empty or unparseable")
         return jsonify(fallback)
     out = {"success": True, "confirm": (result.get("confirm") or "").strip(),
            "enrich": result["enrich"].strip(), "angle": "", "live": True}
