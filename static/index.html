@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=023">
+<link rel="stylesheet" href="robot.css?v=023a">
 
 </head>
 <body>
@@ -143,7 +143,7 @@
               <div class="fd-stage on" data-i="0">
                 <div class="fd-gut">1</div>
                 <div class="fd-card">
-                  <button class="fd-head" onclick="acc(0)">
+                  <button class="fd-head" onclick="accToggle(0)">
                     <div>
                       <span class="fd-q" id="fdT0"></span>
                       <div class="fd-sub" id="fdS0"></div>
@@ -187,7 +187,7 @@
               <div class="fd-stage todo" data-i="1">
                 <div class="fd-gut">2</div>
                 <div class="fd-card">
-                  <button class="fd-head" onclick="acc(1)">
+                  <button class="fd-head" onclick="accToggle(1)">
                     <div>
                       <span class="fd-q" id="fdT1"></span>
                       <div class="fd-sub" id="fdS1"></div>
@@ -215,7 +215,7 @@
               <div class="fd-stage todo" data-i="2">
                 <div class="fd-gut">3</div>
                 <div class="fd-card">
-                  <button class="fd-head" onclick="acc(2)">
+                  <button class="fd-head" onclick="accToggle(2)">
                     <div>
                       <span class="fd-q" id="fdT2"></span>
                       <div class="fd-sub" id="fdS2"></div>
@@ -921,6 +921,10 @@ function acc(i){
   ACC=i; fdStages();
   if(i===2){ clRender(); armDetail(); }
 }
+/* the heads toggle: clicking the open stop shuts it, and ACC=-1 means
+   all three are closed. acc() stays imperative — accReach() uses it to
+   move you forward, and must never close a stop it was sent to open. */
+function accToggle(i){ acc(ACC===i ? -1 : i); }
 function accReach(i){ acc(i); if(i!==1) fdThink(false); }
 
 /* The robot, saying one short thing in the stop you've just been sent to.
@@ -1082,6 +1086,8 @@ function fdDumpDraw(){
   const line=$('fdPadLine');
   if(line) line.textContent = docs ? (QZ&&QZ.stops&&QZ.stops[0]&&QZ.stops[0].pad&&QZ.stops[0].pad.more)
     || 'or drag in another.' : (FD_LINE||'or drag it in.');
+  const go=$('fdDumpGo');
+  if(go) go.classList.toggle('dormant', !(docs||words));
 }
 $('fdBrowse').addEventListener('click', e=>{ e.stopPropagation(); $('fdFile').click(); });
 $('fdFile').addEventListener('change', async e=>{ await fdTake(e.target.files); e.target.value=''; });
@@ -1106,6 +1112,7 @@ function fdDumpText(){
 
 async function fdDumpNext(){
   const dump=fdDumpText();
+  if(!dump.trim()){ fdSay(0, FD_SHORT[0][1]); return; }
   $('blurb').value=dump; dirty();
   $('fdDumpGo').disabled=true;
   accReach(1);

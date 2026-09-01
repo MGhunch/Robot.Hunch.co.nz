@@ -19,7 +19,7 @@ status:  live
 
 ## FEED IT
 ### What a good dump looks like
-Briefs, emails, legals, whatever. The promoter's blurb, the venue, the dates if you have them. The robot mines it for a hook and never echoes it.
+Give the robot something to write about.
 
 ### What the container needs (the FEEDER reads this)
 A Rewards prize-draw email. It has to say what's being given away, who can win it (One NZ customers), how to enter, and give the reader one honest reason to bother. The story of the prize matters more than the mechanics — dates, venues and values are checklist facts, not chat.

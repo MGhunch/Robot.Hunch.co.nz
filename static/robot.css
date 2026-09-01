@@ -563,6 +563,9 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
   transition:background .15s}
 .fd-go:hover{background:var(--red-dark)}
 .fd-go:disabled{opacity:.5}
+.fd-go.dormant{background:none;color:var(--mid);
+  box-shadow:inset 0 0 0 1.5px var(--border)}
+.fd-go.dormant:hover{background:none;color:var(--mid)}
 /* the ghost — renders from the shape block of quiz.json */
 .fd-ghost{background:#fff;border-radius:var(--r-md);overflow:hidden;
   box-shadow:0 10px 32px rgba(0,0,0,.18)}
@@ -658,7 +661,7 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
    ticks — they never reskin. Three states: hollow (nothing landed), has
    (something's in that box, even closed), on (this box is open). The `has`
    ring is the only tell for a closed door, so no badges and no counts. */
-.dump-doors{display:flex;justify-content:center;gap:34px;margin:4px 0 14px}
+.dump-doors{display:flex;justify-content:center;gap:34px;margin:4px 0 6px}
 .dump-door{background:none;border:none;padding:0;cursor:pointer;display:flex;
   flex-direction:column;align-items:center;gap:7px}
 .dump-door b{font-family:var(--display);font-weight:500;font-size:13px;
@@ -675,7 +678,8 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .dump-door:active .dump-disc{transform:scale(.94)}
 
 /* the container's own nudge, under the doors */
-.dump-nudge{text-align:center;font-size:11.5px;color:var(--mid);margin:0 0 12px}
+.dump-nudge{text-align:center;font-size:13px;color:var(--mid);
+  max-width:42ch;margin:0 auto 18px}
 .dump-nudge:empty{display:none}
 
 /* one box. Solid at rest, never dashed — dashed is reserved for a live
@@ -691,7 +695,7 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .dump-baby{width:30px;height:30px;color:var(--mid);flex:none}
 .dump-view.filled .dump-baby{display:none}
 .dump-plate.over .dump-baby{color:var(--red);display:block}
-.dump-hint{margin:0;font-size:12.5px;color:var(--mid);text-align:center}
+.dump-hint{margin:0;font-size:12px;color:var(--mid);text-align:center}
 .dump-hint a{color:var(--red);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .dump-view.filled .dump-empty{margin-top:12px}
 
