@@ -257,7 +257,7 @@
       <textarea id="storyCare" style="display:none"></textarea>
       <textarea id="storyAngle" style="display:none"></textarea>
       <textarea id="blurb" style="display:none"></textarea>
-      <input type="file" id="fdFile" accept=".txt,.md,.csv,text/plain" multiple style="display:none">
+      <input type="file" id="fdFile" accept=".txt,.md,.csv,.markdown,.log,.json,.docx,.pdf,.png,.jpg,.jpeg,.webp,.gif" multiple style="display:none">
     </div>
 
     <!-- the pics page went in v015: images arrive from FIX IT when 2.0 wants them -->
@@ -1055,29 +1055,49 @@ function fdToolsDraw(t){
 }
 
 /* ---------- STOP 1: the landing pad ---------- */
-const FD_TEXT = f => /\.(txt|md|csv)$/i.test(f.name) || (f.type||'').startsWith('text/');
+/* The browser reads plain text itself. Everything else goes to /api/read,
+   which turns Word, PDF and pictures into words server-side — so the dump
+   stays a string and the FEEDER never learns about file formats. */
+const FD_TEXT = f => /\.(txt|md|csv|markdown|log|json)$/i.test(f.name) || (f.type||'').startsWith('text/');
 let FD_LINE='or drag it in.';
 let FD_DOCS=[];                            // {name, text} — what's been dropped
 async function fdTake(files){
+  const pending=[];
   for(const f of files){
     if(FD_TEXT(f)){
       const t=await f.text();
       FD_DOCS.push({name:f.name, text:t.slice(0,12000)});
     }else{
-      FD_DOCS.push({name:f.name, text:'', bad:true});
+      const d={name:f.name, text:'', wait:true};
+      FD_DOCS.push(d); pending.push([d,f]);
     }
   }
   fdDocsDraw();
+  /* each on its own, so one unreadable file doesn't sink the others */
+  await Promise.all(pending.map(async ([d,f])=>{
+    try{
+      const fd=new FormData(); fd.append('file', f, f.name);
+      const r=await fetch('/api/read',{method:'POST',body:fd});
+      const j=await r.json().catch(()=>({}));
+      if(j&&j.success&&j.text){ d.text=j.text; }
+      else { d.bad=true; d.why=(j&&j.error)||'couldn\'t read that one'; }
+    }catch(e){ d.bad=true; d.why='couldn\'t read that one'; }
+    d.wait=false; fdDocsDraw();
+  }));
 }
 function fdDocsDraw(){
   $('fdDocs').innerHTML = FD_DOCS.map((d,i)=>
-    `<div class="dump-row${d.bad?' bad':''}">
+    `<div class="dump-row${d.bad?' bad':''}${d.wait?' wait':''}">
        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/></svg>
        <span class="dump-name">${esc(d.name)}</span>
        <button class="dump-x" onclick="fdDocDrop(${i});event.stopPropagation()" aria-label="Remove">&times;</button>
-       <span class="dump-tick" aria-label="${d.bad?'Not read':'Read'}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-6.5"/></svg></span>
+       <span class="dump-tick" aria-label="${d.wait?'Reading':d.bad?'Not read':'Read'}">${d.wait?'':'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-6.5"/></svg>'}</span>
      </div>`).join('')
-    + (FD_DOCS.some(d=>d.bad) ? `<p class="dump-bad">Couldn't read that one. Paste the words in instead.</p>` : '');
+    /* the failure names what it couldn't do, then what does work — a list
+       of formats that don't work is no use to anyone holding a file. */
+    + (FD_DOCS.some(d=>d.bad)
+        ? `<p class="dump-bad">${esc(FD_DOCS.find(d=>d.bad).why||"Couldn't read that one")}. Word, PDF, a screenshot or plain text — or paste the words in.</p>`
+        : '');
   fdDumpDraw();
 }
 function fdDocDrop(i){ FD_DOCS.splice(i,1); fdDocsDraw(); fdStages(); }

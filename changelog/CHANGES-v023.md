@@ -15,11 +15,18 @@ furniture — the doors, the plate and the discs are all as v022 left them.*
   doors' bottom margin, and the dormant DONE.
 - `containers/prize_draw/config.md` — the nudge copy, cut to one line.
   *(Committed in the first pass; not in the later zips.)*
-- `copy_stage.py` — `/api/search`, two stages, and the three promises kept
-  in code rather than only in the prompt.
+- `copy_stage.py` — `/api/search`, two stages, the three promises kept in
+  code rather than only in the prompt, and every model choice moved out to
+  `robots.py`.
+- `app.py` — the boot-time model check, `/api/health` reporting the lanes,
+  and a JSON answer for an oversize upload.
+- `requirements.txt` — `pdfplumber`.
 
 **New**
 - `prompts/search.md` — the SEARCH tool. A tool, not a worker.
+- `robots.py` — which robot where. Site plan §6, in code.
+- `readers.py` — one door, three readers.
+- `prompts/reader.md` — the READER. Transcribes, never improves.
 
 **Not in the zip**
 - `search-mock.html` — the SEARCH design, six states. A mock, like
@@ -258,6 +265,101 @@ worth doing:
   of its fact — *"…14 March.Spark Arena"*.
 
 None of the three would have shown up in a syntax check.
+
+## robots.py — the lanes exist now
+
+The model-id bug was a symptom. The disease was that §6's *which robot
+where* had never been built: `_call()` sent writer, fixer, feeder and
+extract to one `ROBOT_MODEL`, so the plan's Sonnet/Opus split lived in a
+document and nowhere else. `SEARCH_MODEL` was accidentally the first lane
+the codebase ever had, and it was wrong.
+
+`robots.py` is two constants and five lanes:
+
+    BIG  = ROBOT_BIG  or ROBOT_MODEL        or claude-opus-5
+    FAST = ROBOT_FAST or ROBOT_MODEL_SEARCH or claude-sonnet-5
+
+    writer   BIG    the craft moment gets the big model
+    fixer    FAST   the client is sitting there watching it think
+    feeder   FAST   same — it's a conversation, not a composition
+    extract  FAST   a favour, not a gate; never worth the wait
+    search   FAST   a tool, not a worker
+
+Two constants rather than five ids, so a model id changes in **one line**
+and every lane on that speed follows. `ROBOT_MODEL_WRITER` and friends
+still override a single lane, which is how §6's "FIXER promoted to Opus
+when the log says so" will eventually land — as a function of the log, in
+this file, not as a second constant somewhere else.
+
+The old `ROBOT_MODEL` and `ROBOT_MODEL_SEARCH` are still read, so the
+Railway environment as it stands today keeps working untouched.
+
+`_call()` now takes the **lane**, not a model id — `_call("feeder", ...)`.
+That string is also the prompt filename, so `prompt("feeder")` and
+`robot("feeder")` agree or they visibly don't.
+
+### Caught on boot, not by a client
+
+`robots.check()` resolves every lane against `client.models.list()` at
+startup and prints a shouting line for anything that doesn't exist.
+`/api/health` carries the verdict, so *what is actually running* is a URL
+rather than a Railway log dig:
+
+    {"lanes": {"writer": "claude-opus-5", ...},
+     "models_ok": true, "models": {"checked": true, "bad": {}}}
+
+It logs rather than crashing by default — a network blip at cold start
+shouldn't take the site down. `ROBOT_STRICT_MODELS=1` makes a bad id fatal
+instead, which is the right setting for a deploy pipeline and the wrong one
+for a bad minute on Railway.
+
+## Word, PDF and pictures
+
+The door took plain text and nothing else — `txt|md|csv`, read in the
+browser with `f.text()`. A .docx brief, which is how a client actually
+sends one, bounced with "Couldn't read that one. Paste the words in
+instead."
+
+**One door, three readers.** `/api/read` takes a file and returns words.
+`readers.py` does the extraction, `prompts/reader.md` does the pictures,
+and the dump stays exactly what it has always been: a string.
+
+That last part is the design decision worth keeping. The obvious way to
+accept a screenshot is to make the dump multimodal — but the dump is read
+by the FEEDER *and* by EXTRACT, so going multimodal changes the contract
+for both. Reading the picture into words at the threshold means nothing
+downstream changes at all. Same move EXTRACT makes: a favour at the door.
+
+- **.docx** — `python-docx`, already installed for writing the parcel.
+  Paragraphs *and* tables, because briefs live in tables more often than
+  anyone admits.
+- **.pdf** — `pdfplumber`, 40 pages max. A PDF with no text layer is a
+  scan, which is a picture wearing a PDF; it says so rather than returning
+  nothing.
+- **pictures** — a Sonnet call on the `reader` lane. The prompt transcribes
+  and refuses to improve: typos and three different date formats come
+  across as they are, because the robot needs to see it wrong. Unreadable
+  bits come back as `[unclear]` rather than a guess — a guessed date is
+  worse than a gap, since a gap gets asked about.
+
+**Three row states, no new furniture.** `.dump-row` already had read and
+bad; `wait` joins them — dashed border, grey name, and the tick hollow and
+breathing until the words come back. Each file resolves on its own, so one
+unreadable drop doesn't sink the others.
+
+**The failure line names what works.** It was "Paste the words in instead",
+which tells you nothing while you're holding a file. Now it says what went
+wrong and then what to bring: *Word, PDF, a screenshot or plain text.*
+
+### Two caught in testing
+
+`MAX_CONTENT_LENGTH` was already set for the images route, so an oversize
+drop got Flask's HTML 413 page — which a `fetch` can only read as "something
+went wrong". There's a JSON handler on 413 now, so the row can say "too big".
+
+And `.fd-docs` is a wrapping flex row, so `.dump-bad` sat *beside* whichever
+row wrapped last instead of below the lot. Invisible with one file, obvious
+with three — which is exactly what this change makes normal.
 
 ## Not done — the clickable ghost
 

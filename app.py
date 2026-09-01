@@ -219,6 +219,15 @@ IMAGE_TYPES = {"image/jpeg": ".jpg", "image/png": ".png"}
 IMAGE_MAX = 10 * 1024 * 1024          # 10MB a picture is plenty for email
 app.config["MAX_CONTENT_LENGTH"] = IMAGE_MAX + 1024 * 1024
 
+
+@app.errorhandler(413)
+def too_big(_):
+    """Flask answers an oversize upload with an HTML page, which a fetch()
+    can only read as 'something went wrong'. Say it in JSON so the row can
+    say it in words."""
+    return jsonify({"success": False,
+                    "error": "too big — 10MB is the limit"}), 413
+
 _SAFE = re.compile(r"[^a-z0-9-]")
 
 def _clean(s, n=40):

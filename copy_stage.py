@@ -13,6 +13,7 @@ Every route takes a container id and reads that container's definition
   POST /api/extract   container + the dump -> checklist pre-fill
   POST /api/feeder    container + dump + answers -> the next move, dressed
   POST /api/search    container + a subject -> the searches, then the facts
+  POST /api/read      a dropped file -> its words, whatever it arrived as
   GET  /api/log       the tweak log
 
 Every tweak is logged to ROBOT_STORE, container-tagged. That log is the
@@ -29,6 +30,7 @@ from datetime import datetime
 from auth import require_auth
 import containers as CT
 import robots
+import readers
 from engine import build_facts, check_copy, copy_context, TermsError
 
 copy_bp = Blueprint("copy", __name__)
@@ -526,6 +528,56 @@ def feeder():
             return jsonify(fallback)
         out["angle"] = ang[:300]
     return jsonify(out)
+
+
+# ---------------------------------------------------------------------------
+# READ — one door, three readers. A file becomes words before it joins the
+# dump, so the dump stays a string and nothing downstream has to change.
+# The extraction lives in readers.py; only the picture needs a model.
+# ---------------------------------------------------------------------------
+
+def _call_blocks(worker, system, blocks, max_tokens=1500):
+    """Same lane scheme as _call, for a message that isn't only text."""
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    resp = client.messages.create(
+        model=robots.robot(worker), max_tokens=max_tokens, system=system,
+        messages=[{"role": "user", "content": blocks}],
+    )
+    return "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
+
+
+@copy_bp.route("/api/read", methods=["POST"])
+@require_auth
+def read_file():
+    f = request.files.get("file")
+    if not f:
+        return jsonify({"error": "Nothing arrived."}), 400
+    name = f.filename or "dropped file"
+    data = f.read()
+    text, needs_model, err = readers.read(name, data)
+    if err:
+        return jsonify({"success": False, "name": name, "error": err})
+    if text:
+        return jsonify({"success": True, "name": name, "text": text})
+
+    # a picture, or a scan with no text layer
+    if not ANTHROPIC_API_KEY:
+        return jsonify({"success": False, "name": name,
+                        "error": "can't read pictures just now"})
+    if readers.kind(name) == "pdf":
+        return jsonify({"success": False, "name": name,
+                        "error": "that PDF is a scan with no text in it — a screenshot works better"})
+    try:
+        out = _call_blocks("reader", prompt("reader"),
+                           [readers.image_block(name, data),
+                            {"type": "text", "text": "Transcribe this."}])
+    except Exception as e:
+        print(f"[robot/read] {name} failed ({robots.robot('reader')}): {e}")
+        return jsonify({"success": False, "name": name, "error": "couldn\'t read that picture"})
+    out = (out or "").strip()[:readers.MAX_CHARS]
+    if not out:
+        return jsonify({"success": False, "name": name, "error": "nothing in it I could read"})
+    return jsonify({"success": True, "name": name, "text": out})
 
 
 # ---------------------------------------------------------------------------

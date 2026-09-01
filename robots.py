@@ -40,6 +40,7 @@ LANES = {
     "feeder":  (FAST, "same — it's a conversation, not a composition"),
     "extract": (FAST, "a favour, not a gate; never worth the wait"),
     "search":  (FAST, "a tool, not a worker"),
+    "reader":  (FAST, "turning a picture into words; nobody waits well"),
 }
 
 # §6 says the FIXER is "promoted to Opus if the log says so". Not built.
