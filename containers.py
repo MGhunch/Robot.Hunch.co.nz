@@ -37,6 +37,11 @@ CONTAINERS_DIR = os.environ.get("ROBOT_CONTAINERS", os.path.join(ROOT, "containe
 DERIVED_SUFFIXES = ("_day", "_date", "_time", "_long", "_short", "_word", "_cap")
 ENGINE_FACTS = {"year"}
 
+# The bounce's three needs, by name. The count is no longer the rail — these
+# are. A container dresses each one in its own words; the FEEDER decides how
+# many turns it takes to land them.
+NEEDS_RAIL = ("point", "insight", "angle")
+
 
 # ---------------------------------------------------------------------------
 # MARKDOWN — the little bit of parsing the schema needs
@@ -348,29 +353,41 @@ def _parse_config(text, cid, problems):
     if feed is None:
         problems.append(f"{cid}: config.md has no '## FEED IT'")
         feed = ""
-    fi = {"dump": "", "needs": "", "moves": [], "closing": ""}
+    # The bounce is dynamic: three NEEDS that have to be true, not three
+    # moves to be marched through. The container supplies the dressing and
+    # says what its point is made of; how many turns it takes is the
+    # FEEDER's business.
+    fi = {"dump": "", "needs": "", "point": "", "bounce": [], "closing": ""}
     for title, body in _sections(feed, 3):
         tl = title.lower()
         if tl.startswith("what a good dump"):
             fi["dump"] = body
         elif tl.startswith("what the container needs"):
             fi["needs"] = body
+        elif tl.startswith("the point"):
+            fi["point"] = body.strip()
         elif tl.startswith("bounce it"):
             for r in _table(body)["rows"]:
-                try:
-                    n = int(r.get("move", "0"))
-                except ValueError:
-                    n = 0
-                fi["moves"].append({"n": n, "job": r.get("job", ""), "plain": r.get("plain", ""),
-                                    "placeholder": r.get("placeholder", ""), "why": r.get("why", "")})
+                need = (r.get("need") or "").strip().lower()
+                if not need:
+                    continue
+                fi["bounce"].append({"need": need, "plain": r.get("plain", ""),
+                                     "placeholder": r.get("placeholder", ""),
+                                     "why": r.get("why", "")})
         elif tl.startswith("closing"):
             fi["closing"] = body.strip()
     for k, want in (("dump", "What a good dump looks like"), ("needs", "What the container needs"),
-                    ("closing", "Closing line")):
+                    ("point", "The point"), ("closing", "Closing line")):
         if not fi[k]:
             problems.append(f"{cid}: FEED IT has no '### {want}'")
-    if len(fi["moves"]) != 3:
-        problems.append(f"{cid}: FEED IT 'Bounce it' needs exactly three moves, found {len(fi['moves'])}")
+    # the rail that replaced the count: the three needs, by name.
+    got = {b["need"] for b in fi["bounce"]}
+    for want in NEEDS_RAIL:
+        if want not in got:
+            problems.append(f"{cid}: FEED IT 'Bounce it' has no '{want}' need")
+    for b in fi["bounce"]:
+        if b["need"] not in NEEDS_RAIL:
+            problems.append(f"{cid}: FEED IT 'Bounce it' has an unknown need '{b['need']}'")
     c["feed_it"] = fi
 
     needs = _section(text, "NEEDS")

@@ -26,12 +26,19 @@ A list of what's in this issue, in order, and the doc behind each one. Three to 
 ### What the container needs (the FEEDER reads this)
 A quarterly roundup for One NZ customers. Three to five things worth knowing, in the client's order, each with a doc behind it. It has to name what's in the issue, give each thing one honest reason to care, and find the thread if there is one. Card types, counts, dates and links are checklist facts, not chat.
 
+### The point (what this container is actually about)
+The lead story, and the running order. Which of the three to five things is
+worth leading on, and where the rest sit behind it.
+
 ### Bounce it — the dressing
-| move | job | plain | placeholder | why |
-|---|---|---|---|---|
-| 1 | the gap | What's this all about? | 'Headphones draw, the DOC toilet story, refurb phones, and a nudge to check Phone Dollars...' | The list and the order set the shape of the whole issue. The facts per card I'll chase at the checklist. |
-| 2 | the benefit | Why will anyone care? | 'The toilet thing is actually great. The rest is housekeeping.' | One honest line about the best thing in the issue beats a summary of all five. |
-| 3 | the angle | What's the angle? | 'Yep.' Or say it your way. | The thread is the one idea the intro hangs off. I'll propose one from the list; say yes, or say it better. |
+*Three needs, not three questions. The robot lands them in as few turns as it
+honestly takes. These are the container's words for each.*
+
+| need | plain | placeholder | why |
+|---|---|---|---|
+| point | What's this all about? | 'Headphones draw, the DOC toilet story, refurb phones, and a nudge to check Phone Dollars...' | The list and the order set the shape of the whole issue. The facts per card I'll chase at the checklist. |
+| insight | What's the one thing people will love? | 'The toilet thing is actually great. The rest is housekeeping.' | One honest line about the best thing in the issue beats a summary of all five. |
+| angle | What's the angle? | 'Yep.' Or say it your way. | The thread is the one idea the intro hangs off. I'll propose one from the list; say yes, or say it better. |
 
 ### Closing line
 Got it. Let me check what I'm missing.

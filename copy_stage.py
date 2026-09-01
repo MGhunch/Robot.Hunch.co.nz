@@ -10,8 +10,8 @@ Every route takes a container id and reads that container's definition
 
   POST /api/copy      container + facts + story -> the modules, filled
   POST /api/tweak     container + one module + a human note -> lock / change / ask / decline
-  POST /api/extract   container + the dump -> checklist pre-fill
-  POST /api/feeder    container + dump + answers -> the next move, dressed
+  POST /api/feeder    container + dump + the conversation -> the next beat,
+                      the brief when it closes, and the checklist pre-fill
   POST /api/search    container + a subject -> the searches, then the facts
   POST /api/read      a dropped file -> its words, whatever it arrived as
   GET  /api/log       the tweak log
@@ -39,7 +39,7 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 # Which robot where lives in robots.py — site plan §6, one file, one edit.
 
 # ---------------------------------------------------------------------------
-# THE WORKERS live in /prompts as markdown: writer, fixer, feeder, extract.
+# THE WORKERS live in /prompts as markdown: writer, fixer, feeder, search,
 # They're the engine — one fixed machine — and they never mention a
 # container. Voice and spec arrive from the container on every call.
 # Files are re-read when they change on disk, so a prompt edit lands on the
@@ -279,24 +279,32 @@ def _brief(c, facts, story, source):
             lines.append(f"{key.upper()} {it.get('n', '')}: " + " · ".join(bits))
     brief = "THE FACTS (from the checklist — quote them, never restate them):\n" + "\n".join(lines)
 
-    moves = c["feed_it"]["moves"]
-    got = [(m, (story.get(move_key(m)) or "").strip()) for m in moves]
-    if any(a for m, a in got if m["n"] != 3):
-        brief += "\n\nTHE STORY (a human answered these — this is your fuel, lead from here):"
-        for m, a in got:
-            if a and m["n"] != 3:
-                brief += f"\n{m['plain']} {a[:600]}"
+    point = (story.get("point") or "").strip()
+    insight = (story.get("insight") or "").strip()
+    if point or insight:
+        brief += ("\n\nTHE BRIEF (from the bounce — a steer, not the material. "
+                  "It says where to start in what they sent):")
+        if point:
+            brief += f"\nTHE POINT: {point[:600]}"
+        if insight:
+            brief += f"\nWHY PEOPLE WILL CARE: {insight[:600]}"
     angle = (story.get("angle") or "").strip()
     if angle:
-        brief += f"\n\nTHE ANGLE (agreed with the human in the chat — the one idea the piece hangs off, write to it):\n{angle[:300]}"
-    brief += ("\n\nWHAT THEY SENT US (their writing, not ours — mine it for a hook, don't echo it):\n"
+        brief += ("\n\nTHE ANGLE (agreed with the human in the chat — the one idea the "
+                  "piece hangs off, write to it. It's a proposition, not a line: don't "
+                  "quote it back, write from it):\n" + angle[:300])
+    brief += ("\n\nWHAT THEY SENT US (their writing, not ours — everything that went in, "
+              "whole. Mine it for a hook, don't echo it):\n"
               + (source or "(nothing supplied)").strip()[:6000])
+    # Precedence, stated once and plainly. The dump travels whole so nothing
+    # is lost, which means the only thing stopping an unchecked date reaching
+    # the copy is this line. Filtering can miss something; ranking can't.
+    brief += ("\n\nWHICH WINS: the checklist facts above are canon. A human has ticked "
+              "every one of them. Where anything in what they sent disagrees with a "
+              "checklist fact, the checklist fact is right and the other one is old. "
+              "Never write a date, a name, a place or a number that came from their "
+              "material when the checklist states it.")
     return brief
-
-
-def move_key(m):
-    """A move's key in the answers: its job word — gap, benefit, angle."""
-    return re.sub(r"^the\s+", "", m["job"].strip().lower()).replace(" ", "_")
 
 
 def _flags(c, result, facts):
@@ -345,10 +353,12 @@ def generate():
 
 
 # ---------------------------------------------------------------------------
-# EXTRACT — the dump -> checklist pre-fill. Suggests, never gates.
+# THE CHECKLIST PRE-FILL — the shape the FEEDER fills, and the filter that
+# only lets through what the checklist actually has a row for. Suggests,
+# never gates: nothing here arrives ticked.
 # ---------------------------------------------------------------------------
 
-def _extract_shape(c):
+def _prefill_shape(c):
     shape, notes = {}, []
     for g in c["needs"]["groups"]:
         rows = [r for r in g["rows"] if r["type"] in ("text", "number", "date", "select", "topics")]
@@ -370,33 +380,11 @@ def _extract_shape(c):
     return shape, notes
 
 
-@copy_bp.route("/api/extract", methods=["POST"])
-@require_auth
-def extract():
-    c, data = _container()
-    if not c:
-        return jsonify({"error": "No such container."}), 404
-    if not ANTHROPIC_API_KEY:
-        return jsonify({"success": True, "found": {}})
-    text = (data.get("source") or "").strip()[:8000]
-    for k, v in (data.get("answers") or {}).items():
-        if v:
-            text += f"\n\n{k.upper()}:\n{str(v).strip()[:800]}"
-    if not text.strip():
-        return jsonify({"success": True, "found": {}})
-    shape, notes = _extract_shape(c)
-    user = ("THE DUMP:\n" + text + "\n\nTHE FIELDS:\n" + "\n".join(f"- {n}" for n in notes)
-            + "\n\nRETURN EXACTLY THIS SHAPE:\n" + json.dumps(shape))
-    try:
-        result = _json_from(_call("extract", prompt("extract"), user, 600)) or {}
-        if not result:
-            print("[robot/extract] answer empty or unparseable")
-    except Exception as e:
-        print(f"[robot/extract] failed: {e}")
-        return jsonify({"success": True, "found": {}})     # a favour, not a gate
-
-    # only keep what the checklist has a row for, typed as the row says
+def _keep_found(c, raw):
+    """Only what the checklist has a row for, typed as the row says. The
+    FEEDER is asked not to guess; this is the belt to that brace."""
     rows = {r["id"]: r for g in c["needs"]["groups"] for r in g["rows"]}
+
     def keep(d):
         out = {}
         for k, v in (d or {}).items():
@@ -412,11 +400,12 @@ def extract():
                 continue
             out[k] = v
         return out
-    found = keep(result)
-    for k, v in result.items():
+
+    found = keep(raw if isinstance(raw, dict) else {})
+    for k, v in (raw or {}).items():
         if isinstance(v, list):
             found[k] = [keep(x) for x in v if isinstance(x, dict)]
-    return jsonify({"success": True, "found": found})
+    return found
 
 
 # ---------------------------------------------------------------------------
@@ -486,9 +475,24 @@ def log():
 
 
 # ---------------------------------------------------------------------------
-# FEEDER — BOUNCE IT. The rail is the engine's (gap / benefit / angle);
-# the container dresses it (config FEED IT). Plain fallback on any stumble.
+# FEEDER — BOUNCE IT. Three NEEDS that have to be true (point, insight,
+# angle), not three moves to march through. The FEEDER decides how many
+# turns that honestly takes, and it ends when the human says nothing's
+# missing — not when a counter says three.
+#
+# One read of the dump, two outputs: the BRIEF the WRITER writes from, and
+# the checklist PRE-FILL the human checks. EXTRACT used to be a second,
+# silent read of the same material; it isn't any more.
 # ---------------------------------------------------------------------------
+
+NEEDS_ORDER = ("point", "insight", "angle")
+
+# Not a rail — a seatbelt. The close is the human's to give, but a model
+# that never sets `done` must not be able to loop for ever on a billable
+# key. If this ever fires in real use it is a bug in the prompt, not a
+# design limit, and the log line says so.
+TURN_LIMIT = 8
+
 
 @copy_bp.route("/api/feeder", methods=["POST"])
 @require_auth
@@ -496,44 +500,98 @@ def feeder():
     c, data = _container()
     if not c:
         return jsonify({"error": "No such container."}), 404
-    moves = c["feed_it"]["moves"]
-    nxt = data.get("next")
-    m = next((x for x in moves if x["n"] == nxt), None)
-    if not m:
-        return jsonify({"error": "No such move."}), 400
-    fallback = {"success": True, "confirm": "", "enrich": m["plain"], "angle": "", "live": False}
-    if not ANTHROPIC_API_KEY:
-        return jsonify(fallback)
-
+    fi = c["feed_it"]
+    dress = {b["need"]: b for b in fi["bounce"]}
+    turns = [t for t in (data.get("turns") or []) if isinstance(t, dict)]
     dump = (data.get("dump") or "").strip()
-    answers = data.get("answers") or {}
-    got = []
-    for x in moves:
-        a = (answers.get(move_key(x)) or "").strip()
-        if a:
-            got.append(f"MOVE {x['n']} — {x['plain']}\nTHEY SAID: {a[:2500]}")
+
+    def plain(n):
+        return (dress.get(n) or {}).get("plain") or "What's this all about?"
+
+    def said(i):
+        return (turns[i].get("answer") or "").strip() if i < len(turns) else ""
+
+    def fallback():
+        """No key, or the model stumbled: walk the three needs in order and
+        close after them. The old fixed behaviour, kept honest with
+        live:false so the front end never claims the robot spoke."""
+        i = len(turns)
+        if i >= len(NEEDS_ORDER):
+            return {"success": True, "live": False, "react": "", "ask": "", "done": True,
+                    "need": "angle", "angle": "", "found": {},
+                    "brief": {"point": said(0), "insight": said(1), "angle": said(2)}}
+        return {"success": True, "live": False, "react": "", "ask": plain(NEEDS_ORDER[i]),
+                "need": NEEDS_ORDER[i], "angle": "", "done": False, "found": {}, "brief": {}}
+
+    if not ANTHROPIC_API_KEY:
+        return jsonify(fallback())
+
+    if len(turns) >= TURN_LIMIT:
+        print(f"[robot/feeder] turn limit hit at {len(turns)} — closing the bounce")
+        out = fallback()
+        out["done"] = True
+        out["ask"] = ""
+        out["brief"] = {"point": said(0), "insight": said(1), "angle": said(len(turns) - 1)}
+        return jsonify(out)
+
+    shape, notes = _prefill_shape(c)
     sound = c["brand_data"].get("voice", "")[:1800]
-    user = ("WHAT THE CONTAINER NEEDS:\n" + (c["feed_it"]["needs"] or "(not stated)")
+    convo = "\n\n".join(
+        f"YOU ASKED: {(t.get('ask') or '').strip()[:400]}\n"
+        f"THEY SAID: {((t.get('answer') or '').strip() or '(nothing — they just carried on)')[:2500]}"
+        for t in turns)
+    user = ("WHAT THE CONTAINER NEEDS:\n" + (fi["needs"] or "(not stated)")
+            + "\n\nWHAT ITS POINT IS MADE OF (confirm these first):\n"
+            + (fi["point"] or "(not stated)")
+            + "\n\nHOW IT DRESSES THE THREE NEEDS:\n"
+            + "\n".join(f"{b['need'].upper()} — plain version: {b['plain']}" for b in fi["bounce"])
             + "\n\nWHAT THE CONTAINER SOUNDS LIKE (read-only):\n" + (sound or "(not stated)")
-            + "\n\nTHE FIXED RAIL:\n" + "\n".join(f"MOVE {x['n']} ({x['job']}): {x['plain']}" for x in moves)
+            + "\n\nTHE CHECKLIST'S FIELDS, for `found`:\n" + "\n".join(f"- {n}" for n in notes)
+            + "\n\n`found` TAKES THIS SHAPE — leave out anything the material doesn't answer:\n"
+            + json.dumps(shape, ensure_ascii=False)
             + "\n\nTHE DUMP:\n" + (dump[:6000] or "(empty — nothing dropped in)")
-            + "\n\nANSWERS SO FAR:\n" + ("\n\n".join(got) or "(nothing yet)")
-            + f"\n\nNEXT UP: MOVE {m['n']} — {m['job']} — plain version: {m['plain']}")
+            + "\n\nTHE CONVERSATION SO FAR:\n"
+            + (convo or "(nothing yet — this is your first turn)"))
     try:
-        result = _json_from(_call("feeder", prompt("feeder"), user, 400))
+        result = _json_from(_call("feeder", prompt("feeder"), user, 1400))
     except Exception as e:
         print(f"[robot/feeder] fell back to plain: {e}")
-        return jsonify(fallback)
-    if not result or not (result.get("enrich") or "").strip():
+        return jsonify(fallback())
+    if not result:
         print("[robot/feeder] fell back to plain: answer empty or unparseable")
-        return jsonify(fallback)
-    out = {"success": True, "confirm": (result.get("confirm") or "").strip(),
-           "enrich": result["enrich"].strip(), "angle": "", "live": True}
-    if m["n"] == 3:
-        ang = (result.get("angle") or "").strip().strip('"\u201c\u201d')
-        if not ang:
-            return jsonify(fallback)
+        return jsonify(fallback())
+
+    done = bool(result.get("done"))
+    ask = (result.get("ask") or "").strip()
+    if not done and not ask:
+        print("[robot/feeder] fell back to plain: no ask and not done")
+        return jsonify(fallback())
+
+    need = (result.get("need") or "").strip().lower()
+    if need not in NEEDS_ORDER:
+        need = NEEDS_ORDER[min(len(turns), len(NEEDS_ORDER) - 1)]
+    out = {"success": True, "live": True, "done": done, "need": need, "lead": "",
+           "react": (result.get("react") or "").strip()[:300],
+           "ask": ask[:400], "angle": "", "brief": {},
+           "found": _keep_found(c, result.get("found"))}
+
+    ang = (result.get("angle") or "").strip().strip('"\u201c\u201d')
+    if ang:
         out["angle"] = ang[:300]
+        # the few words that walk them into it. A proposition dropped in
+        # cold reads like a verdict.
+        out["lead"] = (result.get("lead") or "").strip().rstrip(":")[:60]
+
+    if done:
+        b = result.get("brief") if isinstance(result.get("brief"), dict) else {}
+        brief = {k: str(b.get(k) or "").strip()[:600] for k in NEEDS_ORDER}
+        # the angle is the one thing the bounce must not close without
+        if not brief["angle"]:
+            brief["angle"] = out["angle"] or said(len(turns) - 1)
+        if not brief["point"]:
+            brief["point"] = said(0)
+        out["brief"] = brief
+        out["ask"] = ""
     return jsonify(out)
 
 

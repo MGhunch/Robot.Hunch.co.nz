@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=027">
+<link rel="stylesheet" href="robot.css?v=030">
 
 </head>
 <body>
@@ -123,11 +123,12 @@
   <div class="pane on" data-p="0">
 
     <!-- page one: FEED IT — three stops on a concertina. Closed = title +
-         sub; open = the action. The stops, the pad copy and the three moves
-         come from the container (quiz.json via /api/quiz); this is a dumb
-         renderer wearing feed-it-concertina-mock.html. Answers land in
-         hidden slots (storyPrize / blurb / storyCare / storyAngle) so
-         everything downstream reads what it always read, plus the angle. -->
+         sub; open = the action. The stops, the pad copy and the three NEEDS
+         come from the container (config.md via /api/quiz); this is a dumb
+         renderer wearing feed-it-concertina-mock.html. The brief lands in
+         hidden slots (storyPoint / storyInsight / storyAngle) and the raw
+         material in blurb, so everything downstream reads what it always
+         read. -->
     <div id="storyView">
       <div class="feedstage">
         <div class="fd-wrap">
@@ -218,7 +219,7 @@
                     <div class="chat" id="fdChat"></div>
                     <div class="fd-answer">
                       <div class="fd-say">
-                        <textarea id="fdBox" rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fdNext();}"></textarea>
+                        <textarea id="fdBox" rows="2" oninput="fdGrow()" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fdNext();}"></textarea>
                         <div class="fd-foot">
                           <div class="fd-tools" id="fdTools"></div>
                           <button class="fd-go" id="fdGo" onclick="fdNext()">NEXT</button>
@@ -254,8 +255,8 @@
         </div>
       </div>
       <!-- the harvest: downstream reads these, the stops write them -->
-      <textarea id="storyPrize" style="display:none"></textarea>
-      <textarea id="storyCare" style="display:none"></textarea>
+      <textarea id="storyPoint" style="display:none"></textarea>
+      <textarea id="storyInsight" style="display:none"></textarea>
       <textarea id="storyAngle" style="display:none"></textarea>
       <textarea id="blurb" style="display:none"></textarea>
       <input type="file" id="fdFile" accept=".txt,.md,.csv,.markdown,.log,.json,.docx,.pdf,.png,.jpg,.jpeg,.webp,.gif" multiple style="display:none">
@@ -902,7 +903,7 @@ function fxTabs(){
 }
 
 /* ---------------- story -> detail ---------------- */
-const storyData = () => ({gap:val('storyPrize'), benefit:val('storyCare'), angle:val('storyAngle'), source:val('blurb')});
+const storyData = () => ({point:val('storyPoint'), insight:val('storyInsight'), angle:val('storyAngle'), source:val('blurb')});
 
 function subView(v){
   /* 'story' and 'detail' are both the concertina now — detail just
@@ -913,13 +914,17 @@ function subView(v){
 function backToStory(){ subView('story'); }
 
 /* ================= FEED IT — the concertina =================
-   Three stops, one open at a time. The stops and the moves come from the
-   container (/api/quiz); the FEEDER dresses each move live (/api/feeder)
-   and the config's plain version is the silent fallback. Every move is two
-   beats — CONFIRM, then ENRICH — and move 3 proposes an angle the human
-   bounces. Answers write into the hidden slots the rest of the tool reads. */
-let QZ=null, QN=0, QANS={}, QANGLE='';   // config, current move n, answers by key, proposed angle
-const FD_SLOT={gap:'storyPrize', benefit:'storyCare', angle:'storyAngle'};
+   Three stops, one open at a time. The stops and the three NEEDS come from
+   the container (/api/quiz); the FEEDER runs the bounce live (/api/feeder),
+   and the container's plain line is the silent fallback.
+
+   The bounce is not a script. The robot lands the point, the insight and
+   the angle in as few turns as it honestly takes, and it ends when the
+   human says nothing's missing — not when a counter says three. QTURNS is
+   the whole record of it and the only state the server needs back. What
+   lands is QBRIEF: the steer the WRITER writes from. */
+let QZ=null, QTURNS=[], QBRIEF=null, QANGLE='', QNEED='point', QLAST='';
+const FD_SLOT={point:'storyPoint', insight:'storyInsight', angle:'storyAngle'};
 const BOT_AV='<span class="botdisc"><img src="robot-face.svg" alt=""></span>';
 const FD_ROBOT='<div class="chat-cav">'+BOT_AV+'</div>';
 let ACC=0;                                // which stop is open
@@ -930,7 +935,7 @@ let ACC=0;                                // which stop is open
    happen to be standing past it. */
 function fdDone(j){
   if(j===0) return !!fdDumpText().trim();
-  if(j===1) return !!QZ && (QZ.moves||[]).every(m=>String(QANS[m.key]||'').trim());
+  if(j===1) return !!QBRIEF && !!String(QBRIEF.angle||'').trim();
   if(j===2) return detailReady();
   return false;
 }
@@ -970,7 +975,8 @@ function fdSay(j,line){
 
 async function quizInit(){
   if(!CONT) return;
-  QZ = CONT.quiz; QN=0; QANS={}; QANGLE=''; ACC=0;
+  QZ = CONT.quiz; QTURNS=[]; QBRIEF=null; QANGLE=''; QNEED='point'; ACC=0;
+  fdBoxClear();
   $('fdChat').innerHTML=''; acc(0);
   if(QZ.tagline) $('fdTagline').textContent = QZ.tagline;
   (QZ.stops||[]).forEach((st,i)=>{
@@ -984,7 +990,7 @@ async function quizInit(){
   DUMPDOOR='docs'; FD_DOCS=[]; fdDocsDraw();
   $('fdDump').placeholder    = pad.paste||'Or paste it in here.';
   fdGhostDraw();
-  fdToolsDraw(QZ.tools||{});
+  fdToolsDraw();
 }
 
 /* THE GHOST — the engine's drawing of the artefact's shape. It walks the
@@ -1043,12 +1049,13 @@ function fdGhostDraw(){
   $('fdGhost').innerHTML = (bar?`<div class="fd-gbar">${bar}</div>`:'') + '<div class="fd-gbody">' + body + '</div>';
 }
 
-/* the chat's tools: dig (flag-off until hit list 9) and the why-beat */
-function fdToolsDraw(t){
+/* the chat's only tool: the why-beat. The magnifying glass that used to sit
+   beside it is gone on purpose. Digging is phase 1's job (the SEARCH door)
+   and phase 3's (a row's 'let it dig'). The bounce enriches by finding gaps
+   in what it has, not by going to the web — the angle comes from the person
+   who knows the business. */
+function fdToolsDraw(){
   const b=[];
-  if(t.dig) b.push(`<button class="fd-tool" title="Let it dig — the robot can google the boring bits" onclick="fdDig()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="11" cy="11" r="6.5"/><path d="M15.8 15.8L20 20"/></svg></button>`);
   b.push(`<button class="fd-tool" title="Why this question?" onclick="fdWhy()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M9 9.2a3 3 0 1 1 3.6 3.1c-.8.2-1.1.8-1.1 1.7"/><circle cx="11.5" cy="17.6" r=".4" fill="currentColor"/></svg></button>`);
@@ -1308,16 +1315,17 @@ async function fdDumpNext(){
   $('blurb').value=dump; dirty();
   $('fdDumpGo').disabled=true;
   accReach(1);
-  /* extraction runs in the background — by stop 3 the checklist's
-     pre-filled. Favour, not gate. */
-  fdExtract();
-  /* move 1: the robot reads the dump and asks the gap */
+  /* the first turn. The robot reads the dump against what the container
+     needs and opens on the point — usually by stating it, because it has
+     read the thing and an empty question would prove it hadn't. The same
+     read fills the checklist, so there's no second silent call any more. */
+  QTURNS=[]; QBRIEF=null;
   fdThink(true);
   let d;
-  try{ d = await api('/api/feeder',{container:CID, dump:dump, answers:QANS, next:1}); }
-  catch(e){ d = {confirm:'', enrich:QZ.moves[0].plain}; }
+  try{ d = await api('/api/feeder',{container:CID, dump:dump, turns:[]}); }
+  catch(e){ d = {ask:fdPlain('point'), need:'point'}; }
   fdThink(false);
-  fdAsk(1, d);
+  fdAsk(d);
   $('fdDumpGo').disabled=false;
 }
 
@@ -1340,89 +1348,131 @@ function fdThink(on){
   if(!on&&t) t.remove();
 }
 
-/* one bubble per move: CONFIRM, then ENRICH. On move 3 the angle rides in
-   the same bubble, as a proposal. */
-function fdAsk(n, d){
+/* the container's own words for a need — the silent fallback whenever the
+   robot can't speak, and the source of the why-beat. */
+const fdNeed = n => (QZ&&QZ.bounce||[]).find(b=>b.need===n) || {};
+const fdPlain = n => fdNeed(n).plain || "What's this all about?";
+
+/* one bubble a turn: the reaction, then the ask. When the robot proposes an
+   angle it rides in the same bubble — inline, in quotes, in ink. Not a red
+   block: red would make a suggestion look like the answer, and this one is
+   there to be talked over. */
+function fdAsk(d){
   fdThink(false);
-  const m=QZ.moves[n-1]; QN=n;
+  QNEED = d.need || QNEED;
   let html='';
-  if(d.confirm) html+=`<span class="confirm">${esc(d.confirm)}</span>`;
-  if(n===3 && d.angle){ QANGLE=d.angle; html+=`<span class="angle">${esc(d.angle)}</span>`; }
-  else QANGLE='';
-  html+=esc(d.enrich||m.plain);
+  if(d.react) html+=`<span class="confirm">${esc(d.react)}</span>`;
+  QANGLE = (d.angle||'').trim();
+  /* a proposition dropped in cold reads like a verdict, so the robot walks
+     you into it. The quotes are ours, not its — it's told to hand the angle
+     over plain. */
+  if(QANGLE) html+=`${esc((d.lead||"I'm thinking").trim())} <i class="angle">\u201c${esc(QANGLE)}\u201d</i>. `;
+  QLAST = d.ask||fdPlain(QNEED);
+  html+=esc(QLAST);
   fdBubble(html);
-  const box=$('fdBox'); box.value=''; box.placeholder=''; box.focus();
-  $('fdGo').textContent = n===QZ.moves.length ? 'DONE' : 'NEXT';
+  const box=$('fdBox');
+  box.placeholder=fdNeed(QNEED).placeholder||''; box.focus();
+  /* DONE once the angle is on the table — the last need, and usually the
+     same beat as 'anything I've missed'. */
+  $('fdGo').textContent = QNEED==='angle' ? 'DONE' : 'NEXT';
 }
 
+/* the close. The bounce ends on the human's word, so this only runs when
+   the robot has said it's got what it needs and been told nothing's
+   missing. The brief is what lands; the raw material travels whole and
+   separately, and the checklist facts outrank both. */
+function fdClose(d){
+  QBRIEF = d.brief || {point:'', insight:'', angle:QANGLE};
+  if(!String(QBRIEF.angle||'').trim()) QBRIEF.angle = QANGLE;
+  Object.keys(FD_SLOT).forEach(k=>{
+    const slot=$(FD_SLOT[k]); if(slot) slot.value = String(QBRIEF[k]||'').trim();
+  });
+  dirty(); fdStages();
+}
+
+/* the composer is the height of what's in it, up to the cap the CSS sets.
+   A paste used to be sliced through the middle of the third line. */
+function fdGrow(){
+  const b=$('fdBox'); if(!b) return;
+  b.style.height='auto';
+  b.style.height=Math.min(b.scrollHeight, 150)+'px';
+}
+/* emptying it is emptying it — the height has to come back too, or the box
+   keeps the shape of the answer you just sent. */
+function fdBoxClear(){
+  const b=$('fdBox'); if(!b) return;
+  b.value=''; b.style.height='';
+}
+
+let FDBUSY=false;
 async function fdNext(){
-  if(!QZ||!QN) return;
-  const m=QZ.moves[QN-1];
-  let a=$('fdBox').value.trim();
+  if(!QZ || FDBUSY) return;
+  const a=$('fdBox').value.trim();
   if(a) fdBubble(a, true);
-  /* move 3: a yes (or nothing) locks the proposal; anything else replaces it */
-  if(m.key==='angle'){
-    const yes = !a || /^(y|yes|yep|yeah|yup|sure|ok|okay|that'?s it|nailed it|bang on|love it)[.! ]*$/i.test(a);
-    a = yes ? QANGLE : a;
-  }
-  QANS[m.key]=a;
-  fdStages();
-  const slot=$(FD_SLOT[m.key]); if(slot){ slot.value=a; }
-  dirty();
-  $('fdGo').disabled=true;
-  if(QN < QZ.moves.length){
-    fdThink(true);
-    let d;
-    try{ d = await api('/api/feeder',{container:CID, dump:val('blurb'), answers:QANS, next:QN+1}); }
-    catch(e){ d = {confirm:'', enrich:QZ.moves[QN].plain}; }
-    fdThink(false);
-    fdAsk(QN+1, d);
-  }else{
+  QTURNS.push({ask:QLAST, answer:a});
+  /* it's been said, so it leaves the box now — not later, and not only on
+     the paths that happen to ask another question. Closing the bounce used
+     to leave your last answer sitting there looking unsent.
+
+     The box stays open while the robot thinks. It used to be emptied again
+     when the answer landed, which quietly ate anything typed during the
+     wait; now nothing clears it but sending, so a draft survives. FDBUSY
+     stops a second send rather than the keyboard. */
+  fdBoxClear();
+  const box=$('fdBox');
+  FDBUSY=true; $('fdGo').disabled=true;
+  fdThink(true);
+  let d;
+  try{ d = await api('/api/feeder',{container:CID, dump:val('blurb'), turns:QTURNS}); }
+  catch(e){ d = {ask:fdPlain(QNEED), need:QNEED}; }
+  fdThink(false);
+  fdLand(d.found);
+  if(d.done){
+    fdClose(d);
+    if(d.react) fdBubble(esc(d.react));
     if(QZ.closing) fdBubble(esc(QZ.closing));
-    await fdExtractDone();     /* if extraction's still reading, wait for it */
     accReach(2);
+  }else{
+    fdAsk(d);
   }
-  $('fdGo').disabled=false;
+  FDBUSY=false; $('fdGo').disabled=false;
 }
 
 /* the ? — the why-beat, answered in the chat, from config. Help as
-   conversation, not modal. */
+   conversation, not modal. The robot names which need it's on, so the
+   why-beat follows the conversation rather than a counter. */
 function fdWhy(){
-  if(!QZ||!QN) return;
-  const m=QZ.moves[QN-1];
-  if(m.why) fdBubble(esc(m.why));
+  const w=fdNeed(QNEED).why;
+  if(w) fdBubble(esc(w));
 }
 
-/* dig is flag-off until the engine exists (hit list 9) */
-function fdDig(){ fdBubble("Digging lands soon — for now, tell me or paste it."); }
+/* the bounce → the checklist. The FEEDER reads the dump for the checklist
+   on the same call it reads it for the conversation, so this lands as the
+   chat goes rather than from a second silent pass. There used to be one:
+   /api/extract ran blind and in parallel, and you found out it was wrong
+   at stop 3. Now the robot's confirm at the point IS the check on it.
 
-let EXTRACTED = false, EXTRACTING = null;
-/* the dump → the checklist. Fires the moment the pad's handed over, so
-   stop 3 arrives pre-filled. The rule holds: a robot-found fact never
-   arrives ticked. Provenance line, grey tick, human judges. */
-function fdExtract(){
-  const s=storyData();
-  if(EXTRACTED || !(s.source||'').trim()) return;
-  EXTRACTING = api('/api/extract', {container:CID, source:s.source, answers:{gap:s.gap, benefit:s.benefit}}).then(d=>{
-    const f = d.found || {};
-    const land=(S,r,v)=>{ if(!S[r.id]) return;
-      if(r.type==='topics'){ if(Array.isArray(v)&&v.length&&!S[r.id].value.length) S[r.id].value=v.slice(); return; }
-      if(r.type==='date'&&v) v=clDateISO(v)||'';
-      if(v && !S[r.id].value){ S[r.id].value=String(v); S[r.id].found='from your docs'; S[r.id].ticked=false; } };
-    flatRows().forEach(r=>land(CLS,r,f[r.id]));
-    Object.keys(CLR).forEach(key=>{
-      const found=f[key]; if(!Array.isArray(found)||!found.length) return;
-      const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
-      const max=groups[0].repeat.max;
-      while(CLR[key].length<Math.min(found.length,max)) CLR[key].push({});
-      found.slice(0,max).forEach((item,i)=>{ const S=CLR[key][i];
-        groups.forEach(g=>g.rows.forEach(r=>{ if(!S[r.id]) S[r.id]=newState(r); land(S,r,item[r.id]); })); });
-    });
-    EXTRACTED = true;
-  }).catch(()=>{ /* extraction is a favour, not a gate */ })
-    .finally(()=>{ EXTRACTING=null; });
+   The rule is untouched: a robot-found fact never arrives ticked, it
+   carries its provenance, and a value the human has already put in is
+   never overwritten. Suggestion, not gate. */
+function fdLand(found){
+  const f = found || {};
+  if(!Object.keys(f).length) return;
+  const land=(S,r,v)=>{ if(!S[r.id]) return;
+    if(r.type==='topics'){ if(Array.isArray(v)&&v.length&&!S[r.id].value.length) S[r.id].value=v.slice(); return; }
+    if(r.type==='date'&&v) v=clDateISO(v)||'';
+    if(v && !S[r.id].value){ S[r.id].value=String(v); S[r.id].found='from your docs'; S[r.id].ticked=false; } };
+  flatRows().forEach(r=>land(CLS,r,f[r.id]));
+  Object.keys(CLR).forEach(key=>{
+    const rows=f[key]; if(!Array.isArray(rows)||!rows.length) return;
+    const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
+    if(!groups.length) return;
+    const max=groups[0].repeat.max;
+    while(CLR[key].length<Math.min(rows.length,max)) CLR[key].push({});
+    rows.slice(0,max).forEach((item,i)=>{ const S=CLR[key][i];
+      groups.forEach(g=>g.rows.forEach(r=>{ if(!S[r.id]) S[r.id]=newState(r); land(S,r,item[r.id]); })); });
+  });
 }
-async function fdExtractDone(){ if(EXTRACTING){ fdThink(true); await EXTRACTING; fdThink(false); } }
 
 /* ---------------- nothing flies without a tick ---------------- */
 const rowReady = (r,S) => { if(r.type==='legals'||r.type==='topics'||!clShown(r,S)) return true;
@@ -1963,7 +2013,7 @@ async function fxSend(){
   HIST[k]=HIST[k]||[];
   try{
     const d=await api('/api/tweak',{container:CID, run:RUN, form:formData(), block:k, current:cur, note,
-      highlight:hl, insight:val('storyCare'), history:HIST[k]});
+      highlight:hl, insight:val('storyInsight'), history:HIST[k]});
     await th.done();
     HIST[k].push(`Human: ${note}`,`Robot: ${d.say||d.action||''}`);
     if(d.action==='lock'){

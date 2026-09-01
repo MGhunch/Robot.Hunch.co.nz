@@ -50,7 +50,7 @@ t.post("/api/auth/word", json={"word": "taniwha"})
 d = t.get("/api/containers").get_json()
 assert d["hunch"] and {x["id"] for x in d["tiles"]} == {"one_update", "prize_draw"}
 d = t.get("/api/container/one_update").get_json()
-assert d["quiz"]["moves"][0]["key"] == "gap" and d["checklist"]["groups"][0]["repeat"] == {"per": "story", "min": 3, "max": 5, "where": None}
+assert d["quiz"]["bounce"][0]["need"] == "point" and d["quiz"]["point"] and d["checklist"]["groups"][0]["repeat"] == {"per": "story", "min": 3, "max": 5, "where": None}
 t0 = d["checklist"]["topics"][0]
 assert {k: t0[k] for k in ("id", "label", "default", "when")} == {"id": "draw", "label": "Prize draw clause", "default": True, "when": "prize"}
 assert "competition" in t0["text"]          # topics carry their words for the peek
@@ -61,7 +61,18 @@ assert len(r["menu"]) == 15 and r["footer"].startswith("For any queries")
 r = t.post("/api/parcel", json={"container": "prize_draw", "form": form,
                                 "copy": {"subject": "Win {winners_word} by {closes_day}", "headline": "h", "body": "b"}}).get_json()
 assert r["copy"]["subject"] == "Win five by Sunday" and r["slug"] == "practical-magic-2" and r["clause_count"] == 12
-assert t.post("/api/feeder", json={"container": "one_update", "next": 2}).get_json()["enrich"] == "Why will anyone care?"
+# the bounce with no key: the three needs in order, then a close. It never
+# claims the robot spoke (live:false) and it never asks a fourth time.
+f0 = t.post("/api/feeder", json={"container": "one_update", "turns": []}).get_json()
+assert f0["need"] == "point" and f0["ask"] == "What's this all about?" and not f0["live"] and not f0["done"]
+f1 = t.post("/api/feeder", json={"container": "one_update",
+                                 "turns": [{"ask": "a", "answer": "four cards"}]}).get_json()
+assert f1["need"] == "insight" and f1["ask"] == "What's the one thing people will love?"
+f3 = t.post("/api/feeder", json={"container": "one_update", "turns": [
+    {"ask": "a", "answer": "four cards"}, {"ask": "b", "answer": "the toilet one"},
+    {"ask": "c", "answer": "small stories, big year"}]}).get_json()
+assert f3["done"] and f3["ask"] == "" and f3["brief"]["angle"] == "small stories, big year"
+assert f3["brief"]["point"] == "four cards" and f3["brief"]["insight"] == "the toilet one"
 assert t.post("/api/copy", json={"container": "nope"}).status_code == 404
 assert t.get("/").status_code == 200
 print("api ok")

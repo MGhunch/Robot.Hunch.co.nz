@@ -29,7 +29,7 @@ import re
 import time
 
 from auth import auth_bp, require_auth, is_hunch
-from copy_stage import copy_bp, writer_modules, options_of, move_key
+from copy_stage import copy_bp, writer_modules, options_of
 import copy_stage
 from file_it import file_bp, parcel as _parcel
 import containers as CT
@@ -81,9 +81,9 @@ def _quiz(c):
             {"key": "deets", "title": "Check your deets", "sub": "Dates, times, legals. Lock it in."},
         ],
         "needs": fi["needs"],
-        "moves": [dict(m, key=move_key(m)) for m in fi["moves"]],
+        "point": fi["point"],
+        "bounce": fi["bounce"],
         "closing": fi["closing"],
-        "tools": {"dig": False},
     }
 
 

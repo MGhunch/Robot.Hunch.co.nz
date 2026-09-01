@@ -60,10 +60,10 @@ Shipping now: `prize_draw` (live) and `one_update` (testing) — both on the
 | `app.py` | Flask, blueprint wiring, the doorway, images, `/api/terms`, `/api/parcel` |
 | `containers.py` | The reader. Folders → one dict each. The validator is strict mode. |
 | `engine.py` | Deterministic. Facts from NEEDS, clauses from LEGALS, the copy check. The model never touches it. |
-| `copy_stage.py` | The only part the model touches. `/api/copy`, `/api/tweak`, `/api/feeder`, `/api/extract` |
+| `copy_stage.py` | The only part the model touches. `/api/copy`, `/api/tweak`, `/api/feeder`, `/api/search` |
 | `file_it.py` | The takeaway counter. The copy doc, the pics zip, the wrap. No model. |
 | `auth.py` | The door. A word today, OTP when clients arrive. |
-| `prompts/*.md` | The workers — writer, fixer, feeder, extract. They never mention a container. |
+| `prompts/*.md` | The workers — writer, fixer, feeder, search, reader. They never mention a container. |
 | `static/index.html` | The whole UI |
 | `static/robot.css` | The whole stylesheet |
 | `static/tokens.css` | Hunch design tokens, lifted from Prompter |

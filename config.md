@@ -1,5 +1,15 @@
 # CONFIG — prize_draw
-*What FEED IT asks and ticks. Manifest, the dump nudge, the three moves' dressing, the needs list, the clause library. The engine reads this; SET UP writes it.*
+
+> **The engine does not read this file.** The live one is
+> `containers/prize_draw/config.md`, and that is the only config the code
+> ever opens — every config path is built as `<container folder>/config.md`,
+> and the repo root is never a container folder. This copy predates the
+> folder split and has drifted: different row labels, a `unit` column the
+> live one hasn't got, and a "Bounce it" table in the old three-moves shape
+> the reader would now bounce. Kept as a reference, not as a source. Edit
+> the one in `containers/`. — noted 2 Sep 2026 (v030).
+
+*What FEED IT asks and ticks. Manifest, the dump nudge, the bounce dressing, the needs list, the clause library. The engine reads the container copy of this; SET UP writes it.*
 
 name:    Rewards Tickets
 client:  One NZ

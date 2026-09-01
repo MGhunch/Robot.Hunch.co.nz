@@ -7,7 +7,9 @@ assert set(cs) >= {"one_update", "prize_draw"}, cs.keys()
 for cid, c in cs.items():
     assert not c["problems"], (cid, c["problems"])
     assert c["brand_data"]["voice"], cid
-    assert len(c["feed_it"]["moves"]) == 3, cid
+    # the rail is the three needs by name now, not a count
+    assert [b["need"] for b in c["feed_it"]["bounce"]] == ["point", "insight", "angle"], cid
+    assert c["feed_it"]["point"], cid
     assert c["needs"]["groups"] and c["spec"]["modules"], cid
     assert C.voice_for(c).count("Container") <= 1
 assert cs["prize_draw"]["legals"]["by_type"][1]["needs"] == ["venue", "event_date"]
@@ -39,11 +41,11 @@ def break_it(text, old, new):
 cfg = break_it(cfg, "brand:   one_nz", "brand:   sky")
 cfg = break_it(cfg, "| winners | Prizes |", "| prize_name | Prizes |")
 cfg = break_it(cfg, "{opens_long} at {opens_time}", "{opens_long} at {kickoff}")
-cfg = break_it(cfg, "| 3 | the angle |", "| 4 | encore | Again? | | |\n| 3 | the angle |")
+cfg = break_it(cfg, "| angle | What's the angle?", "| encore | Again? |\n| angle | What's the angle?")
 open(os.path.join(broken, "config.md"), "w", encoding="utf-8").write(cfg)
 reasons = C.validate(broken)
 print("\n".join("  ! " + r for r in reasons))
-want = ["spec.md is missing", "brand 'sky'", "'prize_name' appears more than once", "{kickoff}", "three moves"]
+want = ["spec.md is missing", "brand 'sky'", "'prize_name' appears more than once", "{kickoff}", "unknown need"]
 for w in want:
     assert any(w in r for r in reasons), (w, reasons)
 assert len(reasons) >= 5

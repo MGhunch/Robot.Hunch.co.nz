@@ -37,8 +37,8 @@ FAST = os.environ.get("ROBOT_FAST") or os.environ.get("ROBOT_MODEL_SEARCH") or "
 LANES = {
     "writer":  (BIG,  "the craft moment gets the big model"),
     "fixer":   (FAST, "the client is sitting there watching it think"),
-    "feeder":  (FAST, "same — it's a conversation, not a composition"),
-    "extract": (FAST, "a favour, not a gate; never worth the wait"),
+    "feeder":  (FAST, "same — it's a conversation, not a composition; it also\n"
+                      "                      reads the dump for the checklist on the same call"),
     "search":  (FAST, "a tool, not a worker"),
     "reader":  (FAST, "turning a picture into words; nobody waits well"),
 }
