@@ -22,7 +22,7 @@ async function toFileIt(retry){
   try{
     const d=await api('/api/fillings',{container:CID, run:RUN});
     $('fiTiles').innerHTML=d.tiles.map(t=>`<button class="tile ${t.on?'on':'off'}" data-id="${esc(t.id)}" onclick="fiFlip(this)" aria-pressed="${t.on}">
-      <span class="cl-tick" aria-hidden="true">${FI_TICK}</span>
+      <span class="cl-tick" aria-hidden="true">${TICK}</span>
       <span class="tile-i">${FI_ICON[t.id]||''}</span>
       <span class="tile-t">${esc(t.title)}</span>
       <span class="tile-d">${esc(t.line)}</span></button>`).join('');

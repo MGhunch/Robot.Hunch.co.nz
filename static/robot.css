@@ -112,9 +112,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .si-go.open .shackle{transform:rotate(-38deg) translateY(-1px)}
 .si-note{font-size:12px;color:var(--white-hi);margin-top:11px;line-height:1.55;min-height:18px}
 .si-note.bad{color:#fff;font-weight:500}
-.si-note .fd-said{margin:0;text-align:left;font-size:13.5px;padding:7px 12px 7px 9px}
-.si-note .fd-said .botdisc{width:24px;height:24px}
-.si-note .fd-said .botdisc svg{width:17px;height:17px}
+.si-note .line{margin:0;text-align:left;font-size:13.5px;padding:7px 12px 7px 9px}
+.si-note .line .botdisc{width:24px;height:24px}
+.si-note .line .botdisc svg{width:17px;height:17px}
 
 .rooms{margin:0 auto;display:none;flex-direction:column;gap:10px;width:100%;max-width:360px;
   animation:up .3s .18s ease both}
@@ -638,24 +638,24 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
    error face, a red-tinted strip, a 3px red left border and a square left
    edge (deliberate: no curve on the left). Sits beside the wound. Fades
    after 7s unless it's asking for something, in which case it stays. */
-.fd-said{display:flex;align-items:center;gap:11px;
+.line{display:flex;align-items:center;gap:11px;
   background:var(--delta);border-left:3px solid var(--red);
   color:var(--red);font-weight:500;font-size:14.5px;line-height:1.35;
   padding:9px 14px 9px 11px;border-radius:0 var(--r-sm) var(--r-sm) 0;margin:0 0 14px;
-  animation:fd-said-in .28s ease-out both;transition:opacity .28s ease}
-.fd-said .botdisc{flex:none}
-.fd-said.out{opacity:0}
+  animation:line-in .28s ease-out both;transition:opacity .28s ease}
+.line .botdisc{flex:none}
+.line.out{opacity:0}
 /* on the red rooms the strip goes solid white so it reads as furniture */
-.fd-said.onred{background:#fff;border-left-color:var(--red-dark);box-shadow:0 3px 10px rgba(0,0,0,.18)}
+.line.onred{background:#fff;border-left-color:var(--red-dark);box-shadow:0 3px 10px rgba(0,0,0,.18)}
 /* in the docs row it claims a whole row of the wrapping flex */
-.fd-docs .fd-said{flex:0 0 100%;width:100%;margin:6px 0 0;box-sizing:border-box}
+.fd-docs .line{flex:0 0 100%;width:100%;margin:6px 0 0;box-sizing:border-box}
 /* under a doorway tile */
-.rooms .fd-said{margin:-2px 0 0;text-align:left}
+.rooms .line{margin:-2px 0 0;text-align:left}
 /* in the chat rail: the line replaces the bubble, the disc sits in the cave */
-.chat-row .fd-said{margin:0;flex:1;min-width:0}
-@keyframes fd-said-in{from{opacity:0;transform:translateY(-4px)}
+.chat-row .line{margin:0;flex:1;min-width:0}
+@keyframes line-in{from{opacity:0;transform:translateY(-4px)}
   to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.fd-said{animation:none}}
+@media(prefers-reduced-motion:reduce){.line{animation:none}}
 
 /* THE CARD — a whole pane failed to arrive. Renders in the page flow, in
    the space the missing thing should occupy. White on the red room, the
@@ -1136,7 +1136,7 @@ a.sr-src:hover{color:var(--red)}
 .cl-pill.off{border-color:var(--border);color:var(--mid);font-weight:400}
 .cl-ptick{width:18px;height:18px;border-radius:50%;background:var(--red);display:grid;place-items:center;
   flex:none;cursor:pointer;margin-top:1px}
-.cl-ptick svg{width:11px;height:11px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.cl-ptick svg{width:11px;height:11px;color:#fff}   /* the chrome's TICK carries its own stroke */
 .cl-pill.off .cl-ptick{background:#fff;border:1.5px solid #cfcfcf}
 .cl-pill.off .cl-ptick svg{display:none}
 .cl-pbody{min-width:0}
@@ -1211,7 +1211,7 @@ mark.fx-hl{background:var(--paper);color:var(--red);padding:0 2px;border-radius:
 .tile.on .cl-tick{border-color:var(--red);background:var(--red);color:#fff}
 .tile.off .cl-tick{display:none}
 .fi-bar{display:flex;flex-direction:column;align-items:center;max-width:900px;margin-top:26px}
-.fi-bar .fd-said{margin:14px 0 0}
+.fi-bar .line{margin:14px 0 0}
 .fi-bar .cl-door{font-size:21px;padding:14px 38px 12px}
 .fi-bar .cl-door.live:hover{background:var(--paper)}
 .fi-done{display:none;margin-top:30px;max-width:900px;animation:up .3s ease}

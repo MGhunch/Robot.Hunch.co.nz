@@ -20,7 +20,7 @@ function assetFresh(v){ return !!ASSET && ASSET.brief_v===v; }
    stale copy is the drift the whole tool exists to prevent — it goes, and
    FIX IT with it. What the client sees is what they always saw. */
 function briefMoved(v){
-  if(ASSET && ASSET.brief_v!==v){ ASSET=null; COPY=null; }
+  if(ASSET && ASSET.brief_v!==v) ASSET=null;
   if(REACHED>0 && !ASSET){ REACHED=0; unlock(); }
 }
 
@@ -43,9 +43,9 @@ async function enterRoom(cid, tile){
   }
   cardReset('plate'); cardReset('grid'); TERMS_FAILED=false;
   $('door').style.display='none'; $('room').classList.add('on');
-  FACTS=null; COPY=null; PICK=0; MENU=[]; CHOSEN=null; TWEAKS=0; CTX={}; REACHED=0; unlock(); go(0);
+  MENU=[]; CHOSEN=null; REACHED=0; unlock(); go(0);
   BRIEF=null; ASSET=null;
-  EXTRACTED=false; EXTRACTING=null; CRAFT=null; CRAFT_KEY=''; FXDOC=null;
+  CRAFT=null; CRAFT_KEY=''; FXDOC=null;
   clInit(); clRender(); quizInit();
   fxTabs();
 }

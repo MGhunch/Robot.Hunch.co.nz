@@ -9,15 +9,13 @@
 
 /* The copy keeps its {slots} underneath — that's the bulletproof rule — but
    the room shows the filled facts, marked so you know the robot can't have
-   got them wrong. CTX is copy_context(facts), straight off /api/copy. */
-const fillPh = t => esc(t).replace(/\{(\w+)\}/g,(m,k)=>`<span class="ph">${esc(CTX[k]??k)}</span>`);
-const fillPlain = t => String(t??'').replace(/\{(\w+)\}/g,(m,k)=>String(CTX[k]??k));
+   got them wrong. ASSET.context is copy_context(facts), off /api/copy. */
+const ctx = k => (ASSET ? ASSET.context : {})[k] ?? k;
+const fillPh = t => esc(t).replace(/\{(\w+)\}/g,(m,k)=>`<span class="ph">${esc(ctx(k))}</span>`);
+const fillPlain = t => String(t??'').replace(/\{(\w+)\}/g,(m,k)=>String(ctx(k)));
 const hasPh = t => /\{\w+\}/.test(String(t??''));
 
-let FACTS=null, COPY=null, PICK=0, TWEAKS=0;   // views onto ASSET until the rename
-let CTX={};                                    // slot -> value, from the brief
-let LOCKED={};
-const HIST = {};
+const HIST = {};                               // per-section tweak history, for the FIXER's memory
 
 /* the tabs over THE WORK: one per output in the spec */
 function fxTabs(){
@@ -30,11 +28,10 @@ function fxTabs(){
    the FIXER's cautions, the engine's terms menu, the padlocks, the tweak
    log and the pick — all tagged with the `v` of the brief it was written
    from, so staleness is a comparison, not a guess. The artefact document
-   and the threads are FIX IT's working state, not the asset. FIX IT's
-   older names (COPY, CTX, FXLOCK, FXLIST, FXFLAGS, PICK) are views onto
-   it until the rename lands; FILE IT reads ASSET and BRIEF, nothing else. */
+   and the threads are FIX IT's working state, not the asset. FILE IT
+   reads ASSET and BRIEF, nothing else. */
 let ASSET=null;
-let FXORDER=[], FXLBL={}, FXLOCK={}, FXHL=null, FXDIFF={}, FXLIST=[], FXFLAGS=[], WHY={};
+let FXORDER=[], FXLBL={}, FXHL=null, FXDIFF={}, WHY={};
 let FXFOCUS=null, FXTHREAD={};                     // the pencil, and one thread per section
 let FXDOC=null;                                   // the artefact's document (iframe)
 const fxMod = k => k.split('#')[0];
@@ -52,7 +49,7 @@ function fxOrderBuild(){
   tags.forEach(t=>{
     if(isWriter(t)) FXORDER.push(t);
     else if(group && t===group.module){
-      const items=COPY[group.module+'s']||[];
+      const items=ASSET.copy[group.module+'s']||[];
       items.forEach((_,i)=>group.parts.forEach(p=>{ if(tags.includes(p.module)) FXORDER.push(p.module+'#'+(i+1)); }));
     }
     else if(t==='terms' && ASSET.menu.length && !FXORDER.includes('terms')) FXORDER.push('terms');
@@ -63,13 +60,13 @@ const fxOpts = m => { const w=CONT.modules.writer.find(x=>x.module===m); return 
 function fxText(k){
   const m=fxMod(k), n=fxN(k);
   if(k==='terms') return fxTermsText();
-  if(n){ const g=CONT.modules.groups[0]; const it=(COPY[g.module+'s']||[])[n-1]||{}; return it[m]||''; }
-  const v=COPY[m]; return Array.isArray(v) ? (v[PICK]||'') : (v||'');
+  if(n){ const g=CONT.modules.groups[0]; const it=(ASSET.copy[g.module+'s']||[])[n-1]||{}; return it[m]||''; }
+  const v=ASSET.copy[m]; return Array.isArray(v) ? (v[ASSET.pick]||'') : (v||'');
 }
 function fxSet(k,text){
   const m=fxMod(k), n=fxN(k);
-  if(n){ const g=CONT.modules.groups[0]; COPY[g.module+'s'][n-1][m]=text; return; }
-  if(Array.isArray(COPY[m])) COPY[m][PICK]=text; else COPY[m]=text;
+  if(n){ const g=CONT.modules.groups[0]; ASSET.copy[g.module+'s'][n-1][m]=text; return; }
+  if(Array.isArray(ASSET.copy[m])) ASSET.copy[m][ASSET.pick]=text; else ASSET.copy[m]=text;
 }
 const fxShow = k => FXDIFF[k] ? fxDiffWords(FXDIFF[k].old, FXDIFF[k].new) : fillPh(fxText(k));
 function fxTermsText(){
@@ -78,7 +75,7 @@ function fxTermsText(){
   return menu.filter(c=>c.fixed || chosen.includes(c.id)).map(c=>c.text).join(' ');
 }
 const fxLockable = k => k!=='terms';
-function fxBeat(){ return FXORDER.find(k=>fxLockable(k) && !FXLOCK[k] && k!==FXFOCUS) || null; }
+function fxBeat(){ return FXORDER.find(k=>fxLockable(k) && !ASSET.locks[k] && k!==FXFOCUS) || null; }
 
 /* the craft died before anything landed: the plate card in the artefact's
    slot, the rail and gutter cleared. The tab pill goes with the card. */
@@ -92,13 +89,11 @@ function fxInit(d, h){
   h=h||{};
   ASSET={ brief_v:BRIEF?BRIEF.v:'', copy:d.copy, facts:d.facts||{}, context:d.context||{},
           flags:d.flags||[], menu:h.menu||[], locks:{}, tweaks:[], pick:0 };
-  COPY=ASSET.copy; FACTS=ASSET.facts; CTX=ASSET.context; PICK=0; TWEAKS=0;
-  WHY=(COPY.why&&typeof COPY.why==='object')?COPY.why:{};
+  WHY=(ASSET.copy.why&&typeof ASSET.copy.why==='object')?ASSET.copy.why:{};
   fxOrderBuild();
-  FXLOCK=ASSET.locks; FXORDER.forEach(k=>FXLOCK[k]=(k==='terms'));   // terms travel locked
-  FXHL=null; FXDIFF={}; FXLIST=ASSET.tweaks; FXFLAGS=ASSET.flags;
+  FXORDER.forEach(k=>ASSET.locks[k]=(k==='terms'));   // terms travel locked
+  FXHL=null; FXDIFF={};
   FXFOCUS=null; FXTHREAD={};
-  LOCKED=FXLOCK;
   $('fxChat').innerHTML=''; fxTopicSet(null); fxQuoteSet(null);
   fxMount(()=>{ drawFix(); if(h.termsFailed) fxErr(STR.fix.terms_fail); });
 }
@@ -153,7 +148,7 @@ function fxPrepDoc(){
   const D=FXDOC, group=CONT.modules.groups[0];
   D.querySelectorAll('.email,.precopy,body').forEach(el=>{ el.style.margin='0 auto'; });
   if(group){
-    const items=COPY[group.module+'s']||[];
+    const items=ASSET.copy[group.module+'s']||[];
     const els=[...D.querySelectorAll(`[data-module="${group.module}"]`)];
     const wrap=el=>el.closest('.cardwrap')||el;
     while(els.length<items.length && els.length){ const c=wrap(els[els.length-1]).cloneNode(true); wrap(els[els.length-1]).after(c); els.push(c.matches(`[data-module="${group.module}"]`)?c:c.querySelector(`[data-module="${group.module}"]`)); }
@@ -180,10 +175,10 @@ function fxPour(){
     const m=fxMod(k);
     els.forEach(el=>{
       if(k!=='terms' && !fxN(k) && fxOpts(m)===2 && el.dataset.variant){
-        const i=el.dataset.variant==='B'?1:0; const v=(COPY[m]||[])[i]||'';
+        const i=el.dataset.variant==='B'?1:0; const v=(ASSET.copy[m]||[])[i]||'';
         el.innerHTML=(el.querySelector('.l')?el.querySelector('.l').outerHTML:'')+fillPh(v); return;
       }
-      if(k==='terms'){ el.innerHTML=esc(fxTermsText()).replace(/\n/g,'<br>'); if(FXLOCK.terms) el.classList.add('locked-look'); return; }
+      if(k==='terms'){ el.innerHTML=esc(fxTermsText()).replace(/\n/g,'<br>'); if(ASSET.locks.terms) el.classList.add('locked-look'); return; }
       const raw=fxShow(k);
       el.innerHTML = raw.includes('\n') ? raw.replace(/\n/g,'<br>') : raw;
       el.classList.toggle('editing', FXFOCUS===k);
@@ -222,7 +217,7 @@ const FXI = PADLOCK.icon;      // FIX IT's own name for the one icon set
 function fxPadState(k){
   if(!fxLockable(k)) return 'fixed';
   if(FXFOCUS===k) return 'edit';
-  return FXLOCK[k] ? 'locked' : 'open';
+  return ASSET.locks[k] ? 'locked' : 'open';
 }
 function fxGutterDraw(){
   $('fxGutter').innerHTML = FXORDER.map(k=>{
@@ -255,7 +250,7 @@ function fxPick(a){ let l; do{ l=a[Math.floor(Math.random()*a.length)]; }while(l
 function fxTopicSet(k){
   const t=$('fxTopic');
   if(k){ t.textContent='Tweaking: '+FXLBL[k]; t.classList.remove('empty'); }
-  else { t.textContent = (FXORDER.length && !fxBeat() && Object.keys(FXLOCK).length) ? 'All locked' : 'Need any tweaks?'; t.classList.add('empty'); }
+  else { t.textContent = (FXORDER.length && !fxBeat() && Object.keys(ASSET.locks).length) ? 'All locked' : 'Need any tweaks?'; t.classList.add('empty'); }
 }
 function fxQuoteSet(q){
   FXHL=q||null;
@@ -263,7 +258,7 @@ function fxQuoteSet(q){
   $('fxNote').placeholder = FXFOCUS ? (q?'What are you thinking here?':'What are you thinking?') : 'Tap a padlock or highlight some words.';
 }
 function fxFocus(k, quote){
-  if(FXFOCUS && FXFOCUS!==k) FXLOCK[FXFOCUS]=true;        // leaving locks
+  if(FXFOCUS && FXFOCUS!==k) ASSET.locks[FXFOCUS]=true;        // leaving locks
   FXFOCUS=k;
   $('fxNote').value='';
   fxTopicSet(k); fxQuoteSet(quote||null);
@@ -274,7 +269,7 @@ function fxFocus(k, quote){
   $('fxNote').focus();
 }
 function fxUnfocus(){
-  if(FXFOCUS) FXLOCK[FXFOCUS]=true;
+  if(FXFOCUS) ASSET.locks[FXFOCUS]=true;
   FXFOCUS=null;
   $('fxNote').value=''; fxQuoteSet(null); fxTopicSet(null);
   $('fxSendBtn').disabled=true;
@@ -321,19 +316,19 @@ function fxClearOpts(){ if(FXFOCUS&&FXTHREAD[FXFOCUS]) FXTHREAD[FXFOCUS]=FXTHREA
 
 /* the drawer: a three-option module offers its other two */
 function fxDrawer(k){
-  const m=fxMod(k); const v=COPY[m];
+  const m=fxMod(k); const v=ASSET.copy[m];
   if(fxN(k)||!Array.isArray(v)||fxOpts(m)!==3) return;
   v.forEach((opt,i)=>{
-    if(i===PICK) return;
+    if(i===ASSET.pick) return;
     FXTHREAD[k].push(`<button class="chat-opt" data-k="${k}" data-i="${i}">Or from the drawer: ${fillPh(opt)}</button>`);
   });
   fxThreadRender();
 }
 function fxPickOption(k,i){
   const old=fxText(k);
-  PICK=i; ASSET.pick=i;
+  ASSET.pick=i;
   FXDIFF[k]={old, new:fxText(k)};
-  FXLIST.push({label:FXLBL[k], note:'From the drawer'}); TWEAKS++;
+  ASSET.tweaks.push({label:FXLBL[k], note:'From the drawer'});
   fxClearOpts();
   fxSay('Swapped. Like this?','robot',true);
   fxApplyFx(k);
@@ -346,7 +341,7 @@ function fxApplyFx(k){
 
 /* ── WRAP IT UP: counts what's open, never disabled. Early press takes
    you to the first open bit; the last press goes to FINISHED. ── */
-function fxOpenBits(){ return FXORDER.filter(k=>fxLockable(k) && (!FXLOCK[k] || k===FXFOCUS)); }
+function fxOpenBits(){ return FXORDER.filter(k=>fxLockable(k) && (!ASSET.locks[k] || k===FXFOCUS)); }
 function fxRailDraw(){
   const left=fxOpenBits(), w=$('fxWrap'), L=$('fxWrapLbl'), I=$('fxWrapIco');
   if(!FXORDER.length){ w.style.visibility='hidden'; return; }
@@ -380,7 +375,7 @@ function fxTipToggle(){
 const FX_KEEP_RE=/^(keep( it)?|yep|yes|yeah|fine|good|great|love it|ok|okay|done|lock it|that'?s the one|perfect)[.!\s]*$/i;
 async function fxSend(){
   const note=$('fxNote').value.trim();
-  if(!note || !COPY || !FXFOCUS) return;
+  if(!note || !ASSET || !FXFOCUS) return;
   const k=FXFOCUS;
   $('fxNote').value='';
   fxSay(FXHL?`<i class="quote">\u201c${esc(FXHL)}\u201d</i>${esc(note)}`:esc(note),'me');
@@ -399,7 +394,7 @@ async function fxSend(){
     } else if(d.action==='change' && d.copy){
       FXDIFF[k]={old:cur, new:d.copy};
       fxSet(k,d.copy);
-      FXLIST.push({label:FXLBL[k], note}); TWEAKS++;
+      ASSET.tweaks.push({label:FXLBL[k], note});
       fxClearOpts();
       fxSay(esc(d.say||'Like this?'),'robot',true);
       if(d.flags && d.flags.length) fxSay(esc(STR.fix.flag)+esc(d.flags[0]),'robot',false);

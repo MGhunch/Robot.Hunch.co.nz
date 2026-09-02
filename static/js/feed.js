@@ -558,7 +558,7 @@ let PEEKED = {};                       // id -> open, survives re-render
 function clPill(cl, on, fixed, flip){
   const el=document.createElement('div');
   el.className='cl-pill'+(fixed?' fixed':on?' on':' off')+(PEEKED[cl.id]?' peeked':'');
-  el.innerHTML=(fixed?'':`<span class="cl-ptick">${on?CL_CHECK:''}</span>`)+
+  el.innerHTML=(fixed?'':`<span class="cl-ptick">${on?TICK:''}</span>`)+
     `<span class="cl-pbody"><button class="cl-pname">${esc(cl.label||String(cl.id).replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()))}</button>
      <span class="cl-pwords">${clWords(cl.text)}</span></span>`;
   el.querySelector('.cl-pname').onclick=e=>{ e.stopPropagation();
@@ -815,7 +815,7 @@ function fdDocsDraw(){
        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/></svg>
        <span class="dump-name">${esc(d.name)}</span>
        <button class="dump-x" onclick="fdDocDrop(${i});event.stopPropagation()" aria-label="Remove">&times;</button>
-       <span class="dump-tick" aria-label="${d.wait?'Reading':d.bad?'Not read':'Read'}">${d.wait?'':'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-6.5"/></svg>'}</span>
+       <span class="dump-tick" aria-label="${d.wait?'Reading':d.bad?'Not read':'Read'}">${d.wait?'':TICK}</span>
      </div>`).join('')
     /* one line under the row for the first doc that didn't read — it
        asks for something, so it stays until the doc is dropped or replaced */
@@ -1051,7 +1051,7 @@ const fdScroll=()=>{ const c=$('fdChat'); c.scrollTop=c.scrollHeight; };
 function fdBubble(html, me){
   const row=document.createElement('div');
   row.className='chat-row'+(me?' me':'');
-  row.innerHTML = me ? `<div class="chat-msg"></div>` : FD_ROBOT()+`<div class="chat-msg">${html}</div>`;
+  row.innerHTML = me ? `<div class="chat-msg"></div>` : RAIL.cave()+`<div class="chat-msg">${html}</div>`;
   if(me) row.querySelector('.chat-msg').textContent=html;
   $('fdChat').appendChild(row); fdScroll();
 }
@@ -1237,7 +1237,7 @@ async function refreshLegals(){
   TERMS_BUSY=true; clRender();
   try{
     const d = await api('/api/terms',{container:CID, form:formData()});
-    MENU=d.menu; FACTS=d.facts; TERMS_FAILED=false;
+    MENU=d.menu; TERMS_FAILED=false;
     if(CHOSEN===null) CHOSEN = MENU.filter(c=>!c.fixed && c.default).map(c=>c.id);
   }catch(e){ MENU=[]; TERMS_FAILED=true; }
   TERMS_BUSY=false; clRender();

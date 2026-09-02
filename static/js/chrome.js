@@ -53,7 +53,6 @@ function BOT_FACE(kind){
     + '<rect x="11" y="26" width="12" height="3.4" rx="1.7" fill="#fff"/></svg>';
 }
 const BOT_AV  = kind => `<span class="botdisc">${BOT_FACE(kind)}</span>`;
-const FD_ROBOT = kind => `<div class="chat-cav">${BOT_AV(kind)}</div>`;
 /* markup that wears a face declares it with data-face; filled once the DOM
    is there, because this file loads in the head, before the body exists */
 function ready(fn){ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
@@ -70,21 +69,21 @@ ready(faceFill);
    it's asking for something (stick), in which case it stays till acted on. */
 function errLine(text, o={}){
   const el=document.createElement('div');
-  el.className='fd-said err'+(o.cls?' '+o.cls:'');
+  el.className='line err'+(o.cls?' '+o.cls:'');
   el.setAttribute('role','alert');
-  el.innerHTML=`${BOT_AV('err')}<span class="fd-said-t">${esc(text)}</span>`;
+  el.innerHTML=`${BOT_AV('err')}<span class="line-t">${esc(text)}</span>`;
   if(!o.stick) el._t=setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),300); }, 7000);
   return el;
 }
 /* one line per anchor — a fresh failure replaces the last one, never stacks */
 function errAt(anchor, text, o={}){
   if(!anchor) return null;
-  anchor.querySelectorAll(':scope > .fd-said.err').forEach(x=>{ clearTimeout(x._t); x.remove(); });
+  anchor.querySelectorAll(':scope > .line.err').forEach(x=>{ clearTimeout(x._t); x.remove(); });
   const el=errLine(text,o);
   if(o.first) anchor.insertBefore(el, anchor.firstChild); else anchor.appendChild(el);
   return el;
 }
-function errClear(anchor){ if(anchor) anchor.querySelectorAll(':scope > .fd-said.err').forEach(x=>{ clearTimeout(x._t); x.remove(); }); }
+function errClear(anchor){ if(anchor) anchor.querySelectorAll(':scope > .line.err').forEach(x=>{ clearTimeout(x._t); x.remove(); }); }
 
 /* THE CARD — a whole pane failed to arrive. Renders in the page flow, in
    the space the missing thing should occupy. TRY AGAIN retries; a second
@@ -120,12 +119,8 @@ function beacon(what, room, meta){
 }
 
 /* ---------------- THE ENGINE'S ICONS ----------------
-   Ticks and pencils, as the rooms draw them today. Three ticks and two
-   pencils is more than one device needs — they're here under their old
-   names so nothing moves on screen; folding them is a later, visible pass. */
-const CL_CHECK  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>';
-const CL_PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3"/><path d="M13.5 6.5l3 3"/></svg>';
-const FI_TICK='<svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3L13 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+   One tick. The pencil is the padlock's (below). No room draws its own. */
+const TICK='<svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3L13 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 /* ---------------- THE PADLOCK ----------------
    One device, two rooms: the gutter in FIX IT, the sections in LOCK THE
@@ -283,9 +278,10 @@ function thinkFace(){ let p;
    error turn, the thinking turn. A row is a string; the room decides where
    it goes (a rail, a thread) and keeps that state itself. */
 const RAIL = {
+  cave:  kind => `<div class="chat-cav">${BOT_AV(kind)}</div>`,
   robot: (html, withAv) => `<div class="chat-row"><div class="chat-cav ${withAv?'':'ghost'}">${BOT_AV()}</div><div class="chat-msg">${html}</div></div>`,
   me:    html => `<div class="chat-row me"><div class="chat-msg">${html}</div></div>`,
-  err:   text => `<div class="chat-row"><div class="chat-cav">${BOT_AV('err')}</div><div class="fd-said err nodisc" role="alert"><span class="fd-said-t">${esc(text)}</span></div></div>`,
+  err:   text => `<div class="chat-row"><div class="chat-cav">${BOT_AV('err')}</div><div class="line err nodisc" role="alert"><span class="line-t">${esc(text)}</span></div></div>`,
   think: () => `<div class="chat-cav">${thinkFace()}</div>`,
 };
 
