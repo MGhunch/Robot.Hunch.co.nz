@@ -3,7 +3,7 @@ const BASE='http://127.0.0.1:5055';
 (async()=>{
   const html = await (await fetch(BASE+'/')).text();
   let cookie='';
-  const dom = new JSDOM(html, { runScripts:'dangerously', pretendToBeVisual:true, url: BASE+'/',
+  const dom = new JSDOM(html, { runScripts:'dangerously', resources:'usable', pretendToBeVisual:true, url: BASE+'/',
     beforeParse(w){
       w.fetch = async (path, opts)=>{
         const r = await fetch(BASE+path, Object.assign({}, opts, {headers:Object.assign({}, (opts||{}).headers||{}, cookie?{cookie}:{})}));
