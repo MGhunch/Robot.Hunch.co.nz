@@ -309,6 +309,8 @@ def _parse_legals(text, problems, cid):
                 pl = re.search(r"prize_line:\s*(.*)", blk)
                 nd = re.search(r"needs:\s*(.*)", blk)
                 cn = re.search(r"counts:\s*(.*)", blk)      # the noun a number fact wears
+                sn = re.search(r"sentence:\s*(.*)", blk)     # the same prize, in human
+                c1 = re.search(r"counts_one:\s*(.*)", blk)   # ...and its singular
                 extras = []
                 for r in _table(blk)["rows"]:
                     extras.append({"id": r.get("id", ""), "after": r.get("after", ""),
@@ -319,6 +321,8 @@ def _parse_legals(text, problems, cid):
                 lib["by_type"].append({"type": ptype, "label": label,
                                        "line": pl.group(1).strip() if pl else "",
                                        "counts": cn.group(1).strip() if cn else "",
+                                       "counts_one": c1.group(1).strip() if c1 else "",
+                                       "sentence": sn.group(1).strip() if sn else "",
                                        "needs": needs, "extra": extras})
         elif tl.startswith("extras"):
             for r in _table(body)["rows"]:

@@ -78,7 +78,7 @@ def _quiz(c):
                      "more": "or drag in another.", "hint": fi["dump"],
                      "paste": "Cut and paste anything."}},
             {"key": "bounce", "title": "Bounce ideas", "sub": "Quick chat to land an angle."},
-            {"key": "deets", "title": "Check your deets", "sub": "Dates, times, legals. Lock it in."},
+            {"key": "deets", "title": "Lock the deets", "sub": "Dates, times, legals. All good?"},
         ],
         "needs": fi["needs"],
         "point": fi["point"],
@@ -107,6 +107,7 @@ def _checklist(c):
             if r.get("derive"):
                 m = re.search(r"next working day after (\w+)", r["derive"])
                 if m: row["derive"] = "nextWorkday:" + m.group(1)
+                elif "ticket words" in r["derive"]: row["derive"] = "typeCounts"
             rows.append(row)
         groups.append({"title": g["title"], "rows": rows, "repeat": g["repeat"], "prose": g.get("prose", "")})
     types = type_options(c)
@@ -115,10 +116,14 @@ def _checklist(c):
     for x in c["legals"]["conditional"]:
         topics.insert(0, {"id": x["id"], "label": x["title"], "default": True, "when": "prize",
                           "text": x.get("text", "")})
+    # prize_line is the type's line, hung as a sub-bullet and filled from the
+    # facts. Its row in the base table is an editorial note, not a clause, so
+    # it never belongs in the client's standard-terms block.
     fixed = [{"id": x["id"], "label": x.get("label", "") or x["id"].replace("_", " ").capitalize(),
-              "text": x["text"]} for x in c["legals"]["base"] if x.get("fixed")]
+              "text": x["text"]} for x in c["legals"]["base"]
+             if x.get("fixed") and x["id"] != "prize_line"]
     return {"groups": groups, "types": types, "topics": topics,
-            "legals": {"title": "The legals", "fixedTitle": c["legals"].get("fixed_title", "Standard legals"),
+            "legals": {"title": "Specific terms", "fixedTitle": c["legals"].get("fixed_title", "Standard legals"),
                        "fixed": fixed,
                        "sub": "Tick the extras this one needs. Tap any clause to read it."}}
 

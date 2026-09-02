@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=030">
+<link rel="stylesheet" href="robot.css?v=031">
 
 </head>
 <body>
@@ -117,6 +117,7 @@
   <div class="beat" id="thinking" hidden>
     <img class="beat-bot" src="robot-burger.svg" alt="">
     <div class="beat-say beb" id="thinkSay"></div>
+    <div class="beat-beads" id="thinkBeads"></div>
   </div>
 
   <!-- 1 BRIEF — the story, then the detail -->
@@ -245,10 +246,14 @@
                   </button>
                   <div class="fd-bod">
                     <div class="cl-cards" id="clCards"></div>
-                    <button class="cl-door" id="clDoor" onclick="toPics()">WRITE THE WORDS</button>
                   </div>
                 </div>
               </div>
+
+              <!-- THE DOOR — outside the cards, under the whole concertina.
+                   Ghost-white and dead until every padlock is shut. The locks
+                   gate it exactly as they gate GOOD TO GO in FIX IT. -->
+              <button class="cl-door dz-door" id="clDoor" onclick="toPics()">WRITE THE WORDS</button>
 
             </div>
           </div>
@@ -503,8 +508,21 @@ function clDateISO(v){
 const NUMWORDS=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve'];
 const clFmtNum = v => { const x=Number(v); return Number.isInteger(x)&&x>=1&&x<=12 ? NUMWORDS[x] : String(v); };
 
-/* derive: nextWorkday:<row> — a suggestion, human-editable, human-ticked */
+/* derive — a suggestion, human-editable, human-ticked. Two rules:
+   nextWorkday:<row>, and typeCounts (the prize type's ticket words). */
 function clDerive(r,S){
+  if(r.derive==='typeCounts'){
+    /* a default, not a live derivation: it only ever overwrites its own
+       last suggestion. Words off the dump, or the human's own, stand. */
+    const s=S[r.id];
+    if(s.touched) return;
+    if(s.value && s.value!==s.seeded) return;
+    const t=dzType(); if(!t) return;
+    const many=Number((S.winners||{}).value||0)>1;
+    const v=(many ? t.counts : (t.counts_one||t.counts))||'';
+    if(v!==s.value){ s.value=v; s.seeded=v; s.ticked=false; }
+    return;
+  }
   const m=/^nextWorkday:(\w+)$/.exec(r.derive||''); if(!m) return;
   const s=S[r.id]; if(s.touched) return;
   const c=(S[m[1]]||{}).value; if(!c){ s.value=''; return; }
@@ -514,40 +532,276 @@ function clDerive(r,S){
   if(v!==s.value){ s.value=v; s.ticked=false; }
 }
 
+/* ---------------- THE PADLOCK ----------------
+   One device, two rooms: the gutter in FIX IT, the sections in LOCK THE
+   DEETS. The icons, the words and the journey live here and nowhere else,
+   so the two rooms can't quietly drift apart.
+
+     open   --tap-->  edit (the pencil)  --tap-->  locked
+     locked --tap-->  edit                                 (reopen)
+
+   Tap open or shut and you get the pencil; tap the pencil and it keeps.
+   Leave any other way and it shuts behind you — leaving locks. `fixed` is
+   a fourth state, not a step on the journey: it can't be opened, it
+   deflects.
+
+   The open shackle stands clear of the body and springs up and away. It
+   used to sit down on the body with one leg missing, which read as very
+   nearly shut — the one state that most needs to be unmistakable. */
+const PADLOCK = {
+  icon: {
+    open:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V6a5 5 0 0 1 9.6-1.9"/></svg>',
+    shut:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+    edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M13 8l3 3"/></svg>'
+  },
+  say: {open:'Open — tap to have a look', edit:'Tweaking — tap to keep it',
+        locked:'Locked — tap to reopen', fixed:'From the brief'},
+  /* the state's face: the pencil while you're in it, the shackle otherwise */
+  face: st => st==='edit' ? PADLOCK.icon.edit
+             : (st==='open' ? PADLOCK.icon.open : PADLOCK.icon.shut),
+  /* the journey itself. The room supplies its own three verbs; the rule
+     about which one a tap means belongs here. */
+  tap(st, on){
+    if(st==='fixed') return on.deflect && on.deflect();
+    return st==='edit' ? on.keep() : on.open();
+  }
+};
+
+/* ---------------- LOCK THE DEETS ----------------
+   The details are canon — they beat the dump downstream — so this stop
+   borrows FIX IT's padlock, not a tick. A tick says *checked*; a lock says
+   *settled, don't move*. The client learns the device here, on easy facts,
+   and arrives in FIX IT already fluent. The tick survives where it belongs:
+   the specific-terms chips. Two devices, two weights.
+
+   Sections come off the container and are never named in code. Every group
+   is a section; the legals are the last one. A group of nothing but dates
+   draws as the plain list. The group that owns the type row draws as the
+   sentence, when its type has one. Everything else keeps the fact grid. */
+let DZ={};                 // section key -> 'open' | 'edit' | 'locked'
+let DZFLASH='';            // the section whose holes just refused a lock
+let DZSTD=false;           // the standard-terms panel, peeked open
+
+function dzSections(){
+  const out=[], done=new Set();
+  CL_CONFIG.groups.forEach(g=>{
+    if(g.repeat){ const k=repKey(g); if(done.has(k)) return; done.add(k);
+      out.push({key:'rep:'+k, title:k, kind:'repeat', rep:k}); return; }
+    const rows=g.rows.filter(r=>r.type!=='legals');
+    if(!rows.length) return;                      // a prose-only group draws nothing
+    const shown=rows.filter(r=>clShown(r,CLS));
+    let kind='facts';
+    if(shown.length && shown.every(r=>r.type==='date')) kind='dates';
+    else if(rows.some(r=>r.id.endsWith('_type')) && dzTemplate()) kind='sentence';
+    out.push({key:'grp:'+g.title, title:g.title, kind, rows});
+  });
+  out.push({key:'legals', title:'The legals', kind:'legals'});
+  return out;
+}
+const dzState = k => DZ[k] || (DZ[k]='open');
+function dzAllLocked(){ return !!CONT && dzSections().every(s=>dzState(s.key)==='locked'); }
+
+/* every row a section owns, with the state object it lives in */
+function dzRows(sec){
+  const out=[];
+  if(sec.kind==='repeat'){
+    const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===sec.rep);
+    (CLR[sec.rep]||[]).forEach(S=>groups.forEach(g=>g.rows.forEach(r=>out.push({r,S}))));
+  } else if(sec.rows){ sec.rows.forEach(r=>out.push({r,S:CLS})); }
+  return out;
+}
+function dzHoles(sec){
+  return dzRows(sec).filter(({r,S})=>clShown(r,S)&&!cellFilled(r,S)).map(x=>x.r);
+}
+
+/* ── the padlock loop — FIX IT's grammar verbatim: tap open or shut and you
+   get the pencil; tap the pencil and it keeps. Opening one keeps the other:
+   leaving locks. A section with a hole refuses — canon doesn't ship with a
+   TBC in it — so the hole flashes and the robot says which one. ── */
+function dzPadTap(key){
+  const sec=dzSections().find(x=>x.key===key); if(!sec) return;
+  PADLOCK.tap(dzState(key), {keep:()=>dzKeep(sec), open:()=>dzOpen(sec)});
+}
+function dzOpen(sec){
+  dzSections().forEach(o=>{ if(o.key!==sec.key && dzState(o.key)==='edit') dzKeep(o); });
+  DZ[sec.key]='edit'; DZFLASH='';
+  dzRows(sec).forEach(({r,S})=>{ if(S[r.id]) S[r.id].ticked=false; });
+  clRender();
+}
+function dzKeep(sec){
+  const holes=dzHoles(sec);
+  if(holes.length){
+    DZ[sec.key]='edit'; DZFLASH=sec.key;
+    fdSay(2, holes.length===1
+      ? "Can't lock that with a hole in it — I still need the "+String(holes[0].label).toLowerCase()+"."
+      : "Can't lock that yet — "+holes.length+" bits are still TBC.");
+    clRender(); return;
+  }
+  DZ[sec.key]='locked'; DZFLASH='';
+  dzRows(sec).forEach(({r,S})=>{ if(S[r.id]){ S[r.id].ticked=true; S[r.id].mode='view'; } });
+  clArm(); clRender();
+}
+function dzPad(key, st){
+  const b=document.createElement('button');
+  b.className='dz-pad '+st;
+  b.innerHTML = PADLOCK.face(st);
+  const tip=PADLOCK.say[st];
+  b.title=tip; b.setAttribute('aria-label',tip);
+  b.onclick=()=>dzPadTap(key);
+  return b;
+}
+
+/* ── THE PRIZE, in human ──────────────────────────────────────────────────
+   The prize already has a definition: prize_line, the fixed clause that
+   publishes in the terms — and which the client never got to see, because
+   it hangs as a sub-bullet and the card filtered sub-bullets out. This is
+   that definition in its other dress. Same facts, fewer formalities, so the
+   two can differ in tone and never in substance. The words live in the
+   container (sentence: per prize type), never here. ── */
+function dzType(){
+  const tr=flatRows().find(r=>r.id.endsWith('_type')); if(!tr) return null;
+  const s=CLS[tr.id]; if(!s||!s.value) return null;
+  return (CL_CONFIG.types||[]).find(x=>x.value===s.value)||null;
+}
+const dzTemplate = () => (dzType()||{}).sentence||'';
+
+const dzFmtDate = v => { if(!v) return '';
+  const d=new Date(v+'T00:00'); return d.getDate()+' '+MONTHS[d.getMonth()]+' '+d.getFullYear(); };
+function dzVal(id){
+  if(id==='counts')     return (dzType()||{}).counts||'';
+  if(id==='counts_one') return (dzType()||{}).counts_one||'';
+  const r=clRow(id); if(!r) return '';
+  const s=CLS[id]; if(!s||!s.value) return '';
+  if(r.type==='date')   return clFmtDate(s.value);
+  if(r.type==='number') return clFmtNum(s.value);
+  if(r.type==='select') return s.value==='other' ? (s.other||'')
+    : ((clOptions(r).find(o=>o[0]===s.value)||[])[1]||'');
+  return s.value;
+}
+/* {id} a fact as the card shows it, {counts} the type's noun; [a/b] picks by
+   winner count, the same switch the clauses use; [[ ]] is an optional run
+   that vanishes whole when anything inside it is empty; *stars* bold. A
+   missing fact outside an optional run reads TBC in red — the only alarm. */
+function dzFill(tpl){
+  const plural = Number(dzVal('winners')&&(CLS.winners||{}).value||1) > 1;
+  let t=String(tpl).replace(/\[([^\[\]]*?\/[^\[\]]*?)\]/g,(m,g)=>{
+    const parts=g.split('/'); return (plural?parts[1]:parts[0]).trim(); });
+  t=t.replace(/\[\[(.*?)\]\]/g,(m,run)=>{
+    let ok=true; run.replace(/\{(\w+)\}/g,function(_,id){ if(!dzVal(id)) ok=false; return ''; });
+    return ok?run:''; });
+  let html=t.replace(/\{(\w+)\}/g,(m,id)=>{
+    const v=dzVal(id); return v?esc(v):'<span class="tbc">TBC</span>'; });
+  return html.replace(/\*([^*]+)\*/g,'<b>$1</b>');
+}
+
+/* ── the section bodies ── */
+function dzSentenceBody(box, sec, st){
+  if(st==='edit') return dzFactsBody(box, sec, st);
+  const p=document.createElement('div'); p.className='dz-prize';
+  p.innerHTML=dzFill(dzTemplate());
+  box.appendChild(p);
+}
+/* label left, value right, hairlines between. Filled rows sit in ink and
+   shut up; only TBC is red. Open, they become the platform's own picker. */
+function dzDatesBody(box, sec, st){
+  const list=document.createElement('div'); list.className='dz-dates';
+  sec.rows.filter(r=>clShown(r,CLS)).forEach(r=>{
+    clDerive(r,CLS);
+    const s=CLS[r.id];
+    const row=document.createElement('div'); row.className='dz-drow';
+    row.innerHTML='<span class="dz-dlabel">'+esc(r.label)+'</span>';
+    if(st==='edit'){
+      const inp=document.createElement('input'); inp.type='date'; inp.value=s.value||'';
+      inp.setAttribute('aria-label', r.label);
+      /* no re-render on change: it would tear the picker out mid-edit. The
+         section redraws when the padlock keeps it. */
+      inp.onchange=()=>{ if(inp.value!==s.value){
+        s.value=inp.value; s.touched=true; s.ticked=false; dirty(); } };
+      row.appendChild(inp);
+    } else {
+      const v=document.createElement('span');
+      v.className='dz-dval'+(s.value?'':' tbc');
+      v.textContent=s.value?dzFmtDate(s.value):'TBC';
+      row.appendChild(v);
+    }
+    list.appendChild(row);
+  });
+  box.appendChild(list);
+}
+/* the fact grid, unchanged — the rows keep their own edit loop. It draws
+   where a group has no sentence to wear, and where the prize is open. */
+function dzFactsBody(box, sec, st){
+  const grid=document.createElement('div'); grid.className='cl-factgrid';
+  sec.rows.filter(r=>clShown(r,CLS)&&!clTypeKnown(r,CLS)).forEach(r=>{
+    clDerive(r,CLS); grid.appendChild(clRowEl(r,CLS)); });
+  if(st!=='edit') grid.classList.add('inert');
+  box.appendChild(grid);
+}
+function dzRepeatBody(box, sec, st){
+  clRepeatCards(sec.rep).forEach(c=>box.appendChild(c));
+  if(st!=='edit') box.classList.add('inert');
+}
+/* two forms, one lock. Standard terms are one quiet block naming the
+   clauses — furniture, nothing to tick, "Read them" for the words as
+   they'll print. Specific terms are the chips, and they are the only
+   decisions in the section. */
+function dzLegalsBody(box, sec, st){
+  const fixedSrc = MENU.length ? MENU.filter(c=>c.fixed&&!c.sub) : (CL_CONFIG.legals.fixed||[]);
+  box.innerHTML='<div class="cl-title">'+clTitle(CL_CONFIG.legals.fixedTitle||'Standard terms')+'</div>';
+  const std=document.createElement('div'); std.className='dz-std';
+  std.innerHTML=esc(dzStdLine(fixedSrc))+' ';
+  const peek=document.createElement('span'); peek.className='dz-peek';
+  peek.textContent=DZSTD?'Hide terms':'Read terms';
+  peek.onclick=()=>{ DZSTD=!DZSTD; fixedSrc.forEach(c=>logPeek(c.id)); clRender(); };
+  std.appendChild(peek); box.appendChild(std);
+  const full=document.createElement('div'); full.className='dz-stdfull'+(DZSTD?' on':'');
+  full.innerHTML=fixedSrc.map(c=>'<b>'+esc(clLabel(c))+'</b>'+clWords(c.text)).join('');
+  box.appendChild(full);
+  const t2=document.createElement('div'); t2.className='cl-title dz-t2';
+  t2.innerHTML=clTitle(CL_CONFIG.legals.title||'Specific terms');
+  box.appendChild(t2);
+  const opt = MENU.length ? MENU.filter(c=>!c.fixed) : [];
+  if(!opt.length){
+    const w=document.createElement('div'); w.className='cl-legwait';
+    w.textContent='Finish the facts above and the legals sort themselves.';
+    box.appendChild(w);
+  } else {
+    const row=document.createElement('div'); row.className='cl-pills'+(st==='edit'?'':' inert');
+    opt.forEach(c=>{ const on=!!(CHOSEN&&CHOSEN.includes(c.id));
+      row.appendChild(clPill(c,on,false,()=>toggleClause(c.id))); });
+    box.appendChild(row);
+  }
+}
+const clLabel = c => c.label || String(c.id).replace(/_/g,' ').replace(/^./,x=>x.toUpperCase());
+/* the block names the clauses; it never prints them */
+function dzStdLine(list){
+  const names=list.map(c=>{ const l=clLabel(c);
+    return /[A-Z]/.test(l.slice(1)) ? l : l.charAt(0).toLowerCase()+l.slice(1); });
+  if(!names.length) return 'The standard terms ride along on every one of these.';
+  const last=names.pop();
+  const joined = names.length ? names.join(', ')+' and '+last : last;
+  return joined.replace(/^./,c=>c.toUpperCase())+'. These are always included.';
+}
+
 function clRender(){
   const wrap=$('clCards'); if(!wrap||!CONT) return; wrap.innerHTML='';
-  const done=new Set();
-  let pair=null;                       // two fact cards share a row
-  const place=card=>{
-    if(!card.classList||!card.classList.contains('facts')){ pair=null; wrap.appendChild(card); return; }
-    if(pair&&pair.children.length<2){ pair.appendChild(card); return; }
-    pair=document.createElement('div'); pair.className='cl-pair';
-    pair.appendChild(card); wrap.appendChild(pair);
-  };
-  CL_CONFIG.groups.forEach(g=>{
-    if(g.repeat){
-      const key=repKey(g); if(done.has(key)) return; done.add(key);
-      clRepeatCards(key).forEach(c=>{ pair=null; wrap.appendChild(c); });
-      return;
-    }
-    if(!g.rows.some(r=>r.type!=='legals')) return;      // a prose-only group draws nothing
-    const card=document.createElement('div'); card.className='cl-card facts';
-    card.innerHTML=`<div class="cl-title">${clTitle(g.title)}</div>`;
-    const grid=document.createElement('div'); grid.className='cl-factgrid';
-    const rows=g.rows.filter(r=>r.type!=='legals'&&clShown(r,CLS)&&!clTypeKnown(r,CLS));
-    rows.forEach(r=>{ clDerive(r,CLS); grid.appendChild(clRowEl(r,CLS)); });
-    card.appendChild(grid);
-    card.appendChild(clCardOk(rows, CLS, g.title));
-    place(card);
+  flatRows().forEach(r=>{ if(r.derive) clDerive(r,CLS); });
+  dzSections().forEach(sec=>{
+    const st=dzState(sec.key);
+    const el=document.createElement('div');
+    el.className='dz-sec '+st+(DZFLASH===sec.key?' flash':'');
+    if(sec.kind!=='legals') el.innerHTML='<div class="cl-title">'+clTitle(sec.title)+'</div>';
+    const body=document.createElement('div'); body.className='dz-body';
+    if(sec.kind==='sentence')    dzSentenceBody(body, sec, st);
+    else if(sec.kind==='dates')  dzDatesBody(body, sec, st);
+    else if(sec.kind==='repeat') dzRepeatBody(body, sec, st);
+    else if(sec.kind==='legals') dzLegalsBody(body, sec, st);
+    else                         dzFactsBody(body, sec, st);
+    el.appendChild(body);
+    el.appendChild(dzPad(sec.key, st));
+    wrap.appendChild(el);
   });
-  if(!CL_CONFIG.groups.some(g=>g.rows.some(r=>r.type==='topics'))) wrap.appendChild(clLegalsCard());
-  else { const fixed=(CL_CONFIG.legals.fixed||[]); if(fixed.length){
-    const fx=document.createElement('div'); fx.className='cl-card legals';
-    fx.innerHTML=`<div class="cl-title">${clTitle(CL_CONFIG.legals.fixedTitle||'Standard legals')}</div>`;
-    const frow=document.createElement('div'); frow.className='cl-pills';
-    fixed.forEach(c=>frow.appendChild(clPill(c,true,true)));
-    fx.appendChild(frow); wrap.insertBefore(fx, wrap.firstChild); } }
-  $('clDoor').classList.toggle('live', detailReady());
+  $('clDoor').classList.toggle('live', dzAllLocked());
   fdStages();
 }
 function clTitle(t){
@@ -586,7 +840,6 @@ function clRepeatCards(key){
       g.rows.forEach(r=>{ if(r.type==='legals'||!clShown(r,S)) return; clDerive(r,S); liveRows.push(r); grid.appendChild(clRowEl(r,S)); });
     });
     card.appendChild(grid);
-    card.appendChild(clCardOk(liveRows, S, key+' '+(i+1)));
     return card;
   });
   if(items.length<base.repeat.max){
@@ -633,14 +886,6 @@ function clStoryCard(key,i,S,items,base,typeRow,topicRow){
     valEl.onclick=()=>{ s.mode='edit'; clRender(); };
   }
   card.appendChild(row);
-  /* the circle, bottom-right: confirms the story — its words, its type,
-     its legals as they stand. Any change drops it. */
-  const ok=document.createElement('button'); ok.className='cl-cardok';
-  ok.innerHTML=CL_CHECK; ok.classList.toggle('on', !!(shown&&s.ticked));
-  ok.setAttribute('aria-label',(s.ticked?'Unconfirm ':'Confirm ')+key+' '+(i+1));
-  ok.onclick=()=>{ if(!shown){ s.mode='edit'; clRender(); return; }
-    s.ticked=!s.ticked; if(ty) ty.ticked=s.ticked; clArm(); clRender(); };
-  card.appendChild(ok);
   const topics=(CL_CONFIG.topics||[]).filter(x=>!x.when||x.when===type);
   if(topics.length){
     const box=document.createElement('div'); box.className='cl-pills';
@@ -683,8 +928,7 @@ function clRowEl(r,S){
     else if(r.type==='number'){ const u=clUnit(r,S); v=esc(clFmtNum(shown)+(u?' '+u:'')); }
     else v=esc(shown);
     row.classList.add('pillrow'); if(!shown) row.classList.add('awake');
-    valEl.innerHTML=`<span class="cl-pilllabel">${esc(r.label)}</span> <span class="cl-pillval">${v}</span>`
-      +clProv(s);
+    valEl.innerHTML=`<span class="cl-pilllabel">${esc(r.label)}</span> <span class="cl-pillval">${v}</span>`;
     valEl.onclick=()=>{ s.mode='edit'; clRender(); };
   }
   else if(s.mode==='edit'){
@@ -765,12 +1009,6 @@ function clRowEl(r,S){
   return row;
 }
 
-function clProv(s){
-  return s.found
-    ? `<div class="cl-prov">the robot found this &mdash; check it before you tick <b>${esc(s.found)}</b></div>`
-    : '';
-}
-
 /* a *_type row leaves the card once it's known — it keeps working
    backstage (which clauses propose, the prize line, which facts show).
    Known means ticked: the human never weighs the robot's read here. */
@@ -789,31 +1027,6 @@ function clUnit(r,S){
   return t&&t.counts ? t.counts : '';
 }
 
-/* the card's circle — the confirm layer, bottom-right, one per row-group.
-   Confirming confirms the state: every fact filled and ticked. A change
-   unticks its row, so the circle drops with it. Pressed with a hole, it
-   doesn't tell, it takes — the first empty fact opens for editing. */
-function clCardOk(rows, S, name){
-  const btn=document.createElement('button'); btn.className='cl-cardok';
-  const filled = r => { const s=S[r.id]; if(!s) return true;
-    return r.type==='select' ? (s.value && (s.value!=='other'||s.other)) : !!s.value; };
-  const allFilled=rows.every(filled);
-  const allTicked=allFilled && rows.every(r=>!S[r.id]||S[r.id].ticked);
-  btn.innerHTML=CL_CHECK;
-  btn.classList.toggle('on', allTicked);
-  btn.setAttribute('aria-label', (allTicked?'Unconfirm ':'Confirm ')+name);
-  btn.onclick=()=>{
-    if(!allFilled){ const hole=rows.find(r=>!filled(r)); S[hole.id].mode='edit'; clRender(); return; }
-    rows.forEach(r=>{ if(S[r.id]) S[r.id].ticked=!allTicked; });
-    clArm(); clRender();
-  };
-  return btn;
-}
-
-/* the legals card — selection, not confirmation. Square boxes from the
-   live clause menu; no circle ticks on clauses. A container with no
-   optional clauses just shows the standard line. */
-let FIXED_OPEN=false;
 /* a clause pill: label; tap the label and the pill opens into the words
    as they'll print. Facts still unconfirmed read as an honest blank. */
 const clWords = t => esc(String(t||'').replace(/\{\w+\}/g,'\u2026'));
@@ -832,38 +1045,6 @@ function clPill(cl, on, fixed, flip){
 let PEEKLOG = new Set();
 function logPeek(id){ if(PEEKLOG.has(id)||!CID) return; PEEKLOG.add(id);
   try{ api('/api/peek',{container:CID, clause:id}); }catch(e){} }
-
-function clLegalsCard(){
-  const frag=document.createDocumentFragment();
-  /* the fixed row — always publishes, tickless, peek to read. The
-     container names it (Standard terms / Standard footer). */
-  const fixedSrc = MENU.length ? MENU.filter(c=>c.fixed&&!c.sub)
-                               : (CL_CONFIG.legals.fixed||[]);
-  const fx=document.createElement('div'); fx.className='cl-card legals';
-  fx.innerHTML=`<div class="cl-title">${clTitle(CL_CONFIG.legals.fixedTitle||'Standard legals')}</div>`;
-  const frow=document.createElement('div'); frow.className='cl-pills';
-  fixedSrc.forEach(c=>frow.appendChild(clPill(c,true,true)));
-  fx.appendChild(frow); frag.appendChild(fx);
-  /* the legals row — proposals on in red, the rest greyed inline.
-     Spot it grey and add it. */
-  const card=document.createElement('div'); card.className='cl-card legals';
-  card.innerHTML=`<div class="cl-title">${clTitle(CL_CONFIG.legals.title)}</div>
-    <div class="cl-sub">${esc(CL_CONFIG.legals.sub||'')}</div>`;
-  if(!MENU.length){
-    const w=document.createElement('div'); w.className='cl-legwait';
-    w.textContent='Finish the facts above and the legals sort themselves.';
-    card.appendChild(w);
-  } else {
-    const row=document.createElement('div'); row.className='cl-pills';
-    MENU.filter(c=>!c.fixed).forEach(c=>{
-      const on=!!(CHOSEN&&CHOSEN.includes(c.id));
-      row.appendChild(clPill(c,on,false,()=>toggleClause(c.id)));
-    });
-    card.appendChild(row);
-  }
-  frag.appendChild(card);
-  return frag;
-}
 
 /* the form the engine reads: row id -> value, <id>__sub for a time, and
    each repeating group as a list under its key. OTHER sends what they
@@ -936,7 +1117,7 @@ let ACC=0;                                // which stop is open
 function fdDone(j){
   if(j===0) return !!fdDumpText().trim();
   if(j===1) return !!QBRIEF && !!String(QBRIEF.angle||'').trim();
-  if(j===2) return detailReady();
+  if(j===2) return dzAllLocked();
   return false;
 }
 function fdStages(){
@@ -959,7 +1140,7 @@ function accReach(i){ acc(i); if(i!==1) fdThink(false); }
 const FD_SHORT=[
   [0, 'Nothing to write about yet.'],
   [1, "Let's quickly bounce it first."],
-  [2, 'Just need to check the deets.'],
+  [2, 'Just need to lock the deets.'],
 ];
 let SAID=null;
 function fdShort(){ return FD_SHORT.find(([j])=>!fdDone(j)) || null; }
@@ -1475,10 +1656,28 @@ function fdLand(found){
 }
 
 /* ---------------- nothing flies without a tick ---------------- */
+/* a row is filled when it has a value — or when the container never asked
+   it to (locked: no). The prize tier is the only optional row on the card,
+   and a blank tier must not hold the whole stop hostage. */
+const cellFilled = (r,S) => { if(r.type==='legals'||r.type==='topics'||!clShown(r,S)) return true;
+  const s=S[r.id]; if(!s) return true;
+  if(!r.locked) return true;
+  return r.type==='select' ? !!(s.value&&(s.value!=='other'||s.other)) : !!s.value; };
+/* ticked now means *locked* — the section's padlock sets it, nothing else. */
 const rowReady = (r,S) => { if(r.type==='legals'||r.type==='topics'||!clShown(r,S)) return true;
   const s=S[r.id]; if(!s) return true;
-  const has = r.type==='select' ? (s.value && (s.value!=='other'||s.other)) : !!s.value;
-  return !!has && s.ticked; };
+  return cellFilled(r,S) && s.ticked; };
+/* every fact in, padlocks or not. This is what starts the writer. */
+function factsComplete(){
+  if(!CONT) return false;
+  if(!flatRows().every(r=>cellFilled(r,CLS))) return false;
+  return Object.keys(CLR).every(key=>{
+    const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
+    return CLR[key].every(S=>groups.every(g=>{ const w=g.repeat.where;
+      if(w && String((S[w.row]||{}).value)!==w.is) return true;
+      return g.rows.every(r=>cellFilled(r,S)); }));
+  });
+}
 function detailReady(){
   if(!CONT) return false;
   if(!flatRows().every(r=>rowReady(r,CLS))) return false;
@@ -1493,7 +1692,7 @@ function detailReady(){
 let ARM=null, CRAFT=null, CRAFT_KEY='';
 
 async function refreshLegals(){
-  const filled = flatRows().every(r=>r.type==='legals'||!clShown(r,CLS)||CLS[r.id].value);
+  const filled = flatRows().every(r=>cellFilled(r,CLS));
   if(!filled){ MENU=[]; clRender(); return; }
   try{
     const d = await api('/api/terms',{container:CID, form:formData()});
@@ -1509,8 +1708,9 @@ function toggleClause(id){
 }
 
 /* ---------------- background crafting ----------------
-   The robot starts writing the moment every fact is ticked, while the
-   human is still choosing legals. By the copy room, it's usually done. */
+   The robot starts writing the moment the facts are complete — before the
+   padlocks shut, while the human is still reading the legals. Waiting for
+   the locks would hand them the whole Opus wait at the door. */
 function clArm(){ armDetail(); }
 function armDetail(){
   clearTimeout(ARM);
@@ -1520,7 +1720,7 @@ function armDetail(){
 function craftKey(){ return JSON.stringify([CID, formData(), storyData()]); }
 
 function armCraft(){
-  if(!detailReady()) return;
+  if(!factsComplete()) return;
   const key = craftKey();
   if(key===CRAFT_KEY) return;             // already writing (or written) this one
   CRAFT_KEY = key;
@@ -1581,16 +1781,42 @@ const THINK_HOLD = 2600;    // how long a line sits before the next one lands
 const THINK_MIN  = 1000;    // armCraft often wins the race; don't let it flash
 let THINK_T = null, THINK_I = 0;
 
+/* The beads: one per line, so the row *is* the line list and every bead is
+   an event landing — not a percentage. One pass through the lines is about
+   a standard writing time, which is what paces it.
+
+   The last bead is the robot finishing, and the timer never lights it. The
+   row cannot claim to be done before the draft is. Outlast the list and the
+   lines loop while the beads hold at one short, which is the honest thing
+   for them to do — it says still going, not nearly there.
+
+   Tuning is one number: if real waits run long or short, THINK_HOLD moves
+   and the whole row moves with it. */
+function thinkBeads(){
+  const el = $('thinkBeads'); if(!el) return;
+  if(el.children.length !== THINK_LINES.length)
+    el.innerHTML = THINK_LINES.map(() => '<b></b>').join('');
+  const lit = Math.min(THINK_I, THINK_LINES.length - 1);
+  [...el.children].forEach((b, n) => b.classList.toggle('on', n < lit));
+}
+
 function thinkLine(){
   const say = $('thinkSay'); if(!say) return;
+  /* sweep any straggler first, and back the animationend removal with a
+     timer: under prefers-reduced-motion the animation never runs, so the
+     event never fires and the outgoing faces would pile up unseen. */
+  say.querySelectorAll('.out').forEach(o => o.remove());
   const old = say.querySelector('.in');
   if(old){ old.className = 'out';
-    old.addEventListener('animationend', () => old.remove(), {once:true}); }
+    const go = () => old.remove();
+    old.addEventListener('animationend', go, {once:true});
+    setTimeout(go, 600); }
   const s = document.createElement('span');
   s.className = 'in';
   s.textContent = THINK_LINES[THINK_I % THINK_LINES.length];
   THINK_I++;
   say.appendChild(s);
+  thinkBeads();
 }
 
 /* Panes off, the beat on. The rail isn't touched — reach(1) hasn't run, so
@@ -1825,11 +2051,7 @@ function drawFix(){
    shut → pencil → shut. Tap open or shut: the pencil. Tap the pencil:
    keep it. Leave any other way: it shuts behind you. Terms travel
    locked and deflect. ── */
-const FXI={
-  open:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0"/></svg>',
-  shut:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
-  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M13 8l3 3"/></svg>'
-};
+const FXI = PADLOCK.icon;      // FIX IT's own name for the one icon set
 function fxPadState(k){
   if(!fxLockable(k)) return 'fixed';
   if(FXFOCUS===k) return 'edit';
@@ -1837,15 +2059,13 @@ function fxPadState(k){
 }
 function fxGutterDraw(){
   $('fxGutter').innerHTML = FXORDER.map(k=>{
-    const st=fxPadState(k);
-    const tip={open:'Open — tap to have a look',edit:'Tweaking — tap to keep it',locked:'Locked — tap to reopen',fixed:'From the brief'}[st];
+    const st=fxPadState(k), tip=PADLOCK.say[st];
     return `<button class="fx-pad ${st}" data-k="${k}" onclick="fxPadTap('${k}')" title="${tip}" aria-label="${tip}: ${FXLBL[k]}">
-      ${st==='edit'?FXI.edit:(st==='open'?FXI.open:FXI.shut)}</button>`;
+      ${PADLOCK.face(st)}</button>`;
   }).join('');
 }
 function fxPadTap(k){
-  if(!fxLockable(k)){ fxDeflect(); return; }
-  if(FXFOCUS===k) fxKeep(); else fxFocus(k);
+  PADLOCK.tap(fxPadState(k), {open:()=>fxFocus(k), keep:fxKeep, deflect:fxDeflect});
 }
 function fxPos(){
   const fr=$('fxArt').querySelector('iframe'); if(!fr||!FXDOC) return;

@@ -908,8 +908,6 @@ a.sr-src:hover{color:var(--red)}
 .cl-fact.date{font-family:var(--display);font-size:17px;letter-spacing:.05em;text-transform:uppercase}
 .cl-factsub{font-size:12.5px;color:var(--mid);border-bottom:1px dashed var(--border);margin-right:10px}
 .cl-ask{font-size:15px;font-weight:500;color:var(--red)}
-.cl-prov{font-size:11.5px;color:var(--mid);margin-top:2px}
-.cl-prov b{font-weight:500;color:var(--red)}
 .cl-tick{flex:none;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;
   justify-content:center;cursor:pointer;border:2px solid #C4C0B6;background:#fff;color:#C4C0B6;
   transition:transform .12s,background .15s,border-color .15s;padding:0}
@@ -948,6 +946,85 @@ a.sr-src:hover{color:var(--red)}
   border-radius:var(--pill);border:none;background:var(--red-dark);color:#F0A9A5;cursor:default;
   transition:background .2s,color .2s}
 .cl-door.live{background:#fff;color:var(--red);cursor:pointer}
+
+/* ---------------- LOCK THE DEETS (v031) ----------------
+   Was CHECK YOUR DEETS. Three sections, three padlocks, one door. Only two
+   things are active on this card: red TBCs to fill, and specific terms to
+   tick. Everything else is furniture. The details are canon, so the stop
+   borrows FIX IT's padlock rather than a tick — and the client learns the
+   device here, on easy facts, before FIX IT asks for it again.
+   Ported from deets-mock.html; the mock is the spec. */
+.dz-sec{position:relative;padding:20px 88px 20px 0;border-top:1px solid var(--border)}
+.dz-sec:first-child{border-top:none;padding-top:4px}
+.dz-sec .cl-title{font-family:var(--body);font-weight:600;font-size:11.5px;letter-spacing:2px;
+  color:var(--mid);text-transform:uppercase;margin-bottom:8px}
+.dz-sec .cl-title em{font-style:normal;color:var(--mid)}
+.dz-sec .cl-title.dz-t2{margin-top:20px}
+.dz-body.inert,.dz-body>.inert{pointer-events:none;opacity:.55}
+.dz-body .cl-factgrid{padding-right:0}
+
+/* THE PRIZE — one sentence, ink, the same facts the prize clause prints.
+   Not a widget, not chips, not a bubble. TBC carries the only red. */
+.dz-prize{font-size:17px;line-height:1.55}
+.dz-prize b{font-weight:600}
+.tbc{color:var(--red);font-weight:500}
+
+/* THE DATES — a plain list. Filled rows sit in ink and shut up. Open, they
+   become the platform's own picker; no library, no widget. */
+.dz-dates{display:flex;flex-direction:column}
+.dz-drow{display:flex;justify-content:space-between;align-items:center;gap:16px;
+  padding:8px 0;border-top:.5px solid var(--border);font-size:15px}
+.dz-drow:first-child{border-top:none}
+.dz-dlabel{font-weight:500}
+.dz-dval{color:var(--ink)}
+.dz-dval.tbc{color:var(--red);font-weight:500}
+.dz-drow input[type=date]{font-family:var(--body);font-size:15px;color:var(--ink);
+  border:none;border-bottom:1.5px solid var(--red);background:none;outline:none;
+  border-radius:0;padding:1px 0;width:175px;max-width:none;text-align:right}
+
+/* the padlock — FIX IT's icons, restyled for a white card: white disc, red
+   icon, ink once it's shut. No dotted stub; it floats clean in the gutter,
+   centred on its section. The halo goes red-tinted, since FIX IT's white
+   ring vanishes against paper. */
+.dz-pad{position:absolute;right:0;top:50%;transform:translateY(-50%);
+  width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;padding:0;
+  background:#fff;color:var(--red);box-shadow:0 3px 12px rgba(0,0,0,.16);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .15s,box-shadow .25s,background .2s,color .2s}
+.dz-pad svg{width:19px;height:19px;overflow:visible}
+.dz-pad:hover{transform:translateY(-50%) scale(1.12)}
+.dz-pad.locked{color:var(--ink)}
+.dz-pad.edit{box-shadow:0 3px 12px rgba(0,0,0,.16),0 0 0 5px rgba(237,28,36,.12);
+  transform:translateY(-50%) scale(1.06)}
+
+/* the refusal — canon doesn't ship with a hole in it, so the hole says so */
+@keyframes dz-flash{0%,100%{opacity:1}25%,75%{opacity:.2}}
+.dz-sec.flash .tbc,.dz-sec.flash .cl-ask{animation:dz-flash .85s ease 2}
+
+/* standard terms: one quiet block naming the clauses, served by the clause
+   library. Nothing tickable, nothing red. "Read them" opens the words. */
+.dz-std{font-size:13.5px;color:var(--mid);line-height:1.6}
+.dz-peek{display:inline-block;font-size:12.5px;color:var(--red);font-weight:500;
+  cursor:pointer;border-bottom:1px dotted var(--red)}
+.dz-stdfull{display:none;margin-top:10px;background:var(--paper);border-radius:12px;
+  padding:14px 16px;font-size:12.5px;color:var(--ink);line-height:1.6}
+.dz-stdfull.on{display:block}
+.dz-stdfull b{display:block;font-weight:600;font-size:11px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--mid);margin:10px 0 2px}
+.dz-stdfull b:first-child{margin-top:0}
+.cl-pills.inert{pointer-events:none;opacity:.55}
+
+/* THE DOOR — outside the cards, under the whole concertina, on the red.
+   FIX IT's wrap furniture. Ghost-white and dead until every padlock is
+   shut; then solid white, red type, alive. */
+.fd-acc>.dz-door{font-family:var(--display);font-size:23px;letter-spacing:1.5px;
+  line-height:1;padding:15px 22px 12px;height:auto;border-radius:var(--pill);border:none;
+  display:block;width:100%;margin:20px 0 0;cursor:default;
+  background:rgba(255,255,255,.28);color:rgba(255,255,255,.55);
+  transition:background .2s,color .2s,box-shadow .2s}
+.fd-acc>.dz-door.live{background:#fff;color:var(--red);cursor:pointer;
+  box-shadow:0 8px 24px rgba(0,0,0,.18)}
+@media(max-width:880px){.dz-sec{padding-right:60px}.dz-pad{width:38px;height:38px}}
 
 /* ---------------- the pics page (FEED IT page three) ----------------
    The robot's writing; the human fills the window with pictures.
@@ -1040,8 +1117,6 @@ a.sr-src:hover{color:var(--red)}
    row (the what, the when). A missing fact sits awake — dashed red, the
    ask inside. Click any pill to update; the circle moved to the card,
    bottom-right, one confirm per group. */
-.cl-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
-@media(max-width:700px){.cl-pair{grid-template-columns:1fr}}
 .cl-card.facts{position:relative;padding-bottom:20px;padding-right:16px}
 .cl-factgrid{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding-right:44px}
 .cl-row.pillrow{border:1px solid var(--border);border-radius:999px;padding:8px 16px;cursor:pointer;
@@ -1055,13 +1130,6 @@ a.sr-src:hover{color:var(--red)}
 .cl-row.pillrow.awake .cl-pilllabel{color:var(--red)}
 .cl-row.pillrow.editing{border-radius:16px;border:1.5px solid var(--red);cursor:default}
 .cl-row.pillrow.editing .cl-value{text-align:left}
-.cl-row.pillrow .cl-prov{margin-top:3px}
-.cl-cardok{position:absolute;bottom:12px;right:12px;width:36px;height:36px;border-radius:50%;
-  border:1.5px solid #cfcfcf;background:#fff;color:#cfcfcf;cursor:pointer;display:grid;place-items:center;
-  transition:all .15s}
-.cl-cardok svg{width:17px;height:17px}
-.cl-cardok.on{background:var(--red);border-color:var(--red);color:#fff}
-.cl-cardok:active{transform:scale(.92)}
 .cl-card.story{position:relative;padding-bottom:20px}
 .cl-card.story .cl-pills{padding-right:44px}
 .cl-storyname{font-family:'Oswald',var(--display),sans-serif;font-weight:500;font-size:15px;
@@ -1151,17 +1219,35 @@ mark.fx-hl{background:var(--paper);color:var(--red);padding:0 2px;border-radius:
   animation:beat-bob 2.6s ease-in-out infinite;transform-origin:50% 90%}
 @keyframes beat-bob{0%,100%{transform:translateY(0) rotate(-1.5deg)}
   50%{transform:translateY(-6px) rotate(1.5deg)}}
+/* The line, at an aside's size rather than a billboard's — it's a remark
+   the robot makes while it works, and at 56px a long one wrapped and the
+   joke landed in two goes.
+
+   The lines turn rather than fade: one face rotates away as the next turns
+   in behind it, hinged on a horizontal axis. Both faces are absolute so
+   they share the same box; min-height holds the line open. */
 .beat-say{position:relative;color:#fff;text-align:center;width:100%;
-  font-size:clamp(36px,6vw,56px);min-height:1.1em}
-.beat-say span{display:block}
-.beat-say .in{animation:beat-land .55s cubic-bezier(.2,1.1,.3,1) both}
-.beat-say .out{position:absolute;left:0;right:0;top:0;
-  animation:beat-drop .32s ease-in both}
-@keyframes beat-land{from{opacity:0;transform:translateY(-.35em)}
-  60%{transform:translateY(.05em)}to{opacity:1;transform:translateY(0)}}
-@keyframes beat-drop{to{opacity:0;transform:translateY(.35em)}}
+  font-size:clamp(22px,3.4vw,32px);min-height:1.2em;perspective:800px}
+.beat-say span{display:block;position:absolute;left:0;right:0;top:0;
+  backface-visibility:hidden;transform-origin:50% 50% -.55em}
+.beat-say .in{animation:beat-turn-in .52s cubic-bezier(.25,.9,.25,1) both}
+.beat-say .out{animation:beat-turn-out .42s cubic-bezier(.5,0,.75,.4) both}
+@keyframes beat-turn-in{from{transform:rotateX(-92deg);opacity:0}
+  70%{opacity:1}to{transform:rotateX(0);opacity:1}}
+@keyframes beat-turn-out{from{transform:rotateX(0);opacity:1}
+  to{transform:rotateX(92deg);opacity:0}}
+
+/* The beads — one per line. Not a meter: each one is an event landing, and
+   the last is the robot finishing, which only the draft can light. */
+.beat-beads{display:flex;gap:7px;margin-top:30px}
+.beat-beads b{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.28);
+  transition:background .5s ease,transform .5s ease}
+.beat-beads b.on{background:#fff;transform:scale(1.25)}
+
 @media(prefers-reduced-motion:reduce){
   .beat-bot{animation:none}
   .beat-say .in,.beat-say .out{animation:none}
+  .beat-say .out{opacity:0}
+  .beat-beads b{transition:none}
 }
 

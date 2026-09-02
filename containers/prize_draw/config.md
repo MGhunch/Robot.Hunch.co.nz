@@ -43,10 +43,11 @@ Locked. Off to check the facts —
 
 ## NEEDS
 ### THE PRIZE
-| id | label | type | locked | ask | not-sure line | diggable | when | after |
-|---|---|---|---|---|---|---|---|---|
+| id | label | type | locked | ask | not-sure line | diggable | when | after | derive |
+|---|---|---|---|---|---|---|---|---|---|
 | prize_type | Prize | dropdown: movie / gig / sport / other | yes | Is it movie passes, gig tickets, sports tickets, or something else? | | no | |
 | prize_name | Show | text | yes | What's the show? | | no | label and ask vary by type — see below |
+| tickets | Tickets | text | yes | What are they — double passes, free passes, Gold Circle tickets? | | no | | | the prize type's ticket words |
 | venue | Venue | text | yes | Where is it? | I can hunt for the venue myself. | yes | prize_type in gig, sport |
 | event_date | Event date | date | yes | When is it? | | yes | prize_type in gig, sport | closes |
 | winners | Prizes | number | yes | How many? | | no | |
@@ -100,6 +101,7 @@ fixed_title: Standard terms
 | fulfil_onenz | no | on | One NZ sends the prize out | The prize will be organised by representatives of One New Zealand and will be emailed to the {winner_word} using the email provided as part of your My One NZ registration as soon as it becomes available. |
 | acceptance | yes | | Acceptance | Entry into the Competition is deemed to be acceptance of these terms and conditions. |
 | rewards_tcs | yes | | Rewards T&Cs | One New Zealand Rewards Terms and Conditions also apply, see https://one.nz/legal/terms-conditions/rewards-general/ |
+| privacy | yes | | Privacy & unsubscribe | @brand |
 
 The three off-by-default extras (expenses, liability, substitution) are the ones the reference examples disagree about — present in the DOC hut pass terms, absent from Practical Magic. Every tick is Suze answering a question we'd otherwise ask in a meeting.
 
@@ -108,6 +110,9 @@ The prize line hangs off `winners` as a sub-bullet. Extras slot in after a named
 
 **movie** — Movie passes
 - prize_line: One (1) double pass to see {prize_name} at any participating cinema showing this film.
+- counts: double passes
+- counts_one: double pass
+- sentence: {winners} {tickets} to *{prize_name}*, at any participating cinema.
 - needs: nothing extra
 
 | id | after | default | label | text |
@@ -117,6 +122,9 @@ The prize line hangs off `winners` as a sub-bullet. Extras slot in after a named
 
 **gig** — Gig or concert
 - prize_line: One (1) double pass to {prize_name} at {venue} on {event_date_long}.
+- counts: double passes
+- counts_one: double pass
+- sentence: {winners} {tickets} to *{prize_name}*, at {venue}.
 - needs: venue, event_date
 
 | id | after | default | label | text |
@@ -127,6 +135,9 @@ The prize line hangs off `winners` as a sub-bullet. Extras slot in after a named
 
 **sport** — Sport fixture
 - prize_line: One (1) double pass to {prize_name} at {venue} on {event_date_long}.
+- counts: double passes
+- counts_one: double pass
+- sentence: {winners} {tickets} to *{prize_name}*, at {venue}.
 - needs: venue, event_date
 
 | id | after | default | label | text |
