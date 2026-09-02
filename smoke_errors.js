@@ -53,7 +53,7 @@ const BASE = process.env.BASE || 'http://localhost:5000';
   await p.goto(BASE + '/', { waitUntil: 'networkidle' }); await p.waitForTimeout(800);
   if (!(await p.$('#rooms .room'))) { await p.fill('#siWord', 'hunch'); await p.click('#siGo'); await p.waitForTimeout(1200); }
   await p.route('**/api/container/*', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"boom"}' }));
-  await p.click('#rooms .room'); await p.waitForTimeout(500);
+  await p.click('#rooms .room'); await p.mouse.move(0, 0); await p.evaluate(() => document.activeElement && document.activeElement.blur()); await p.waitForTimeout(600);   // mouse off, focus off: no hover lift or focus ring in the shot
   await shot('05-doorway-tile-fail', '#door');
   await p.unroute('**/api/container/*');
 
@@ -133,6 +133,7 @@ const BASE = process.env.BASE || 'http://localhost:5000';
   // ---- 11. THINKING face still animates (a frame) ----
   await p.evaluate(() => { go(1); $('fxChat').innerHTML = ''; fxThink(); });
   await p.waitForTimeout(600);
+  await p.evaluate(() => document.getAnimations().forEach(a => { a.pause(); a.currentTime = 400; }));   // freeze the face on one frame
   await shot('20-fix-think-face', '.fx-rail');
 
   console.log(errors.length ? errors.join('\n') : 'no page errors');

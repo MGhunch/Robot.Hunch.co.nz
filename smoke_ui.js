@@ -32,8 +32,11 @@ const BASE='http://127.0.0.1:5055';
   console.log('legals menu:', E('MENU').length, 'optional:', d.querySelectorAll('#clCards .cl-pill').length, '| ready:', w.detailReady(), '| door live:', d.getElementById('clDoor').classList.contains('live'));
   // fake a WRITER result and mount FIX IT
   w.eval('COPY=null; REACHED=1;');
-  w.fxInit({copy:{subject:['Double, double, toil and a double pass','B option','C option'],headline:'Win one of {winners_word} double passes to {prize_name}',body:'The Owens sisters are back. Enter before {closes_day}.',why:{subject:'Playful front page',headline:'Plain about what you win',body:'Story then the ask'},wants:null},facts:E('FACTS'),context:{winners_word:'five',prize_name:'Practical Magic 2',closes_day:'Sunday'},flags:[]});
+  // v035: the handover is a signed brief plus the WRITER's result and the engine's menu
+  w.briefSign(); console.log('brief:', Object.keys(E('BRIEF')).join(','), '| signed:', E('BRIEF').signed, '| v:', E('BRIEF').v, '| facts:', Object.keys(E('BRIEF').details.facts).length, 'chosen:', E('BRIEF').details.chosen.length, '| sorted keys:', Object.keys(E('BRIEF').sorted).join(','));
+  w.fxInit({copy:{subject:['Double, double, toil and a double pass','B option','C option'],headline:'Win one of {winners_word} double passes to {prize_name}',body:'The Owens sisters are back. Enter before {closes_day}.',why:{subject:'Playful front page',headline:'Plain about what you win',body:'Story then the ask'},wants:null},facts:E('FACTS'),context:{winners_word:'five',prize_name:'Practical Magic 2',closes_day:'Sunday'},flags:[]}, {menu:E('MENU')});
   await sleep(600);
+  console.log('asset:', Object.keys(E('ASSET')).join(','), '| brief_v matches:', E('ASSET').brief_v===E('BRIEF').v, '| menu:', E('ASSET').menu.length, '| tweaks:', E('ASSET').tweaks.length);
   const fr=d.querySelector('#fxArt iframe');
   console.log('FXORDER:', E('FXORDER').join(','), '| pads:', d.querySelectorAll('#fxGutter .fx-pad').length, '| topic:', d.getElementById('fxTopic').textContent, '| wrap:', d.getElementById('fxWrapLbl').textContent);
   const D=E('FXDOC'); console.log('poured headline:', D&&D.querySelector('[data-module="headline"]').textContent, '| terms starts:', D&&D.querySelector('[data-module="terms"]').textContent.slice(0,40), '| chat:', d.querySelectorAll('#fxChat .chat-row').length, 'drawer:', d.querySelectorAll('#fxChat .chat-opt').length);
@@ -46,6 +49,11 @@ const BASE='http://127.0.0.1:5055';
   // a typed keep never leaves the browser
   d.getElementById('fxNote').value='yep'; await w.fxSend(); await sleep(600);
   console.log('after typed keep — focus:', E('FXFOCUS'), '| wrap:', d.getElementById('fxWrapLbl').textContent);
+  console.log('asset tweaks after drawer pick:', E('ASSET').tweaks.length, '| pick:', E('ASSET').pick, '| final copy subject:', w.fxFinalCopy().subject);
+  // change a fact: the brief moves on, the asset is stale, FIX IT goes — same as it always did
+  E('CLS').winners.value='6'; w.dirty(); await sleep(50);
+  console.log('after a fact change — asset:', E('ASSET'), '| reached:', E('REACHED'), '| brief v moved:', w.briefBuild().v!==E('BRIEF').v);
+  w.eval('REACHED=1;'); w.briefSign(); w.fxInit({copy:{subject:['A','B','C'],headline:'H',body:'B',why:{},wants:null},facts:E('FACTS'),context:{},flags:[]}, {menu:E('MENU')}); await sleep(300);
   // back to a locked one: thread remembered
   w.fxPadTap('subject'); await sleep(100);
   console.log('reopened subject — rows:', d.querySelectorAll('#fxChat .chat-row').length, '| topic:', d.getElementById('fxTopic').textContent, '| headline now:', E('FXLOCK').headline);
@@ -60,7 +68,7 @@ const BASE='http://127.0.0.1:5055';
   const cards=d.querySelectorAll('#clCards .cl-card.story');
   console.log('OU pills on prize:', cards[0].querySelectorAll('.cl-pill').length, 'ticked:', cards[0].querySelectorAll('.cl-pill.on').length, '| news chips on:', cards[1].querySelectorAll('.cl-pill.on').length, '| ready:', w.detailReady(), '| story1:', JSON.stringify(w.formData().story[0]));
   await w.refreshLegals(); await sleep(200); console.log('OU menu:', E('MENU').length, '| facts story:', E('FACTS')&&E('FACTS').story&&E('FACTS').story[0].story_legals);
-  w.fxInit({copy:{subject:['Toilets, and a draw','Headphones, and toilets'],preheader:'Win things',headline:'Be in to win.',"intro-copy":'Three things.',"signoff-copy":'Ngā mihi',cards:[{'card-title':'Win Phone Dollars','card-body':'One pair.','card-cta':'Enter now'},{'card-title':'Satellite','card-body':'Bear with us.','card-cta':'Find out more'},{'card-title':'2G','card-body':'Round two.','card-cta':'Learn more'}],why:{subject:'front page',card:'says what it is'},wants:null},facts:E('FACTS'),context:{},flags:[]});
+  w.briefSign(); w.fxInit({copy:{subject:['Toilets, and a draw','Headphones, and toilets'],preheader:'Win things',headline:'Be in to win.',"intro-copy":'Three things.',"signoff-copy":'Ngā mihi',cards:[{'card-title':'Win Phone Dollars','card-body':'One pair.','card-cta':'Enter now'},{'card-title':'Satellite','card-body':'Bear with us.','card-cta':'Find out more'},{'card-title':'2G','card-body':'Round two.','card-cta':'Learn more'}],why:{subject:'front page',card:'says what it is'},wants:null},facts:E('FACTS'),context:{},flags:[]}, {menu:E('MENU')});
   await sleep(700);
   const D2=E('FXDOC'); console.log('OU FXORDER:', E('FXORDER').length, 'terms in order:', E('FXORDER').includes('terms'), '| cards in doc:', D2.querySelectorAll('[data-module="card"]').length, '| legals module untouched:', D2.querySelector('[data-module="legals"]').textContent.includes('competition'), '| pads:', d.querySelectorAll('#fxGutter .fx-pad').length);
   console.log('errors:', errors);

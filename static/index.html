@@ -1057,6 +1057,7 @@ async function enterRoom(cid, tile){
   cardReset('plate'); cardReset('grid'); TERMS_FAILED=false;
   $('door').style.display='none'; $('room').classList.add('on');
   FACTS=null; COPY=null; PICK=0; MENU=[]; CHOSEN=null; TWEAKS=0; CTX={}; REACHED=0; unlock(); go(0);
+  BRIEF=null; ASSET=null;
   EXTRACTED=false; EXTRACTING=null; CRAFT=null; CRAFT_KEY=''; FXDOC=null;
   clInit(); clRender(); quizInit();
   fxTabs();
@@ -1069,6 +1070,37 @@ function fxTabs(){
 
 /* ---------------- story -> detail ---------------- */
 const storyData = () => ({point:val('storyPoint'), insight:val('storyInsight'), angle:val('storyAngle'), source:val('blurb')});
+
+/* ================= THE BRIEF =================
+   What FEED IT hands over, in FEED IT's own words:
+     SOURCE  — the dump, one string. Robot gets everything.
+     SORTED  — what the bounce landed: point, insight, angle, the steer.
+               Robot learns priorities. (The transcript stays here — noise.)
+     DETAILS — the defaults and what the human decided: the facts and the
+               specific terms ticked. Robot gets locked detail. (The derived
+               terms don't travel — they're engine output, derived on demand.)
+   `v` is a hash of the content, so it's a version that can't be wrong: any
+   change in FEED IT changes it. WRITE THE WORDS is the signature — press
+   it and the brief is agreed and off it goes. Before that it's a draft,
+   and the background craft writes from a draft tagged with its `v`.
+   FIX IT and FILE IT read BRIEF and nothing else of FEED IT's. */
+let BRIEF=null;
+const briefHash = s => { let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0; return (h>>>0).toString(36); };
+function briefBuild(){
+  const st=storyData();
+  const b={ container:CID, v:'', signed:false,
+    source:  st.source,
+    sorted:  { point:st.point, insight:st.insight, angle:st.angle, steer:QBRIEF||null },
+    details: { facts:formData(), chosen:(CHOSEN||[]).slice() } };
+  b.v=briefHash(JSON.stringify([b.container, b.source, b.sorted, b.details]));
+  return b;
+}
+function briefSign(){ BRIEF=briefBuild(); BRIEF.signed=true; return BRIEF; }
+/* The wire hasn't moved: /api/copy, /api/tweak and /api/wrap still take
+   form, story and source. This fills them from a brief. */
+const briefWire = b => ({ container:b.container, form:b.details.facts,
+  story:{point:b.sorted.point, insight:b.sorted.insight, angle:b.sorted.angle, source:b.source},
+  source:b.source });
 
 function subView(v){
   /* 'story' and 'detail' are both the concertina now — detail just
@@ -1704,22 +1736,24 @@ function armDetail(){
   ARM = setTimeout(()=>{ refreshLegals(); armCraft(); }, 700);
 }
 
-function craftKey(){ return JSON.stringify([CID, formData(), storyData()]); }
-
+/* The background craft writes from a draft brief, tagged with its `v`.
+   At WRITE THE WORDS, a craft whose `v` matches the signed brief is used;
+   any other is thrown away and the craft runs live. */
 function armCraft(){
   if(!factsComplete()) return;
-  const key = craftKey();
-  if(key===CRAFT_KEY) return;             // already writing (or written) this one
-  CRAFT_KEY = key;
-  CRAFT = api('/api/copy',{container:CID, form:formData(), story:storyData(), source:val('blurb')})
-    .catch(e=>({__err:e.message}));
+  const b = briefBuild();
+  if(b.v===CRAFT_KEY) return;             // already writing (or written) this one
+  CRAFT_KEY = b.v;
+  CRAFT = api('/api/copy', briefWire(b)).catch(e=>({__err:e.message}));
 }
 
-/* Changing a fact invalidates everything downstream. The copy was written
-   against the old facts, so keeping it would be exactly the drift the whole
-   tool exists to prevent. */
+/* The brief moved on. An asset written from an older brief is stale, and
+   stale copy is exactly the drift the whole tool exists to prevent — so it
+   goes, and FIX IT with it. What the client sees is what they always saw;
+   the reason is a version now, not a reflex. */
 function dirty(){
-  if(REACHED>0){ COPY=null; REACHED=0; unlock(); }
+  if(ASSET && ASSET.brief_v!==briefBuild().v){ ASSET=null; COPY=null; }
+  if(REACHED>0 && !ASSET){ REACHED=0; unlock(); }
   CRAFT=null; CRAFT_KEY='';
   armDetail();
 }
@@ -1742,17 +1776,17 @@ async function buildIt(){
      short one and opens it — the line explains, the navigation solves. */
   const short=fdShort();
   if(short){ acc(short[0]); fdSay(short[0], short[1]); return; }
-  if(COPY){ reach(1); return; }             // already written; no beat to play
-  const key = craftKey();
+  const b = briefSign();                    // WRITE THE WORDS is the signature
+  if(ASSET && ASSET.brief_v===b.v){ reach(1); return; }   // already written from this brief; no beat to play
   const beat = thinkStart();
   let d = null;
-  if(CRAFT && key===CRAFT_KEY){
+  if(CRAFT && b.v===CRAFT_KEY){
     d = await CRAFT;
     if(d && d.__err) d = null;              // the background try failed; go live
   }
   if(!d){
     try{
-      d = await api('/api/copy',{container:CID, form:formData(), story:storyData(), source:val('blurb')});
+      d = await api('/api/copy', briefWire(b));
     }catch(e){
       /* the plate card, in the artefact's slot. TRY AGAIN runs buildIt
          again; the counter only resets when WRITE THE WORDS is pressed. */
@@ -1765,7 +1799,9 @@ async function buildIt(){
   }
   await thinkEnd(beat);
   reach(1);
-  fxInit(d);
+  /* the handover: the signed brief is in BRIEF; the WRITER's result and the
+     engine's terms menu go across as the seed of the asset */
+  fxInit(d, {menu:MENU, termsFailed:TERMS_FAILED});
 }
 
 /* The blocks the tour walks: every writer module, in the html's order;
@@ -1773,6 +1809,15 @@ async function buildIt(){
    "card-title#2"; the terms block last where the html has one. The
    copy store is what the WRITER returned — top modules by name (an
    options module is a list, PICK chooses), repeats under "<module>s". */
+/* ================= THE ASSET =================
+   What FIX IT hands over: the WRITER's copy as tweaked, the filled slots,
+   the FIXER's cautions, the engine's terms menu, the padlocks, the tweak
+   log and the pick — all tagged with the `v` of the brief it was written
+   from, so staleness is a comparison, not a guess. The artefact document
+   and the threads are FIX IT's working state, not the asset. FIX IT's
+   older names (COPY, CTX, FXLOCK, FXLIST, FXFLAGS, PICK) are views onto
+   it until the rename lands; FILE IT reads ASSET and BRIEF, nothing else. */
+let ASSET=null;
 let FXORDER=[], FXLBL={}, FXLOCK={}, FXHL=null, FXDIFF={}, FXLIST=[], FXFLAGS=[], WHY={};
 let FXFOCUS=null, FXTHREAD={};                     // the pencil, and one thread per section
 let FXDOC=null;                                   // the artefact's document (iframe)
@@ -1794,7 +1839,7 @@ function fxOrderBuild(){
       const items=COPY[group.module+'s']||[];
       items.forEach((_,i)=>group.parts.forEach(p=>{ if(tags.includes(p.module)) FXORDER.push(p.module+'#'+(i+1)); }));
     }
-    else if(t==='terms' && MENU.length && !FXORDER.includes('terms')) FXORDER.push('terms');
+    else if(t==='terms' && ASSET.menu.length && !FXORDER.includes('terms')) FXORDER.push('terms');
   });
   FXLBL={}; FXORDER.forEach(k=>FXLBL[k]=fxLabel(k));
 }
@@ -1812,22 +1857,26 @@ function fxSet(k,text){
 }
 const fxShow = k => FXDIFF[k] ? fxDiffWords(FXDIFF[k].old, FXDIFF[k].new) : fillPh(fxText(k));
 function fxTermsText(){
-  if(!MENU || !MENU.length) return 'Terms assemble from the brief once the facts are in.';
-  return MENU.filter(c=>c.fixed || (CHOSEN||[]).includes(c.id)).map(c=>c.text).join(' ');
+  const menu=ASSET?ASSET.menu:[], chosen=BRIEF?BRIEF.details.chosen:[];
+  if(!menu.length) return 'Terms assemble from the brief once the facts are in.';
+  return menu.filter(c=>c.fixed || chosen.includes(c.id)).map(c=>c.text).join(' ');
 }
 const fxLockable = k => k!=='terms';
 function fxBeat(){ return FXORDER.find(k=>fxLockable(k) && !FXLOCK[k] && k!==FXFOCUS) || null; }
 
-function fxInit(d){
-  COPY=d.copy; FACTS=d.facts; CTX=d.context||{}; PICK=0; TWEAKS=0;
+function fxInit(d, h){
+  h=h||{};
+  ASSET={ brief_v:BRIEF?BRIEF.v:'', copy:d.copy, facts:d.facts||{}, context:d.context||{},
+          flags:d.flags||[], menu:h.menu||[], locks:{}, tweaks:[], pick:0 };
+  COPY=ASSET.copy; FACTS=ASSET.facts; CTX=ASSET.context; PICK=0; TWEAKS=0;
   WHY=(COPY.why&&typeof COPY.why==='object')?COPY.why:{};
   fxOrderBuild();
-  FXLOCK={}; FXORDER.forEach(k=>FXLOCK[k]=(k==='terms'));   // terms travel locked
-  FXHL=null; FXDIFF={}; FXLIST=[]; FXFLAGS=d.flags||[];
+  FXLOCK=ASSET.locks; FXORDER.forEach(k=>FXLOCK[k]=(k==='terms'));   // terms travel locked
+  FXHL=null; FXDIFF={}; FXLIST=ASSET.tweaks; FXFLAGS=ASSET.flags;
   FXFOCUS=null; FXTHREAD={};
   LOCKED=FXLOCK;
   $('fxChat').innerHTML=''; fxTopicSet(null); fxQuoteSet(null);
-  fxMount(()=>{ drawFix(); if(TERMS_FAILED) fxErr(STR.fix.terms_fail); });
+  fxMount(()=>{ drawFix(); if(h.termsFailed) fxErr(STR.fix.terms_fail); });
 }
 
 const fxDiffWords=(o,n)=>{
@@ -1886,7 +1935,7 @@ function fxPrepDoc(){
     while(els.length<items.length && els.length){ const c=wrap(els[els.length-1]).cloneNode(true); wrap(els[els.length-1]).after(c); els.push(c.matches(`[data-module="${group.module}"]`)?c:c.querySelector(`[data-module="${group.module}"]`)); }
     while(els.length>items.length && els.length>1){ wrap(els.pop()).remove(); }
     els.forEach((el,i)=>{ el.dataset.card=String(i+1);
-      const it=(FACTS[group.module]||[])[i]||{}; const tr=Object.keys(it).find(k=>k.endsWith('_type'));
+      const it=(ASSET.facts[group.module]||[])[i]||{}; const tr=Object.keys(it).find(k=>k.endsWith('_type'));
       if(tr) el.dataset.type=it[tr];
       group.parts.forEach(p=>{ const t=el.querySelector(`[data-module="${p.module}"]`); if(t){ t.classList.add('fx-sec'); t.dataset.k=p.module+'#'+(i+1); } });
     });
@@ -2058,7 +2107,7 @@ function fxDrawer(k){
 }
 function fxPickOption(k,i){
   const old=fxText(k);
-  PICK=i;
+  PICK=i; ASSET.pick=i;
   FXDIFF[k]={old, new:fxText(k)};
   FXLIST.push({label:FXLBL[k], note:'From the drawer'}); TWEAKS++;
   fxClearOpts();
@@ -2117,8 +2166,8 @@ async function fxSend(){
   const th=fxThink();
   HIST[k]=HIST[k]||[];
   try{
-    const d=await api('/api/tweak',{container:CID, run:RUN, form:formData(), block:k, current:cur, note,
-      highlight:hl, insight:val('storyInsight'), history:HIST[k]});
+    const d=await api('/api/tweak',{container:CID, run:RUN, form:BRIEF.details.facts, block:k, current:cur, note,
+      highlight:hl, insight:BRIEF.sorted.insight, history:HIST[k]});
     await th.done();
     HIST[k].push(`Human: ${note}`,`Robot: ${d.say||d.action||''}`);
     if(d.action==='lock'){
@@ -2148,11 +2197,12 @@ function fxSnap(full,part){
 }
 
 /* ---------------- 3 REVIEW ---------------- */
+/* the asset's copy as it ships: one option where there were three */
 function fxFinalCopy(){
-  const out={};
-  CONT.modules.writer.forEach(w=>{ const v=COPY[w.module];
-    out[w.module] = Array.isArray(v) ? (w.options===3 ? v[PICK] : v) : v; });
-  const g=CONT.modules.groups[0]; if(g) out[g.module+'s']=COPY[g.module+'s']||[];
+  const out={}, copy=ASSET.copy, pick=ASSET.pick;
+  CONT.modules.writer.forEach(w=>{ const v=copy[w.module];
+    out[w.module] = Array.isArray(v) ? (w.options===3 ? v[pick] : v) : v; });
+  const g=CONT.modules.groups[0]; if(g) out[g.module+'s']=copy[g.module+'s']||[];
   return out;
 }
 /* ---------------- 3 FILE IT ----------------
@@ -2187,7 +2237,8 @@ async function fiWrap(){
   const take=[...document.querySelectorAll('#fiTiles .tile.on')].map(t=>t.dataset.id);
   w.classList.remove('live'); w.textContent='WRAPPING…';
   try{
-    const d=await api('/api/wrap',{container:CID, run:RUN, form:formData(), chosen:CHOSEN, copy:fxFinalCopy(), take, tweaks:TWEAKS});
+    const d=await api('/api/wrap',{container:CID, run:RUN, form:BRIEF.details.facts, chosen:BRIEF.details.chosen,
+      copy:fxFinalCopy(), take, tweaks:ASSET.tweaks.length});
     const row=(f,all)=>`<div class="file${all?' all':''}"><div class="file-i">${esc(all?'ZIP':f.id.toUpperCase())}</div>
       <div><div class="file-n">${esc(f.name)}</div><div class="file-d">${esc(f.line)}</div></div>
       <a class="file-go" href="${esc(f.url)}" download>${all?'Take the lot':'Take it'}</a></div>`;
