@@ -1,5 +1,6 @@
 # CHANGES — v031
-*2 September 2026 — CHECK YOUR DEETS becomes LOCK THE DEETS*
+*2 September 2026 — CHECK YOUR DEETS becomes LOCK THE DEETS, and the
+THINKING beat grows a pulse*
 
 *The old stop made everything look like a task: dashed red pills
 everywhere, three unset dates reading as three emergencies, tick circles
@@ -20,7 +21,8 @@ weights.*
 - `static/index.html` — the stop-3 renderer rebuilt as sections with
   padlocks; the door moves outside the cards; cache tag to `v=031`.
 - `static/robot.css` — the section, padlock, dates-list and door styles;
-  the tick circle, the paired cards and the provenance line deleted.
+  the tick circle, the paired cards and the provenance line deleted; the
+  THINKING line resized and re-animated, and the beads added.
 - `app.py` — the stop renamed; `prize_line` no longer served as a
   standard-terms pill; the optional-clause heading is *Specific terms*.
 - `containers.py` — parses `sentence:` in a prize-type block.
@@ -110,6 +112,37 @@ what it opens: *Read terms*.
 this stop; the robot found everything, so it was noise. The standard-terms
 chip row is one grey block naming the clauses, with *Read them* opening the
 words as they'll print.
+
+## THINKING — the beat while the WRITER runs
+
+**The line was a billboard.** `clamp(36px,6vw,56px)` meant a long one wrapped
+and the joke landed in two goes. It's `clamp(22px,3.4vw,32px)` now — an
+aside's size, which is what it is. The eleven lines themselves are untouched.
+
+**It turns instead of fading.** One face rotates away as the next turns in
+behind it, hinged on a horizontal axis. Deliberate rather than random, which
+was the complaint. Both faces are absolute so they share a box; `min-height`
+holds the line open.
+
+**The beads.** One per line, so the row *is* the line list, and every bead is
+an event landing rather than a slice of a percentage — which is what the site
+plan asks status to be. One pass through the lines is about a standard
+writing time, so the row is paced by the real thing rather than by a guess
+dressed as a meter.
+
+**And the last bead is the robot finishing, which only the draft can light.**
+The timer never reaches it. Outlast the list and the lines loop while the
+beads hold at one short — saying *still going*, not *nearly there*. That's
+the answer to the objection against a bead row: a finite row usually promises
+an end it can't keep, and this one refuses to.
+
+Tuning is one number. If real waits run long or short, `THINK_HOLD` moves and
+the whole row moves with it.
+
+**One bug swept up on the way:** the outgoing line was removed on
+`animationend`, which never fires under `prefers-reduced-motion` — so the
+faces piled up unseen for the length of the wait. There's a timer behind the
+event now, and any straggler is swept before the next line lands.
 
 ## One for the next session
 
