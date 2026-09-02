@@ -8,14 +8,14 @@
    The guess ladder walks on the status the server sends — 403 is a wrong
    word, 429 is the brake — never on its words. Resets on a right one. */
 let DOOR_MISSES=0;
-function siNote(line){
-  const note=$('siNote'); note.className='si-note bad'; note.innerHTML='';
-  note.appendChild(errLine(line,{stick:true, cls:'onred'}));
+function doorNote(line){
+  const note=$('doorNote'); note.className='door-note bad'; note.innerHTML='';
+  note.appendChild(robotLine(line,{stick:true, cls:'onred'}));
 }
 async function sayWord(){
-  const note=$('siNote'), go=$('siGo'), w=$('siWord').value.trim();
-  if(!w){ siNote(STR.door.empty); return; }
-  go.disabled=true; note.className='si-note'; note.textContent=STR.door.checking;
+  const note=$('doorNote'), go=$('doorGo'), w=$('doorWord').value.trim();
+  if(!w){ doorNote(STR.door.empty); return; }
+  go.disabled=true; note.className='door-note'; note.textContent=STR.door.checking;
   try{
     const d = await api('/api/auth/word',{word:w});
     DOOR_MISSES=0;
@@ -28,8 +28,8 @@ async function sayWord(){
     else if(e.status===403){ line=STR.door.wrong[Math.min(DOOR_MISSES, STR.door.wrong.length-1)]; DOOR_MISSES++; }
     else if(e.status===400) line=STR.door.empty;
     else line=STR.fell;
-    siNote(line);
-    $('siWord').value=''; $('siWord').focus(); go.disabled=false;
+    doorNote(line);
+    $('doorWord').value=''; $('doorWord').focus(); go.disabled=false;
   }
 }
 /* The echo: the door said HELLO, the tool says it back with your name on it.
@@ -45,7 +45,7 @@ function fitEcho(){
 window.addEventListener('resize', fitEcho);
 
 function signedIn(d){
-  $('signin').style.display='none';
+  $('door-signin').style.display='none';
   $('bub').classList.add('gone');
   $('bub').closest('.greet').classList.add('settled');
   $('sando').classList.add('on');
@@ -65,30 +65,30 @@ function signedIn(d){
    name only shows when there's more than one to tell apart. Testing tiles
    arrive for Hunch logins only, badged in ink. One tile means the second
    slot says YOUR NEXT PROJECT, as the site plan promised. */
-let HUNCH=false, TILES=[];
+let HUNCH=false, DOOR_TILES=[];
 async function doorway(){
-  const box=$('rooms'); box.innerHTML='';
+  const box=$('doorTiles'); box.innerHTML='';
   let d;
   try{ d = await api('/api/containers'); }
-  catch(e){ errAt(box, STR.doorway.list, {cls:'onred', stick:true}); box.style.display='flex'; return; }
-  TILES=d.tiles||[];
-  const brands=[...new Set(TILES.map(t=>t.brand))];
+  catch(e){ robotLineAt(box, STR.doorway.list, {cls:'onred', stick:true}); box.style.display='flex'; return; }
+  DOOR_TILES=d.tiles||[];
+  const brands=[...new Set(DOOR_TILES.map(t=>t.brand))];
   brands.forEach(b=>{
     if(brands.length>1){
-      const h=document.createElement('div'); h.className='brand-h';
+      const h=document.createElement('div'); h.className='door-brand';
       h.textContent=((d.brands[b]||{}).name||b).toUpperCase(); box.appendChild(h);
     }
-    TILES.filter(t=>t.brand===b).forEach(t=>{
+    DOOR_TILES.filter(t=>t.brand===b).forEach(t=>{
       const el=document.createElement('button');
-      el.className='room'+(t.status==='testing'?' testing':'');
-      el.innerHTML=`<div><div class="room-t">${esc(t.name).toUpperCase()}${t.status==='testing'?'<span class="badge">Testing</span>':''}</div>
-        <div class="room-d">${esc(t.line||t.purpose.split('. ')[0])}</div></div><div class="room-go">&rarr;</div>`;
+      el.className='door-tile'+(t.status==='testing'?' testing':'');
+      el.innerHTML=`<div><div class="door-tile-t">${esc(t.name).toUpperCase()}${t.status==='testing'?'<span class="badge">Testing</span>':''}</div>
+        <div class="door-tile-d">${esc(t.line||t.purpose.split('. ')[0])}</div></div><div class="door-tile-go">&rarr;</div>`;
       el.onclick=()=>enterRoom(t.id, el);
       box.appendChild(el);
     });
   });
-  if(TILES.length<2){
-    box.insertAdjacentHTML('beforeend',`<div class="room soon"><div><div class="room-t">YOUR NEXT PROJECT</div><div class="room-d">Coming soon</div></div><div class="room-go">&rarr;</div></div>`);
+  if(DOOR_TILES.length<2){
+    box.insertAdjacentHTML('beforeend',`<div class="door-tile soon"><div><div class="door-tile-t">YOUR NEXT PROJECT</div><div class="door-tile-d">Coming soon</div></div><div class="door-tile-go">&rarr;</div></div>`);
   }
   box.style.display='flex';
 }

@@ -2,7 +2,7 @@
    ROBOT — FIX IT
    The copy room: the plate, the padlocks in the gutter, the rail and its
    threads, the drawer, the FIXER. Takes the signed brief and the WRITER's
-   result at fxInit(); builds and keeps the asset. Reads BRIEF and ASSET
+   result at fixInit(); builds and keeps the asset. Reads BRIEF and ASSET
    and nothing else of FEED IT's — the grep gate in CHANGES-v035 says which
    names are off limits.
    ===================================================================== */
@@ -15,12 +15,12 @@ const fillPh = t => esc(t).replace(/\{(\w+)\}/g,(m,k)=>`<span class="ph">${esc(c
 const fillPlain = t => String(t??'').replace(/\{(\w+)\}/g,(m,k)=>String(ctx(k)));
 const hasPh = t => /\{\w+\}/.test(String(t??''));
 
-const HIST = {};                               // per-section tweak history, for the FIXER's memory
+const FIX_HISTORY = {};                               // per-section tweak history, for the FIXER's memory
 
 /* the tabs over THE WORK: one per output in the spec */
-function fxTabs(){
-  const tabs=document.querySelector('.fx-tabs'); if(!tabs) return;
-  tabs.innerHTML=(CONT.outputs||[]).map((o,i)=>`<span class="fx-loz ${i?'off':''}">${esc(o.id)}</span>`).join('');
+function fixTabs(){
+  const tabs=document.querySelector('.fix-tabs'); if(!tabs) return;
+  tabs.innerHTML=(CONT.outputs||[]).map((o,i)=>`<span class="fix-loz ${i?'off':''}">${esc(o.id)}</span>`).join('');
 }
 
 /* ================= THE ASSET =================
@@ -31,74 +31,74 @@ function fxTabs(){
    and the threads are FIX IT's working state, not the asset. FILE IT
    reads ASSET and BRIEF, nothing else. */
 let ASSET=null;
-let FXORDER=[], FXLBL={}, FXHL=null, FXDIFF={}, WHY={};
-let FXFOCUS=null, FXTHREAD={};                     // the pencil, and one thread per section
-let FXDOC=null;                                   // the artefact's document (iframe)
-const fxMod = k => k.split('#')[0];
-const fxN   = k => +(k.split('#')[1]||0);
-function fxLabel(k){
-  const m=fxMod(k), n=fxN(k);
+let FIX_ORDER=[], FIX_LABELS={}, FIX_HL=null, FIX_DIFF={}, FIX_WHY={};
+let FIX_FOCUS=null, FIX_THREAD={};                     // the pencil, and one thread per section
+let FIX_DOC=null;                                   // the artefact's document (iframe)
+const fixMod = k => k.split('#')[0];
+const fixN   = k => +(k.split('#')[1]||0);
+function fixLabel(k){
+  const m=fixMod(k), n=fixN(k);
   const nice=m.replace(/-/g,' ').replace(/\bcta\b/,'button').replace(/\bcopy\b/,'');
   const s=nice.trim().replace(/^\w/,c=>c.toUpperCase());
   return n ? s.replace(/^(\w+)/, `$1 ${n}`) : s;
 }
-function fxOrderBuild(){
+function fixOrderBuild(){
   const mods=CONT.modules, tags=CONT.ghost, group=mods.groups[0];
   const isWriter=m=>mods.writer.some(w=>w.module===m);
-  FXORDER=[];
+  FIX_ORDER=[];
   tags.forEach(t=>{
-    if(isWriter(t)) FXORDER.push(t);
+    if(isWriter(t)) FIX_ORDER.push(t);
     else if(group && t===group.module){
       const items=ASSET.copy[group.module+'s']||[];
-      items.forEach((_,i)=>group.parts.forEach(p=>{ if(tags.includes(p.module)) FXORDER.push(p.module+'#'+(i+1)); }));
+      items.forEach((_,i)=>group.parts.forEach(p=>{ if(tags.includes(p.module)) FIX_ORDER.push(p.module+'#'+(i+1)); }));
     }
-    else if(t==='terms' && ASSET.menu.length && !FXORDER.includes('terms')) FXORDER.push('terms');
+    else if(t==='terms' && ASSET.menu.length && !FIX_ORDER.includes('terms')) FIX_ORDER.push('terms');
   });
-  FXLBL={}; FXORDER.forEach(k=>FXLBL[k]=fxLabel(k));
+  FIX_LABELS={}; FIX_ORDER.forEach(k=>FIX_LABELS[k]=fixLabel(k));
 }
-const fxOpts = m => { const w=CONT.modules.writer.find(x=>x.module===m); return w?w.options||0:0; };
-function fxText(k){
-  const m=fxMod(k), n=fxN(k);
-  if(k==='terms') return fxTermsText();
+const fixOpts = m => { const w=CONT.modules.writer.find(x=>x.module===m); return w?w.options||0:0; };
+function fixText(k){
+  const m=fixMod(k), n=fixN(k);
+  if(k==='terms') return fixTermsText();
   if(n){ const g=CONT.modules.groups[0]; const it=(ASSET.copy[g.module+'s']||[])[n-1]||{}; return it[m]||''; }
   const v=ASSET.copy[m]; return Array.isArray(v) ? (v[ASSET.pick]||'') : (v||'');
 }
-function fxSet(k,text){
-  const m=fxMod(k), n=fxN(k);
+function fixSet(k,text){
+  const m=fixMod(k), n=fixN(k);
   if(n){ const g=CONT.modules.groups[0]; ASSET.copy[g.module+'s'][n-1][m]=text; return; }
   if(Array.isArray(ASSET.copy[m])) ASSET.copy[m][ASSET.pick]=text; else ASSET.copy[m]=text;
 }
-const fxShow = k => FXDIFF[k] ? fxDiffWords(FXDIFF[k].old, FXDIFF[k].new) : fillPh(fxText(k));
-function fxTermsText(){
+const fixShow = k => FIX_DIFF[k] ? fixDiffWords(FIX_DIFF[k].old, FIX_DIFF[k].new) : fillPh(fixText(k));
+function fixTermsText(){
   const menu=ASSET?ASSET.menu:[], chosen=BRIEF?BRIEF.details.chosen:[];
   if(!menu.length) return 'Terms assemble from the brief once the facts are in.';
   return menu.filter(c=>c.fixed || chosen.includes(c.id)).map(c=>c.text).join(' ');
 }
-const fxLockable = k => k!=='terms';
-function fxBeat(){ return FXORDER.find(k=>fxLockable(k) && !ASSET.locks[k] && k!==FXFOCUS) || null; }
+const fixLockable = k => k!=='terms';
+function fixBeat(){ return FIX_ORDER.find(k=>fixLockable(k) && !ASSET.locks[k] && k!==FIX_FOCUS) || null; }
 
 /* the craft died before anything landed: the plate card in the artefact's
    slot, the rail and gutter cleared. The tab pill goes with the card. */
-function fxFail(retry){
-  $('fxGutter').innerHTML=''; $('fxChat').innerHTML=''; fxTopicSet(null);
-  $('fxArt').innerHTML='';
-  $('fxArt').appendChild(errCard('plate', retry, 'copy', {container:CID, run:RUN,
-    onGone:()=>{ const t=document.querySelector('.fx-tabs'); if(t) t.innerHTML=''; } }));
+function fixFail(retry){
+  $('fixGutter').innerHTML=''; $('fixChat').innerHTML=''; fixTopicSet(null);
+  $('fixArt').innerHTML='';
+  $('fixArt').appendChild(robotCard('plate', retry, 'copy', {container:CID, run:RUN,
+    onGone:()=>{ const t=document.querySelector('.fix-tabs'); if(t) t.innerHTML=''; } }));
 }
-function fxInit(d, h){
+function fixInit(d, h){
   h=h||{};
   ASSET={ brief_v:BRIEF?BRIEF.v:'', copy:d.copy, facts:d.facts||{}, context:d.context||{},
           flags:d.flags||[], menu:h.menu||[], locks:{}, tweaks:[], pick:0 };
-  WHY=(ASSET.copy.why&&typeof ASSET.copy.why==='object')?ASSET.copy.why:{};
-  fxOrderBuild();
-  FXORDER.forEach(k=>ASSET.locks[k]=(k==='terms'));   // terms travel locked
-  FXHL=null; FXDIFF={};
-  FXFOCUS=null; FXTHREAD={};
-  $('fxChat').innerHTML=''; fxTopicSet(null); fxQuoteSet(null);
-  fxMount(()=>{ drawFix(); if(h.termsFailed) fxErr(STR.fix.terms_fail); });
+  FIX_WHY=(ASSET.copy.why&&typeof ASSET.copy.why==='object')?ASSET.copy.why:{};
+  fixOrderBuild();
+  FIX_ORDER.forEach(k=>ASSET.locks[k]=(k==='terms'));   // terms travel locked
+  FIX_HL=null; FIX_DIFF={};
+  FIX_FOCUS=null; FIX_THREAD={};
+  $('fixChat').innerHTML=''; fixTopicSet(null); fixQuoteSet(null);
+  fixMount(()=>{ drawFix(); if(h.termsFailed) fixErr(STR.fix.terms_fail); });
 }
 
-const fxDiffWords=(o,n)=>{
+const fixDiffWords=(o,n)=>{
   const tok=x=>String(x??'').split(/(\s+)/); const a=tok(o),b=tok(n);
   const m=a.length,k=b.length;
   const dp=Array.from({length:m+1},()=>new Array(k+1).fill(0));
@@ -108,7 +108,7 @@ const fxDiffWords=(o,n)=>{
   while(j<k){
     if(i<m&&a[i]===b[j]){out+=fillPh(b[j]);i++;j++;}
     else if(i<m&&dp[i+1][j]>=dp[i][j+1]){i++;}
-    else{out+=b[j].trim()===''?esc(b[j]):'<mark class="fx-ch">'+fillPh(b[j])+'</mark>';j++;}
+    else{out+=b[j].trim()===''?esc(b[j]):'<mark class="fix-ch">'+fillPh(b[j])+'</mark>';j++;}
   }
   return out;
 };
@@ -117,35 +117,35 @@ const fxDiffWords=(o,n)=>{
    bleed into the engine and the engine's can't bleed into it. The engine
    adds one stylesheet inside for its marks (changes, highlights, the
    editing tint) and pours the copy into the data-module tags. */
-const FX_INNER_CSS=`.fx-sec{position:relative;transition:transform .18s ease,box-shadow .18s ease}
-.fx-sec.editing{transform:scale(1.025);z-index:2;box-shadow:0 14px 34px rgba(120,10,14,.35);border-radius:10px;background:inherit}
-body.fx-editing .email,body.fx-editing .precopy{overflow:visible!important}
+const FIX_INNER_CSS=`.fix-sec{position:relative;transition:transform .18s ease,box-shadow .18s ease}
+.fix-sec.editing{transform:scale(1.025);z-index:2;box-shadow:0 14px 34px rgba(120,10,14,.35);border-radius:10px;background:inherit}
+body.fix-editing .email,body.fix-editing .precopy{overflow:visible!important}
 .email,.precopy{box-shadow:0 14px 44px rgba(0,0,0,.2)}
-.fx-sec.flash{animation:fxlanded .7s ease-out}@keyframes fxlanded{0%{background:rgba(237,28,36,.18)}100%{background:transparent}}
-mark.fx-ch{background:#FFE96B;color:inherit;border-radius:2px;padding:0 1px}.ph{cursor:not-allowed}
+.fix-sec.flash{animation:fxlanded .7s ease-out}@keyframes fxlanded{0%{background:rgba(237,28,36,.18)}100%{background:transparent}}
+mark.fix-ch{background:#FFE96B;color:inherit;border-radius:2px;padding:0 1px}.ph{cursor:not-allowed}
 body{padding:0 22px 26px!important;background:transparent!important}`;
-function fxMount(then){
-  const host=$('fxArt'); host.innerHTML='<iframe class="fx-frame" title="The work" scrolling="no"></iframe>';
+function fixMount(then){
+  const host=$('fixArt'); host.innerHTML='<iframe class="fix-frame" title="The work" scrolling="no"></iframe>';
   const fr=host.querySelector('iframe');
-  fxWrite(fr, CONT.html.replace('</head>', `<style>${FX_INNER_CSS}</style></head>`));
-  FXDOC=fr.contentDocument; fxPrepDoc(); fxSizeFrame(); then&&then();
+  fixWrite(fr, CONT.html.replace('</head>', `<style>${FIX_INNER_CSS}</style></head>`));
+  FIX_DOC=fr.contentDocument; fixPrepDoc(); fixSizeFrame(); then&&then();
 }
 /* document.write into the frame: same-origin, synchronous, no srcdoc
    timing to wait on, and the brand's fonts resolve off the site root */
-function fxWrite(fr, html){
+function fixWrite(fr, html){
   const D=fr.contentDocument; D.open(); D.write(html); D.close();
 }
-function fxSizeFrame(){
-  const fr=$('fxArt').querySelector('iframe'); if(!fr||!FXDOC) return;
-  const art=FXDOC.querySelector('.email,.precopy,[data-artefact]');
+function fixSizeFrame(){
+  const fr=$('fixArt').querySelector('iframe'); if(!fr||!FIX_DOC) return;
+  const art=FIX_DOC.querySelector('.email,.precopy,[data-artefact]');
   const w=art ? art.getBoundingClientRect().width : 600;
   document.documentElement.style.setProperty('--fx-w', Math.round(w+44)+'px');
-  fr.style.height=Math.max(200, FXDOC.documentElement.scrollHeight)+'px';
+  fr.style.height=Math.max(200, FIX_DOC.documentElement.scrollHeight)+'px';
 }
 /* first pass on the doc: clone or cull repeated items to match the copy,
-   wrap each tour block as .fx-sec with its key, listen for highlights */
-function fxPrepDoc(){
-  const D=FXDOC, group=CONT.modules.groups[0];
+   wrap each tour block as .fix-sec with its key, listen for highlights */
+function fixPrepDoc(){
+  const D=FIX_DOC, group=CONT.modules.groups[0];
   D.querySelectorAll('.email,.precopy,body').forEach(el=>{ el.style.margin='0 auto'; });
   if(group){
     const items=ASSET.copy[group.module+'s']||[];
@@ -156,258 +156,258 @@ function fxPrepDoc(){
     els.forEach((el,i)=>{ el.dataset.card=String(i+1);
       const it=(ASSET.facts[group.module]||[])[i]||{}; const tr=Object.keys(it).find(k=>k.endsWith('_type'));
       if(tr) el.dataset.type=it[tr];
-      group.parts.forEach(p=>{ const t=el.querySelector(`[data-module="${p.module}"]`); if(t){ t.classList.add('fx-sec'); t.dataset.k=p.module+'#'+(i+1); } });
+      group.parts.forEach(p=>{ const t=el.querySelector(`[data-module="${p.module}"]`); if(t){ t.classList.add('fix-sec'); t.dataset.k=p.module+'#'+(i+1); } });
     });
   }
-  FXORDER.filter(k=>!fxN(k)).forEach(k=>{
-    const m=k==='terms'?null:fxMod(k);
+  FIX_ORDER.filter(k=>!fixN(k)).forEach(k=>{
+    const m=k==='terms'?null:fixMod(k);
     const els = m ? [...D.querySelectorAll(`[data-module="${m}"]`)] : [D.querySelector('[data-module="terms"]')];
-    els.forEach(el=>{ if(el){ el.classList.add('fx-sec'); el.dataset.k=k; } });
+    els.forEach(el=>{ if(el){ el.classList.add('fix-sec'); el.dataset.k=k; } });
   });
-  D.addEventListener('mouseup', fxSelect);
+  D.addEventListener('mouseup', fixSelect);
 }
 /* pour: every tour block gets its current copy (diff-marked if tweaked);
    a two-option module fills its data-variant twins */
-function fxPour(){
-  const D=FXDOC; if(!D) return;
-  FXORDER.forEach(k=>{
-    const els=[...D.querySelectorAll(`.fx-sec[data-k="${k}"]`)]; if(!els.length) return;
-    const m=fxMod(k);
+function fixPour(){
+  const D=FIX_DOC; if(!D) return;
+  FIX_ORDER.forEach(k=>{
+    const els=[...D.querySelectorAll(`.fix-sec[data-k="${k}"]`)]; if(!els.length) return;
+    const m=fixMod(k);
     els.forEach(el=>{
-      if(k!=='terms' && !fxN(k) && fxOpts(m)===2 && el.dataset.variant){
+      if(k!=='terms' && !fixN(k) && fixOpts(m)===2 && el.dataset.variant){
         const i=el.dataset.variant==='B'?1:0; const v=(ASSET.copy[m]||[])[i]||'';
         el.innerHTML=(el.querySelector('.l')?el.querySelector('.l').outerHTML:'')+fillPh(v); return;
       }
-      if(k==='terms'){ el.innerHTML=esc(fxTermsText()).replace(/\n/g,'<br>'); if(ASSET.locks.terms) el.classList.add('locked-look'); return; }
-      const raw=fxShow(k);
+      if(k==='terms'){ el.innerHTML=esc(fixTermsText()).replace(/\n/g,'<br>'); if(ASSET.locks.terms) el.classList.add('locked-look'); return; }
+      const raw=fixShow(k);
       el.innerHTML = raw.includes('\n') ? raw.replace(/\n/g,'<br>') : raw;
-      el.classList.toggle('editing', FXFOCUS===k);
+      el.classList.toggle('editing', FIX_FOCUS===k);
     });
   });
-  D.body.classList.toggle('fx-editing', !!FXFOCUS);
-  fxSizeFrame();
+  D.body.classList.toggle('fix-editing', !!FIX_FOCUS);
+  fixSizeFrame();
 }
-function fxSelect(){
-  const sel=FXDOC.getSelection();
+function fixSelect(){
+  const sel=FIX_DOC.getSelection();
   if(!sel || sel.isCollapsed) return;
   const txt=sel.toString().trim();
   if(!txt || txt.length<2) return;
   const node=sel.anchorNode && sel.anchorNode.parentElement; if(!node) return;
-  if(node.closest('.ph')){ sel.removeAllRanges(); fxDeflect(); return; }
-  const sec=node.closest('.fx-sec'); if(!sec) return;
+  if(node.closest('.ph')){ sel.removeAllRanges(); fixDeflect(); return; }
+  const sec=node.closest('.fix-sec'); if(!sec) return;
   const k=sec.dataset.k;
-  if(k==='terms'){ sel.removeAllRanges(); fxDeflect(); return; }
+  if(k==='terms'){ sel.removeAllRanges(); fixDeflect(); return; }
   sel.removeAllRanges();
-  const snapped=fxSnap(sec.textContent, txt);
-  fxFocus(k, snapped.length>60 ? snapped.slice(0,57)+'\u2026' : snapped);
+  const snapped=fixSnap(sec.textContent, txt);
+  fixFocus(k, snapped.length>60 ? snapped.slice(0,57)+'\u2026' : snapped);
 }
 
 function drawFix(){
-  fxPour();
-  fxGutterDraw();
-  fxRailDraw();
-  requestAnimationFrame(fxPos);
+  fixPour();
+  fixGutterDraw();
+  fixRailDraw();
+  requestAnimationFrame(fixPos);
 }
 
 /* ── the gutter: one padlock per section, one loop — open → pencil →
    shut → pencil → shut. Tap open or shut: the pencil. Tap the pencil:
    keep it. Leave any other way: it shuts behind you. Terms travel
    locked and deflect. ── */
-const FXI = PADLOCK.icon;      // FIX IT's own name for the one icon set
-function fxPadState(k){
-  if(!fxLockable(k)) return 'fixed';
-  if(FXFOCUS===k) return 'edit';
+const FIX_ICON = PADLOCK.icon;      // FIX IT's own name for the one icon set
+function fixPadState(k){
+  if(!fixLockable(k)) return 'fixed';
+  if(FIX_FOCUS===k) return 'edit';
   return ASSET.locks[k] ? 'locked' : 'open';
 }
-function fxGutterDraw(){
-  $('fxGutter').innerHTML = FXORDER.map(k=>{
-    const st=fxPadState(k), tip=PADLOCK.say[st];
-    return `<button class="fx-pad ${st}" data-k="${k}" onclick="fxPadTap('${k}')" title="${tip}" aria-label="${tip}: ${FXLBL[k]}">
+function fixGutterDraw(){
+  $('fixGutter').innerHTML = FIX_ORDER.map(k=>{
+    const st=fixPadState(k), tip=PADLOCK.say[st];
+    return `<button class="fix-pad ${st}" data-k="${k}" onclick="fixPadTap('${k}')" title="${tip}" aria-label="${tip}: ${FIX_LABELS[k]}">
       ${PADLOCK.face(st)}</button>`;
   }).join('');
 }
-function fxPadTap(k){
-  PADLOCK.tap(fxPadState(k), {open:()=>fxFocus(k), keep:fxKeep, deflect:fxDeflect});
+function fixPadTap(k){
+  PADLOCK.tap(fixPadState(k), {open:()=>fixFocus(k), keep:fixKeep, deflect:fixDeflect});
 }
-function fxPos(){
-  const fr=$('fxArt').querySelector('iframe'); if(!fr||!FXDOC) return;
-  const top=fr.getBoundingClientRect().top - $('fxArt').getBoundingClientRect().top;
-  document.querySelectorAll('#fxGutter .fx-pad').forEach(b=>{
-    const sec=FXDOC.querySelector(`.fx-sec[data-k="${b.dataset.k}"]`); if(!sec){ b.style.display='none'; return; }
+function fixPos(){
+  const fr=$('fixArt').querySelector('iframe'); if(!fr||!FIX_DOC) return;
+  const top=fr.getBoundingClientRect().top - $('fixArt').getBoundingClientRect().top;
+  document.querySelectorAll('#fixGutter .fix-pad').forEach(b=>{
+    const sec=FIX_DOC.querySelector(`.fix-sec[data-k="${b.dataset.k}"]`); if(!sec){ b.style.display='none'; return; }
     const r=sec.getBoundingClientRect();
     b.style.top=(top+r.top+r.height/2-22)+'px';
   });
 }
-window.addEventListener('resize', ()=>{ fxSizeFrame(); fxPos(); });
+window.addEventListener('resize', ()=>{ fixSizeFrame(); fixPos(); });
 
 /* ── focus: one section at a time, seen three ways — the pencil in the
    gutter, the lift on the artefact, the lozenge on the chat. ── */
-const FX_ASK='Keep it or tweak it?';
-const FX_KEPT=['Locked.','Good.','Onward.','That one stays.'];
-let FX_LAST='';
-function fxPick(a){ let l; do{ l=a[Math.floor(Math.random()*a.length)]; }while(l===FX_LAST&&a.length>1); FX_LAST=l; return l; }
+const FIX_ASK='Keep it or tweak it?';
+const FIX_KEPT=['Locked.','Good.','Onward.','That one stays.'];
+let FIX_LAST='';
+function fixPick(a){ let l; do{ l=a[Math.floor(Math.random()*a.length)]; }while(l===FIX_LAST&&a.length>1); FIX_LAST=l; return l; }
 
-function fxTopicSet(k){
-  const t=$('fxTopic');
-  if(k){ t.textContent='Tweaking: '+FXLBL[k]; t.classList.remove('empty'); }
-  else { t.textContent = (FXORDER.length && !fxBeat() && Object.keys(ASSET.locks).length) ? 'All locked' : 'Need any tweaks?'; t.classList.add('empty'); }
+function fixTopicSet(k){
+  const t=$('fixTopic');
+  if(k){ t.textContent='Tweaking: '+FIX_LABELS[k]; t.classList.remove('empty'); }
+  else { t.textContent = (FIX_ORDER.length && !fixBeat() && Object.keys(ASSET.locks).length) ? 'All locked' : 'Need any tweaks?'; t.classList.add('empty'); }
 }
-function fxQuoteSet(q){
-  FXHL=q||null;
-  const el=$('fxQuote'); el.textContent=q?'\u201c'+q+'\u201d':''; el.classList.toggle('on',!!q);
-  $('fxNote').placeholder = FXFOCUS ? (q?'What are you thinking here?':'What are you thinking?') : 'Tap a padlock or highlight some words.';
+function fixQuoteSet(q){
+  FIX_HL=q||null;
+  const el=$('fixQuote'); el.textContent=q?'\u201c'+q+'\u201d':''; el.classList.toggle('on',!!q);
+  $('fixNote').placeholder = FIX_FOCUS ? (q?'What are you thinking here?':'What are you thinking?') : 'Tap a padlock or highlight some words.';
 }
-function fxFocus(k, quote){
-  if(FXFOCUS && FXFOCUS!==k) ASSET.locks[FXFOCUS]=true;        // leaving locks
-  FXFOCUS=k;
-  $('fxNote').value='';
-  fxTopicSet(k); fxQuoteSet(quote||null);
-  $('fxSendBtn').disabled=false;
-  if(!FXTHREAD[k]){ FXTHREAD[k]=[]; fxSay(FX_ASK,'robot',true); fxDrawer(k); }
-  else fxThreadRender();
+function fixFocus(k, quote){
+  if(FIX_FOCUS && FIX_FOCUS!==k) ASSET.locks[FIX_FOCUS]=true;        // leaving locks
+  FIX_FOCUS=k;
+  $('fixNote').value='';
+  fixTopicSet(k); fixQuoteSet(quote||null);
+  $('fixSendBtn').disabled=false;
+  if(!FIX_THREAD[k]){ FIX_THREAD[k]=[]; fixSay(FIX_ASK,'robot',true); fixDrawer(k); }
+  else fixThreadRender();
   drawFix();
-  $('fxNote').focus();
+  $('fixNote').focus();
 }
-function fxUnfocus(){
-  if(FXFOCUS) ASSET.locks[FXFOCUS]=true;
-  FXFOCUS=null;
-  $('fxNote').value=''; fxQuoteSet(null); fxTopicSet(null);
-  $('fxSendBtn').disabled=true;
-  $('fxChat').innerHTML='';
+function fixUnfocus(){
+  if(FIX_FOCUS) ASSET.locks[FIX_FOCUS]=true;
+  FIX_FOCUS=null;
+  $('fixNote').value=''; fixQuoteSet(null); fixTopicSet(null);
+  $('fixSendBtn').disabled=true;
+  $('fixChat').innerHTML='';
   drawFix();
 }
 /* keep it — a state change, no model call. The robot says one word and
    moves you on; when there's nothing left, WRAP IT UP is ready. */
-function fxKeep(say){
-  if(!FXFOCUS) return;
-  fxSay(esc(say||fxPick(FX_KEPT)),'robot',true);
-  const next=fxBeat();
-  setTimeout(()=>{ fxUnfocus(); if(next) fxFocus(next); }, 420);
+function fixKeep(say){
+  if(!FIX_FOCUS) return;
+  fixSay(esc(say||fixPick(FIX_KEPT)),'robot',true);
+  const next=fixBeat();
+  setTimeout(()=>{ fixUnfocus(); if(next) fixFocus(next); }, 420);
 }
 
 /* ── the thread. Each section's conversation is kept and re-shown when
    you come back. Rows are stored as html; the drawer's buttons rebind. ── */
-function fxThreadRender(){
-  const c=$('fxChat'); c.innerHTML=(FXTHREAD[FXFOCUS]||[]).join('');
-  c.querySelectorAll('.chat-opt').forEach(b=>{ b.onclick=()=>fxPickOption(b.dataset.k,+b.dataset.i); });
+function fixThreadRender(){
+  const c=$('fixChat'); c.innerHTML=(FIX_THREAD[FIX_FOCUS]||[]).join('');
+  c.querySelectorAll('.chat-opt').forEach(b=>{ b.onclick=()=>fixPickOption(b.dataset.k,+b.dataset.i); });
   c.scrollTop=c.scrollHeight;
 }
 /* the error turn: the robot's turn in the rail, wearing the error face,
    the line where the bubble would be. A transcript row, so it stays. */
-function fxErr(text){
+function fixErr(text){
   const row=RAIL.err(text);
-  if(FXFOCUS){ (FXTHREAD[FXFOCUS]=FXTHREAD[FXFOCUS]||[]).push(row); fxThreadRender(); }
-  else { $('fxChat').insertAdjacentHTML('beforeend',row); $('fxChat').scrollTop=$('fxChat').scrollHeight; }
+  if(FIX_FOCUS){ (FIX_THREAD[FIX_FOCUS]=FIX_THREAD[FIX_FOCUS]||[]).push(row); fixThreadRender(); }
+  else { $('fixChat').insertAdjacentHTML('beforeend',row); $('fixChat').scrollTop=$('fixChat').scrollHeight; }
 }
-function fxSay(html,who,withAv){
+function fixSay(html,who,withAv){
   const row = who==='me' ? RAIL.me(html) : RAIL.robot(html, withAv);
-  if(FXFOCUS){ (FXTHREAD[FXFOCUS]=FXTHREAD[FXFOCUS]||[]).push(row); fxThreadRender(); }
-  else { $('fxChat').insertAdjacentHTML('beforeend',row); $('fxChat').scrollTop=$('fxChat').scrollHeight; }
+  if(FIX_FOCUS){ (FIX_THREAD[FIX_FOCUS]=FIX_THREAD[FIX_FOCUS]||[]).push(row); fixThreadRender(); }
+  else { $('fixChat').insertAdjacentHTML('beforeend',row); $('fixChat').scrollTop=$('fixChat').scrollHeight; }
 }
-function fxThink(){
+function fixThink(){
   const t=document.createElement('div');
   t.className='chat-row chat-think'; t.innerHTML=RAIL.think();
-  $('fxChat').appendChild(t); $('fxChat').scrollTop=$('fxChat').scrollHeight;
+  $('fixChat').appendChild(t); $('fixChat').scrollTop=$('fixChat').scrollHeight;
   const t0=Date.now();
   t.done = ()=>new Promise(r=>setTimeout(()=>{ t.remove(); r(); }, Math.max(0,1200-(Date.now()-t0))));
   return t;
 }
-function fxClearOpts(){ if(FXFOCUS&&FXTHREAD[FXFOCUS]) FXTHREAD[FXFOCUS]=FXTHREAD[FXFOCUS].filter(r=>!r.startsWith('<button class="chat-opt"')); fxThreadRender(); }
+function fixClearOpts(){ if(FIX_FOCUS&&FIX_THREAD[FIX_FOCUS]) FIX_THREAD[FIX_FOCUS]=FIX_THREAD[FIX_FOCUS].filter(r=>!r.startsWith('<button class="chat-opt"')); fixThreadRender(); }
 
 /* the drawer: a three-option module offers its other two */
-function fxDrawer(k){
-  const m=fxMod(k); const v=ASSET.copy[m];
-  if(fxN(k)||!Array.isArray(v)||fxOpts(m)!==3) return;
+function fixDrawer(k){
+  const m=fixMod(k); const v=ASSET.copy[m];
+  if(fixN(k)||!Array.isArray(v)||fixOpts(m)!==3) return;
   v.forEach((opt,i)=>{
     if(i===ASSET.pick) return;
-    FXTHREAD[k].push(`<button class="chat-opt" data-k="${k}" data-i="${i}">Or from the drawer: ${fillPh(opt)}</button>`);
+    FIX_THREAD[k].push(`<button class="chat-opt" data-k="${k}" data-i="${i}">Or from the drawer: ${fillPh(opt)}</button>`);
   });
-  fxThreadRender();
+  fixThreadRender();
 }
-function fxPickOption(k,i){
-  const old=fxText(k);
+function fixPickOption(k,i){
+  const old=fixText(k);
   ASSET.pick=i;
-  FXDIFF[k]={old, new:fxText(k)};
-  ASSET.tweaks.push({label:FXLBL[k], note:'From the drawer'});
-  fxClearOpts();
-  fxSay('Swapped. Like this?','robot',true);
-  fxApplyFx(k);
+  FIX_DIFF[k]={old, new:fixText(k)};
+  ASSET.tweaks.push({label:FIX_LABELS[k], note:'From the drawer'});
+  fixClearOpts();
+  fixSay('Swapped. Like this?','robot',true);
+  fixApplyFx(k);
 }
-function fxApplyFx(k){
+function fixApplyFx(k){
   drawFix();
-  const sec=FXDOC&&FXDOC.querySelector(`.fx-sec[data-k="${k}"]`);
+  const sec=FIX_DOC&&FIX_DOC.querySelector(`.fix-sec[data-k="${k}"]`);
   if(sec){ sec.classList.remove('flash'); void sec.offsetWidth; sec.classList.add('flash'); }
 }
 
 /* ── WRAP IT UP: counts what's open, never disabled. Early press takes
    you to the first open bit; the last press goes to FINISHED. ── */
-function fxOpenBits(){ return FXORDER.filter(k=>fxLockable(k) && (!ASSET.locks[k] || k===FXFOCUS)); }
-function fxRailDraw(){
-  const left=fxOpenBits(), w=$('fxWrap'), L=$('fxWrapLbl'), I=$('fxWrapIco');
-  if(!FXORDER.length){ w.style.visibility='hidden'; return; }
+function fixOpenBits(){ return FIX_ORDER.filter(k=>fixLockable(k) && (!ASSET.locks[k] || k===FIX_FOCUS)); }
+function fixRailDraw(){
+  const left=fixOpenBits(), w=$('fixWrap'), L=$('fixWrapLbl'), I=$('fixWrapIco');
+  if(!FIX_ORDER.length){ w.style.visibility='hidden'; return; }
   w.style.visibility='';
-  if(left.length===0){ w.classList.add('ready'); I.innerHTML=FXI.shut; L.textContent='WRAP IT UP'; }
-  else if(left.length===1){ w.classList.remove('ready'); I.innerHTML=FXI.open;
-    const n=FXLBL[left[0]].toUpperCase(); L.textContent = n.length<=14 ? 'LOCK THE '+n : '1 BIT TO LOCK'; }
-  else { w.classList.remove('ready'); I.innerHTML=FXI.open; L.textContent=left.length+' BITS TO LOCK'; }
+  if(left.length===0){ w.classList.add('ready'); I.innerHTML=FIX_ICON.shut; L.textContent='WRAP IT UP'; }
+  else if(left.length===1){ w.classList.remove('ready'); I.innerHTML=FIX_ICON.open;
+    const n=FIX_LABELS[left[0]].toUpperCase(); L.textContent = n.length<=14 ? 'LOCK THE '+n : '1 BIT TO LOCK'; }
+  else { w.classList.remove('ready'); I.innerHTML=FIX_ICON.open; L.textContent=left.length+' BITS TO LOCK'; }
 }
-function fxWrapGo(){
-  const left=fxOpenBits();
-  if(left.length===0){ fxUnfocus(); toReview(); return; }
-  const n=left.find(k=>k!==FXFOCUS)||left[0];
-  fxFocus(n);
-  const sec=FXDOC&&FXDOC.querySelector(`.fx-sec[data-k="${n}"]`);
+function fixWrapGo(){
+  const left=fixOpenBits();
+  if(left.length===0){ fixUnfocus(); toReview(); return; }
+  const n=left.find(k=>k!==FIX_FOCUS)||left[0];
+  fixFocus(n);
+  const sec=FIX_DOC&&FIX_DOC.querySelector(`.fix-sec[data-k="${n}"]`);
   if(sec&&sec.scrollIntoView) sec.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 /* ── ? — for "I'm stuck", nothing more. One line, state-aware. ── */
-function fxTipToggle(){
-  const tip=$('fxTip');
+function fixTipToggle(){
+  const tip=$('fixTip');
   let msg='Tap a padlock to open a bit, or highlight the words you want changed.';
-  if(FXFOCUS && FXHL) msg='The robot will only touch the highlighted words. Tell it what you\u2019re after.';
-  else if(FXFOCUS) msg='Tell it what you\u2019re thinking, in your words. Say \u201ckeep it\u201d \u2014 or tap the pencil \u2014 and it moves you on.';
+  if(FIX_FOCUS && FIX_HL) msg='The robot will only touch the highlighted words. Tell it what you\u2019re after.';
+  else if(FIX_FOCUS) msg='Tell it what you\u2019re thinking, in your words. Say \u201ckeep it\u201d \u2014 or tap the pencil \u2014 and it moves you on.';
   tip.textContent=msg; tip.classList.toggle('on');
   clearTimeout(tip._t); tip._t=setTimeout(()=>tip.classList.remove('on'),4500);
 }
 
 /* ── the note. A clear keep is a state change and never leaves the
    browser; everything else goes to the FIXER, who reads the reply. ── */
-const FX_KEEP_RE=/^(keep( it)?|yep|yes|yeah|fine|good|great|love it|ok|okay|done|lock it|that'?s the one|perfect)[.!\s]*$/i;
-async function fxSend(){
-  const note=$('fxNote').value.trim();
-  if(!note || !ASSET || !FXFOCUS) return;
-  const k=FXFOCUS;
-  $('fxNote').value='';
-  fxSay(FXHL?`<i class="quote">\u201c${esc(FXHL)}\u201d</i>${esc(note)}`:esc(note),'me');
-  if(FX_KEEP_RE.test(note)){ fxQuoteSet(null); fxKeep(); return; }
-  const cur = fxText(k), hl=FXHL;
-  fxQuoteSet(null);
-  const th=fxThink();
-  HIST[k]=HIST[k]||[];
+const FIX_KEEP_RE=/^(keep( it)?|yep|yes|yeah|fine|good|great|love it|ok|okay|done|lock it|that'?s the one|perfect)[.!\s]*$/i;
+async function fixSend(){
+  const note=$('fixNote').value.trim();
+  if(!note || !ASSET || !FIX_FOCUS) return;
+  const k=FIX_FOCUS;
+  $('fixNote').value='';
+  fixSay(FIX_HL?`<i class="quote">\u201c${esc(FIX_HL)}\u201d</i>${esc(note)}`:esc(note),'me');
+  if(FIX_KEEP_RE.test(note)){ fixQuoteSet(null); fixKeep(); return; }
+  const cur = fixText(k), hl=FIX_HL;
+  fixQuoteSet(null);
+  const th=fixThink();
+  FIX_HISTORY[k]=FIX_HISTORY[k]||[];
   try{
     const d=await api('/api/tweak',{container:CID, run:RUN, form:BRIEF.details.facts, block:k, current:cur, note,
-      highlight:hl, insight:BRIEF.sorted.insight, history:HIST[k]});
+      highlight:hl, insight:BRIEF.sorted.insight, history:FIX_HISTORY[k]});
     await th.done();
-    HIST[k].push(`Human: ${note}`,`Robot: ${d.say||d.action||''}`);
+    FIX_HISTORY[k].push(`Human: ${note}`,`Robot: ${d.say||d.action||''}`);
     if(d.action==='lock'){
-      fxKeep(d.say||null);
+      fixKeep(d.say||null);
     } else if(d.action==='change' && d.copy){
-      FXDIFF[k]={old:cur, new:d.copy};
-      fxSet(k,d.copy);
-      ASSET.tweaks.push({label:FXLBL[k], note});
-      fxClearOpts();
-      fxSay(esc(d.say||'Like this?'),'robot',true);
-      if(d.flags && d.flags.length) fxSay(esc(STR.fix.flag)+esc(d.flags[0]),'robot',false);
-      if(d.wants) fxSay(esc(d.wants),'robot',false);
-      fxApplyFx(k);
+      FIX_DIFF[k]={old:cur, new:d.copy};
+      fixSet(k,d.copy);
+      ASSET.tweaks.push({label:FIX_LABELS[k], note});
+      fixClearOpts();
+      fixSay(esc(d.say||'Like this?'),'robot',true);
+      if(d.flags && d.flags.length) fixSay(esc(STR.fix.flag)+esc(d.flags[0]),'robot',false);
+      if(d.wants) fixSay(esc(d.wants),'robot',false);
+      fixApplyFx(k);
     } else {
-      fxErr(STR.fix.tweak_blank);
+      fixErr(STR.fix.tweak_blank);
     }
-  }catch(e){ await th.done(); fxErr(STR.fix.tweak_fail); }
+  }catch(e){ await th.done(); fixErr(STR.fix.tweak_fail); }
 }
 
-function fxDeflect(){ fxErr(STR.fix.locked); }
-function fxSnap(full,part){
+function fixDeflect(){ fixErr(STR.fix.locked); }
+function fixSnap(full,part){
   const i=full.indexOf(part); if(i===-1) return part;
   let a=i,b=i+part.length;
   while(a>0 && !/\s/.test(full[a-1])) a--;
@@ -417,7 +417,7 @@ function fxSnap(full,part){
 
 /* ---------------- 3 REVIEW ---------------- */
 /* the asset's copy as it ships: one option where there were three */
-function fxFinalCopy(){
+function fixFinalCopy(){
   const out={}, copy=ASSET.copy, pick=ASSET.pick;
   CONT.modules.writer.forEach(w=>{ const v=copy[w.module];
     out[w.module] = Array.isArray(v) ? (w.options===3 ? v[pick] : v) : v; });

@@ -11,8 +11,8 @@
    id and never reads a room's state — where it needs an element or an id,
    it takes one as an argument.
 
-   Loads after strings.js and before the rooms. Names are the names the
-   rooms already use; step 1 of the refactor moved code, not names.
+   Loads after strings.js and before the door-tiles. Names are the names the
+   door-tiles already use; step 1 of the refactor moved code, not names.
    ===================================================================== */
 
 /* ---------------- helpers ---------------- */
@@ -67,7 +67,7 @@ ready(faceFill);
 
 /* THE LINE — something failed, the room stands. Fades after 7s unless
    it's asking for something (stick), in which case it stays till acted on. */
-function errLine(text, o={}){
+function robotLine(text, o={}){
   const el=document.createElement('div');
   el.className='line err'+(o.cls?' '+o.cls:'');
   el.setAttribute('role','alert');
@@ -76,14 +76,14 @@ function errLine(text, o={}){
   return el;
 }
 /* one line per anchor — a fresh failure replaces the last one, never stacks */
-function errAt(anchor, text, o={}){
+function robotLineAt(anchor, text, o={}){
   if(!anchor) return null;
   anchor.querySelectorAll(':scope > .line.err').forEach(x=>{ clearTimeout(x._t); x.remove(); });
-  const el=errLine(text,o);
+  const el=robotLine(text,o);
   if(o.first) anchor.insertBefore(el, anchor.firstChild); else anchor.appendChild(el);
   return el;
 }
-function errClear(anchor){ if(anchor) anchor.querySelectorAll(':scope > .line.err').forEach(x=>{ clearTimeout(x._t); x.remove(); }); }
+function robotLineClear(anchor){ if(anchor) anchor.querySelectorAll(':scope > .line.err').forEach(x=>{ clearTimeout(x._t); x.remove(); }); }
 
 /* THE CARD — a whole pane failed to arrive. Renders in the page flow, in
    the space the missing thing should occupy. TRY AGAIN retries; a second
@@ -93,15 +93,15 @@ function errClear(anchor){ if(anchor) anchor.querySelectorAll(':scope > .line.er
    (meta.onGone). The counter resets on room entry, not on retry. */
 const CARD_FAILS={};
 function cardReset(room){ CARD_FAILS[room]=0; }
-function errCard(room, retry, what, meta){
+function robotCard(room, retry, what, meta){
   CARD_FAILS[room]=(CARD_FAILS[room]||0)+1;
   const stop = CARD_FAILS[room]>=2;
   const w = stop ? STR.card.stop : STR.card[room];
-  const el=document.createElement('div'); el.className='errcard'+(stop?' stop':'');
+  const el=document.createElement('div'); el.className='card'+(stop?' stop':'');
   el.setAttribute('role','alert');
-  el.innerHTML=`<span class="botdisc">${BOT_FACE('err')}</span><div class="errcard-h">${esc(w.head)}</div>
-    <div class="errcard-p">${esc(w.line)}</div><button class="errcard-go">${esc(w.go)}</button>`;
-  const go=el.querySelector('.errcard-go');
+  el.innerHTML=`<span class="botdisc">${BOT_FACE('err')}</span><div class="card-h">${esc(w.head)}</div>
+    <div class="card-p">${esc(w.line)}</div><button class="card-go">${esc(w.go)}</button>`;
+  const go=el.querySelector('.card-go');
   if(stop){
     beacon(what, room, meta);                       // the email goes before the card claims it
     go.onclick=()=>{ el.remove(); if(meta && meta.onGone) meta.onGone(); };
@@ -123,9 +123,9 @@ function beacon(what, room, meta){
 const TICK='<svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3L13 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 /* ---------------- THE PADLOCK ----------------
-   One device, two rooms: the gutter in FIX IT, the sections in LOCK THE
+   One device, two door-tiles: the gutter in FIX IT, the sections in LOCK THE
    DEETS. The icons, the words and the journey live here and nowhere else,
-   so the two rooms can't quietly drift apart.
+   so the two door-tiles can't quietly drift apart.
 
      open   --tap-->  edit (the pencil)  --tap-->  locked
      locked --tap-->  edit                                 (reopen)
@@ -241,7 +241,7 @@ function thinkLine(){
 function thinkStart(){
   const el = $('thinking'); if(!el) return 0;
   THINK_I = 0; $('thinkSay').innerHTML = '';
-  document.querySelectorAll('#room .pane').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('#sandwich .pane').forEach(p => p.classList.remove('on'));
   el.hidden = false;
   thinkLine();
   THINK_T = setInterval(thinkLine, THINK_HOLD);
@@ -285,11 +285,11 @@ const RAIL = {
   think: () => `<div class="chat-cav">${thinkFace()}</div>`,
 };
 
-/* ---------------- THE SHELL'S MENU ----------------
+/* ---------------- THE SHELL'S TERMS_MENU ----------------
    The burger, ABOUT and the FAQs — on every room, so it's furniture. Waits
    for the DOM because this file loads in the head. */
 /* ── the hamburger: ABOUT + FAQS ── */
-const HM_FAQS = [
+const MENU_FAQS = [
   ["How can I be sure the robot won't go off on one?",
    "You're in the driver's seat at every turn. You feed it. You fix stuff. You press go on the finished outputs. Human in every loop."],
   ["Who's on the block if it all goes wrong?",
@@ -309,7 +309,7 @@ const HM_FAQS = [
 ];
 ready(function(){
   const list = $('faqList');
-  HM_FAQS.forEach(([q,a],i)=>{
+  MENU_FAQS.forEach(([q,a],i)=>{
     const d=document.createElement('div');
     d.className='faq'+(i===0?' open':'');
     d.innerHTML=`<button class="faq-q" aria-expanded="${i===0}">${q}
@@ -325,23 +325,23 @@ ready(function(){
     list.appendChild(d);
   });
 });
-function hmMenu(){
-  const on=$('hmMenuBox').classList.toggle('on');
+function menuToggle(){
+  const on=$('menuBox').classList.toggle('on');
   $('burger').classList.toggle('x',on);
   $('burger').setAttribute('aria-expanded',on);
 }
-function hmOpen(id){ hmMenu(); $('hm-'+id).classList.add('on'); }
-function hmClose(id){ $('hm-'+id).classList.remove('on'); }
-ready(()=>document.querySelectorAll('.hm-shade').forEach(s=>{
+function menuOpen(id){ menuToggle(); $('menu-'+id).classList.add('on'); }
+function menuClose(id){ $('menu-'+id).classList.remove('on'); }
+ready(()=>document.querySelectorAll('.menu-shade').forEach(s=>{
   s.addEventListener('click',e=>{ if(e.target===s) s.classList.remove('on'); });
 }));
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
-    document.querySelectorAll('.hm-shade.on').forEach(s=>s.classList.remove('on'));
-    if($('hmMenuBox').classList.contains('on')) hmMenu();
+    document.querySelectorAll('.menu-shade.on').forEach(s=>s.classList.remove('on'));
+    if($('menuBox').classList.contains('on')) menuToggle();
   }
 });
 document.addEventListener('click',e=>{
-  const m=$('hmMenuBox'),b=$('burger');
-  if(m.classList.contains('on') && !m.contains(e.target) && !b.contains(e.target)) hmMenu();
+  const m=$('menuBox'),b=$('burger');
+  if(m.classList.contains('on') && !m.contains(e.target) && !b.contains(e.target)) menuToggle();
 });

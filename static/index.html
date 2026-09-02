@@ -13,9 +13,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=037">
+<link rel="stylesheet" href="robot.css?v=038">
 <script src="js/strings.js?v=034"></script>
-<script src="js/chrome.js?v=037"></script>
+<script src="js/chrome.js?v=038"></script>
 
 </head>
 <body>
@@ -24,7 +24,7 @@
   <img src="ai2-logo.png" alt="Hunch ai2" style="height:22px;display:block">
   <div class="top-r">
     <div class="who" id="who"></div>
-    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false" onclick="hmMenu()">
+    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false" onclick="menuToggle()">
       <svg viewBox="0 0 20 20" aria-hidden="true">
         <line class="bl1" x1="2" y1="5.5" x2="18" y2="5.5"/>
         <line class="bl2" x1="2" y1="10" x2="18" y2="10"/>
@@ -34,21 +34,21 @@
   </div>
 </div>
 
-<nav class="hm-menu" id="hmMenuBox">
-  <button onclick="hmOpen('about')">ABOUT</button>
-  <button onclick="hmOpen('faqs')">FAQS</button>
+<nav class="menu-menu" id="menuBox">
+  <button onclick="menuOpen('about')">ABOUT</button>
+  <button onclick="menuOpen('faqs')">FAQS</button>
 </nav>
 
 <!-- ABOUT -->
-<div class="hm-shade" id="hm-about">
-  <div class="hm-card" role="dialog" aria-modal="true" aria-label="About">
-    <div class="hm-head">
-      <div class="hm-title">ABOUT<span>.</span></div>
-      <button class="hm-x" aria-label="Close" onclick="hmClose('about')">
+<div class="menu-shade" id="menu-about">
+  <div class="menu-card" role="dialog" aria-modal="true" aria-label="About">
+    <div class="menu-head">
+      <div class="menu-title">ABOUT<span>.</span></div>
+      <button class="menu-x" aria-label="Close" onclick="menuClose('about')">
         <svg viewBox="0 0 16 16" aria-hidden="true"><line x1="2" y1="2" x2="14" y2="14"/><line x1="14" y1="2" x2="2" y2="14"/></svg>
       </button>
     </div>
-    <div class="hm-body about">
+    <div class="menu-body about">
       <p>Robots are brilliant at squirting words into well designed containers. Good story, good container, good as gold.</p>
       <p>The trick is knowing what to say and designing a great container. That's the human bit. Hunch can help with both.</p>
       <p>Once locked and loaded you can roll with the robot every day of the week. Feed it. Fix it. File it. Happy days.</p>
@@ -57,15 +57,15 @@
 </div>
 
 <!-- FAQS -->
-<div class="hm-shade" id="hm-faqs">
-  <div class="hm-card" role="dialog" aria-modal="true" aria-label="FAQs">
-    <div class="hm-head">
-      <div class="hm-title">FAQS<span>.</span></div>
-      <button class="hm-x" aria-label="Close" onclick="hmClose('faqs')">
+<div class="menu-shade" id="menu-faqs">
+  <div class="menu-card" role="dialog" aria-modal="true" aria-label="FAQs">
+    <div class="menu-head">
+      <div class="menu-title">FAQS<span>.</span></div>
+      <button class="menu-x" aria-label="Close" onclick="menuClose('faqs')">
         <svg viewBox="0 0 16 16" aria-hidden="true"><line x1="2" y1="2" x2="14" y2="14"/><line x1="14" y1="2" x2="2" y2="14"/></svg>
       </button>
     </div>
-    <div class="hm-body" id="faqList"></div>
+    <div class="menu-body" id="faqList"></div>
   </div>
 </div>
 
@@ -84,11 +84,11 @@
 
   <div class="q" id="q">WHAT SHALL WE ROBOT TODAY?</div>
 
-  <div class="signin" id="signin">
-    <div class="si-row">
-      <input id="siWord" placeholder="What's the magic word?" autocomplete="off"
+  <div class="door-signin" id="door-signin">
+    <div class="door-row">
+      <input id="doorWord" placeholder="What's the magic word?" autocomplete="off"
         onkeydown="if(event.key==='Enter')sayWord()">
-      <button class="si-go" id="siGo" onclick="sayWord()" aria-label="Unlock">
+      <button class="door-go" id="doorGo" onclick="sayWord()" aria-label="Unlock">
         <svg viewBox="0 0 16 16" fill="none">
           <path class="shackle" d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
           <rect x="3" y="7" width="10" height="7" rx="2" fill="#fff"/>
@@ -96,15 +96,15 @@
         </svg>
       </button>
     </div>
-    <div class="si-note" id="siNote"></div>
+    <div class="door-note" id="doorNote"></div>
   </div>
 
-  <div class="rooms" id="rooms"></div>
+  <div class="door-tiles" id="doorTiles"></div>
 
 </section>
 
 <!-- ===================== ROOM ===================== -->
-<section id="room">
+<section id="sandwich">
 <div class="wrap">
 
   <div class="rail">
@@ -134,98 +134,98 @@
          read. -->
     <div id="storyView">
       <div class="feedstage">
-        <div class="fd-wrap">
-          <h2 class="fd-hed beb">FEED IT</h2>
-          <div class="fd-tagline" id="fdTagline">Fill in the blanks. The robot does the rest.</div>
-          <div class="fd-grid">
-            <div class="fd-ghosthold">
-              <div class="fd-ghost" id="fdGhost"></div>
+        <div class="feed-wrap">
+          <h2 class="feed-hed beb">FEED IT</h2>
+          <div class="feed-tagline" id="feedTagline">Fill in the blanks. The robot does the rest.</div>
+          <div class="feed-grid">
+            <div class="feed-ghosthold">
+              <div class="feed-ghost" id="feedGhost"></div>
             </div>
-            <div class="fd-acc" id="fdAcc">
+            <div class="feed-acc" id="feedAcc">
 
               <!-- STOP 1 — the landing pad -->
-              <div class="fd-stage on" data-i="0">
-                <div class="fd-gut">1</div>
-                <div class="fd-card">
-                  <button class="fd-head" onclick="accToggle(0)">
+              <div class="feed-stage on" data-i="0">
+                <div class="feed-gut">1</div>
+                <div class="feed-card">
+                  <button class="feed-head" onclick="accToggle(0)">
                     <div>
-                      <span class="fd-q" id="fdT0"></span>
-                      <div class="fd-sub" id="fdS0"></div>
+                      <span class="feed-q" id="feedT0"></span>
+                      <div class="feed-sub" id="feedS0"></div>
                     </div>
-                    <svg class="fd-chev" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg class="feed-chev" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </button>
-                  <div class="fd-bod" id="fdCard0">
+                  <div class="feed-bod" id="feedCard0">
                     <!-- three doors, one box. Everything that lands, whichever
                          door, is the same dump the FEEDER reads. -->
                     <div class="dump-doors">
-                      <button class="dump-door on" id="fdDoorDocs" onclick="fdDoor('docs')">
+                      <button class="dump-door on" id="feedDoorDocs" onclick="feedDoor('docs')">
                         <span class="dump-disc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/></svg></span><b>DOCS</b>
                       </button>
-                      <button class="dump-door" id="fdDoorWords" onclick="fdDoor('words')">
+                      <button class="dump-door" id="feedDoorWords" onclick="feedDoor('words')">
                         <span class="dump-disc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg></span><b>WORDS</b>
                       </button>
-                      <button class="dump-door" id="fdDoorSearch" onclick="fdDoor('search')">
+                      <button class="dump-door" id="feedDoorSearch" onclick="feedDoor('search')">
                         <span class="dump-disc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.7 3 2.7 15 0 18c-2.7-3-2.7-15 0-18z"/></svg></span><b>SEARCH</b>
                       </button>
                     </div>
-                    <div class="dump-nudge" id="fdPadHint"></div>
-                    <div class="dump-plate" id="fdPlate">
-                      <div class="dump-view on" id="fdViewDocs">
-                        <div class="fd-docs" id="fdDocs"></div>
+                    <div class="dump-nudge" id="feedPadHint"></div>
+                    <div class="dump-plate" id="feedPlate">
+                      <div class="dump-view on" id="feedViewDocs">
+                        <div class="feed-docs" id="feedDocs"></div>
                         <div class="dump-empty">
                           <svg class="dump-baby" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5"/><path d="M8 9l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-                          <p class="dump-hint"><a id="fdBrowse"></a> <span id="fdPadLine"></span></p>
+                          <p class="dump-hint"><a id="feedBrowse"></a> <span id="feedPadLine"></span></p>
                         </div>
                       </div>
                       <!-- SEARCH: ask -> plan -> looking -> hits. One view,
-                           four faces; SRSTAGE says which. -->
-                      <div class="dump-view" id="fdViewSearch">
-                        <div class="sr-ask" id="srAsk">
+                           four faces; SEARCH_STAGE says which. -->
+                      <div class="dump-view" id="feedViewSearch">
+                        <div class="search-ask" id="searchAsk">
                           <svg class="dump-baby" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
-                          <div class="sr-fieldrow">
-                            <input class="sr-field" id="srField" placeholder="What are you digging for?"
-                              onkeydown="if(event.key==='Enter'){event.preventDefault();srPlan();}"
-                              oninput="srDraw()">
-                            <button class="sr-arrow" id="srGo" onclick="srPlan()" aria-label="Look it up" disabled>
+                          <div class="search-fieldrow">
+                            <input class="search-field" id="searchField" placeholder="What are you digging for?"
+                              onkeydown="if(event.key==='Enter'){event.preventDefault();searchPlan();}"
+                              oninput="searchDraw()">
+                            <button class="search-arrow" id="searchGo" onclick="searchPlan()" aria-label="Look it up" disabled>
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
                             </button>
                           </div>
                         </div>
-                        <div class="sr-head" id="srHead"></div>
-                        <div class="sr-sub" id="srSub"></div>
-                        <div class="sr-list" id="srList"></div>
-                        <button class="fd-go sr-dig" id="srDig" onclick="srRun()" style="display:none">GO DIGGING</button>
-                        <div class="sr-hits" id="srHits"></div>
+                        <div class="search-head" id="searchHead"></div>
+                        <div class="search-sub" id="searchSub"></div>
+                        <div class="search-list" id="searchList"></div>
+                        <button class="feed-go search-dig" id="searchDig" onclick="searchRun()" style="display:none">GO DIGGING</button>
+                        <div class="search-hits" id="searchHits"></div>
                       </div>
-                      <div class="dump-view" id="fdViewWords">
+                      <div class="dump-view" id="feedViewWords">
                         <svg class="dump-baby" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.6 15.4"/><path d="M14.5 14.5L20 20"/><path d="M8.6 8.6L12 12"/></svg>
-                        <textarea class="fd-paste" id="fdDump" rows="3"></textarea>
+                        <textarea class="feed-paste" id="feedDump" rows="3"></textarea>
                       </div>
                     </div>
-                    <div class="fd-foot"><div class="fd-tools"></div><button class="fd-go" id="fdDumpGo" onclick="fdDumpNext()">DONE</button></div>
+                    <div class="feed-foot"><div class="feed-tools"></div><button class="feed-go" id="feedDumpGo" onclick="feedDumpNext()">DONE</button></div>
                   </div>
                 </div>
               </div>
 
               <!-- STOP 2 — the chat -->
-              <div class="fd-stage todo" data-i="1">
-                <div class="fd-gut">2</div>
-                <div class="fd-card">
-                  <button class="fd-head" onclick="accToggle(1)">
+              <div class="feed-stage todo" data-i="1">
+                <div class="feed-gut">2</div>
+                <div class="feed-card">
+                  <button class="feed-head" onclick="accToggle(1)">
                     <div>
-                      <span class="fd-q" id="fdT1"></span>
-                      <div class="fd-sub" id="fdS1"></div>
+                      <span class="feed-q" id="feedT1"></span>
+                      <div class="feed-sub" id="feedS1"></div>
                     </div>
-                    <svg class="fd-chev" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg class="feed-chev" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </button>
-                  <div class="fd-bod">
-                    <div class="chat" id="fdChat"></div>
-                    <div class="fd-answer">
-                      <div class="fd-say">
-                        <textarea id="fdBox" rows="2" oninput="fdGrow()" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fdNext();}"></textarea>
-                        <div class="fd-foot">
-                          <div class="fd-tools" id="fdTools"></div>
-                          <button class="fd-go" id="fdGo" onclick="fdNext()">NEXT</button>
+                  <div class="feed-bod">
+                    <div class="chat" id="feedChat"></div>
+                    <div class="feed-answer">
+                      <div class="feed-say">
+                        <textarea id="feedBox" rows="2" oninput="feedGrow()" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();feedNext();}"></textarea>
+                        <div class="feed-foot">
+                          <div class="feed-tools" id="feedTools"></div>
+                          <button class="feed-go" id="feedGo" onclick="feedNext()">NEXT</button>
                         </div>
                       </div>
                     </div>
@@ -234,20 +234,20 @@
               </div>
 
               <!-- STOP 3 — the checklist. One dumb renderer; the container's
-                   config deals the rows (CL_CONFIG below). Nothing flies
+                   config deals the rows (DEETS_CONFIG below). Nothing flies
                    without a tick. -->
-              <div class="fd-stage todo" data-i="2">
-                <div class="fd-gut">3</div>
-                <div class="fd-card">
-                  <button class="fd-head" onclick="accToggle(2)">
+              <div class="feed-stage todo" data-i="2">
+                <div class="feed-gut">3</div>
+                <div class="feed-card">
+                  <button class="feed-head" onclick="accToggle(2)">
                     <div>
-                      <span class="fd-q" id="fdT2"></span>
-                      <div class="fd-sub" id="fdS2"></div>
+                      <span class="feed-q" id="feedT2"></span>
+                      <div class="feed-sub" id="feedS2"></div>
                     </div>
-                    <svg class="fd-chev" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg class="feed-chev" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </button>
-                  <div class="fd-bod">
-                    <div class="cl-cards" id="clCards"></div>
+                  <div class="feed-bod">
+                    <div class="deets-cards" id="deetsCards"></div>
                   </div>
                 </div>
               </div>
@@ -255,7 +255,7 @@
               <!-- THE DOOR — outside the cards, under the whole concertina.
                    Ghost-white and dead until every padlock is shut. The locks
                    gate it exactly as they gate GOOD TO GO in FIX IT. -->
-              <button class="cl-door dz-door" id="clDoor" onclick="toPics()">WRITE THE WORDS</button>
+              <button class="stop-door deets-door" id="deetsDoor" onclick="toPics()">WRITE THE WORDS</button>
 
             </div>
           </div>
@@ -266,7 +266,7 @@
       <textarea id="storyInsight" style="display:none"></textarea>
       <textarea id="storyAngle" style="display:none"></textarea>
       <textarea id="blurb" style="display:none"></textarea>
-      <input type="file" id="fdFile" accept=".txt,.md,.csv,.markdown,.log,.json,.docx,.pdf,.png,.jpg,.jpeg,.webp,.gif" multiple style="display:none">
+      <input type="file" id="feedFile" accept=".txt,.md,.csv,.markdown,.log,.json,.docx,.pdf,.png,.jpg,.jpeg,.webp,.gif" multiple style="display:none">
     </div>
 
     <!-- the pics page went in v015: images arrive from FIX IT when 2.0 wants them -->
@@ -276,30 +276,30 @@
        padlocks in the gutter between. Tweak it or lock it. -->
   <div class="pane" data-p="1">
     <div class="fixstage" id="fixStage">
-      <div class="fx-grid">
+      <div class="fix-grid">
         <div>
           <!-- which output. One lozenge per output; with more than one,
                they're the switch. Same pill as the chat's. -->
-          <div class="fx-lozrow fx-tabs"></div>
-          <div class="fx-artwrap">
-            <div class="mail fx-art" id="fxArt"></div>
-            <div class="fx-gutter" id="fxGutter"></div>
+          <div class="fix-lozrow fix-tabs"></div>
+          <div class="fix-artwrap">
+            <div class="mail fix-art" id="fixArt"></div>
+            <div class="fix-gutter" id="fixGutter"></div>
           </div>
         </div>
-        <div class="fx-rail">
+        <div class="fix-rail">
           <!-- the lozenge names the thread; the card is the section's
                conversation and the composer: a box, a ? and an arrow. -->
-          <div class="fx-lozrow"><span class="fx-loz" id="fxTopic">Need any tweaks?</span></div>
-          <div class="fx-card">
-            <div class="chat narrow" id="fxChat"></div>
-            <div class="fx-compose">
-              <div class="fx-quote" id="fxQuote"></div>
-              <textarea id="fxNote" rows="2" placeholder="Tap a padlock or highlight some words."
-                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fxSend();}"></textarea>
-              <div class="fx-tip" id="fxTip"></div>
-              <div class="fx-crow">
-                <button class="fx-q" onclick="fxTipToggle()" aria-label="Stuck?">?</button>
-                <button class="fx-arrow" id="fxSendBtn" onclick="fxSend()" aria-label="Send" disabled>
+          <div class="fix-lozrow"><span class="fix-loz" id="fixTopic">Need any tweaks?</span></div>
+          <div class="fix-card">
+            <div class="chat narrow" id="fixChat"></div>
+            <div class="fix-compose">
+              <div class="fix-quote" id="fixQuote"></div>
+              <textarea id="fixNote" rows="2" placeholder="Tap a padlock or highlight some words."
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fixSend();}"></textarea>
+              <div class="fix-tip" id="fixTip"></div>
+              <div class="fix-crow">
+                <button class="fix-q" onclick="fixTipToggle()" aria-label="Stuck?">?</button>
+                <button class="fix-arrow" id="fixSendBtn" onclick="fixSend()" aria-label="Send" disabled>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
                 </button>
               </div>
@@ -307,8 +307,8 @@
           </div>
           <!-- the seventh padlock: counts down, never disabled, press it
                early and it takes you to what's open -->
-          <button class="fx-wrap" id="fxWrap" onclick="fxWrapGo()">
-            <span class="fx-wrapico" id="fxWrapIco"></span><span id="fxWrapLbl"></span>
+          <button class="fix-wrap" id="fixWrap" onclick="fixWrapGo()">
+            <span class="fix-wrapico" id="fixWrapIco"></span><span id="fixWrapLbl"></span>
           </button>
         </div>
       </div>
@@ -320,23 +320,23 @@
        this run didn't, and the line says which. file-it-mock.html is the spec. -->
   <div class="pane" data-p="2">
     <div class="filestage">
-      <div class="fi-wrap">
-        <h2 class="fi-room">FILE IT</h2>
-        <div class="fi-tagline">Pick your fillings. The robot wraps it.</div>
-        <div class="fi-q">How would you like your sandwich?</div>
-        <div class="fi-tiles" id="fiTiles"></div>
-        <div class="fi-bar" id="fiBar">
-          <button class="cl-door live" id="fiWrap" onclick="fiWrap()">WRAP IT</button>
+      <div class="file-wrap">
+        <h2 class="file-room">FILE IT</h2>
+        <div class="file-tagline">Pick your fillings. The robot wraps it.</div>
+        <div class="file-q">How would you like your sandwich?</div>
+        <div class="file-tiles" id="fileTiles"></div>
+        <div class="file-bar" id="fileBar">
+          <button class="stop-door live" id="fileWrap" onclick="fileWrap()">WRAP IT</button>
         </div>
-        <div class="fi-done" id="fiDone">
-          <div class="fi-say">
+        <div class="file-done" id="fileDone">
+          <div class="file-say">
             <span class="botdisc" aria-hidden="true" data-face></span>
-            <div class="fi-msg"><b>WRAPPED.</b>That's a sandwich.</div>
+            <div class="file-msg"><b>WRAPPED.</b>That's a sandwich.</div>
           </div>
-          <div class="fi-files" id="fiFiles"></div>
-          <div class="fi-next">
+          <div class="file-files" id="fileFiles"></div>
+          <div class="file-next">
             <button class="btnw" onclick="location.reload()">YOUR NEXT PROJECT</button>
-            <button class="fi-back" onclick="fiUnwrap()">Change the order</button>
+            <button class="file-back" onclick="fileUnwrap()">Change the order</button>
           </div>
         </div>
       </div>
@@ -346,10 +346,10 @@
 </div>
 </section>
 
-<script src="js/sandwich.js?v=037"></script>
-<script src="js/door.js?v=037"></script>
-<script src="js/feed.js?v=037"></script>
-<script src="js/fix.js?v=037"></script>
-<script src="js/file.js?v=037"></script>
+<script src="js/sandwich.js?v=038"></script>
+<script src="js/door.js?v=038"></script>
+<script src="js/feed.js?v=038"></script>
+<script src="js/fix.js?v=038"></script>
+<script src="js/file.js?v=038"></script>
 </body>
 </html>

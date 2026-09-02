@@ -4,16 +4,16 @@
    over, the asset FIX IT hands over. This is the only file that knows every
    room exists — because starting a sandwich resets them all. The run store,
    when it comes, saves what's declared here and nothing else.
-   Loads after the chrome, before the rooms.
+   Loads after the chrome, before the door-tiles.
    ===================================================================== */
 
 /* CONT is the container, straight off /api/container/<id>. Everything the
-   rooms draw — the stops, the moves, the checklist rows, the modules, the
-   ghost, the artefact — comes from it. Nothing in the rooms knows what a
+   door-tiles draw — the stops, the moves, the checklist rows, the modules, the
+   ghost, the artefact — comes from it. Nothing in the door-tiles knows what a
    prize is. */
 let CONT=null, CID='';
 
-/* The brief and the asset are declared in their rooms (feed.js, fix.js);
+/* The brief and the asset are declared in their door-tiles (feed.js, fix.js);
    whether they agree is the sandwich's question. */
 function assetFresh(v){ return !!ASSET && ASSET.brief_v===v; }
 /* the brief moved on: an asset written from an older brief is stale, and
@@ -36,16 +36,16 @@ async function enterRoom(cid, tile){
   try{ CONT = await api('/api/container/'+encodeURIComponent(cid)); }
   catch(e){
     /* the line sits under the tapped tile — beside the wound */
-    errClear($('rooms'));
-    if(tile) tile.insertAdjacentElement('afterend', errLine(STR.doorway.open, {cls:'onred', stick:true}));
-    else errAt($('rooms'), STR.doorway.open, {cls:'onred', stick:true});
+    robotLineClear($('doorTiles'));
+    if(tile) tile.insertAdjacentElement('afterend', robotLine(STR.doorway.open, {cls:'onred', stick:true}));
+    else robotLineAt($('doorTiles'), STR.doorway.open, {cls:'onred', stick:true});
     return;
   }
   cardReset('plate'); cardReset('grid'); TERMS_FAILED=false;
-  $('door').style.display='none'; $('room').classList.add('on');
-  MENU=[]; CHOSEN=null; REACHED=0; unlock(); go(0);
+  $('door').style.display='none'; $('sandwich').classList.add('on');
+  TERMS_MENU=[]; TERMS_CHOSEN=null; REACHED=0; unlock(); go(0);
   BRIEF=null; ASSET=null;
-  CRAFT=null; CRAFT_KEY=''; FXDOC=null;
-  clInit(); clRender(); quizInit();
-  fxTabs();
+  CRAFT=null; CRAFT_KEY=''; FIX_DOC=null;
+  deetsInit(); deetsRender(); quizInit();
+  fixTabs();
 }

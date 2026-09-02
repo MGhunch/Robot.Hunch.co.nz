@@ -6,44 +6,44 @@
    Reads CONT and CID; writes BRIEF. Never reads ASSET.
    ===================================================================== */
 
-let MENU=[], CHOSEN=null;                      // the derived terms and the ticks — FEED IT's, not the brief's
+let TERMS_MENU=[], TERMS_CHOSEN=null;                      // the derived terms and the ticks — FEED IT's, not the brief's
 const val = id => ($(id) ? $(id).value : '');
 
 /* CONT is the container, straight off /api/container/<id>. Everything the
    room draws — the stops, the moves, the checklist rows, the modules, the
    ghost, the artefact — comes from it. Nothing below knows what a prize is. */
-let CL_CONFIG={groups:[],legals:{title:'The legals',sub:''},types:[]};
+let DEETS_CONFIG={groups:[],legals:{title:'The legals',sub:''},types:[]};
 
-let CLS = {};      // row id -> state, for the flat rows
-let CLR = {};      // repeat key -> [ {row id -> state}, ... ], for the repeating groups
+let DEETS_ROWS = {};      // row id -> state, for the flat rows
+let DEETS_REPEATS = {};      // repeat key -> [ {row id -> state}, ... ], for the repeating groups
 const newState = r => ({ value:r.type==='topics'?[]:'', sub:r.sub||'', other:'', ticked:false, mode:'view', found:null });
 
-function clInit(){
-  CL_CONFIG=CONT.checklist; CLS={}; CLR={};
-  CL_CONFIG.groups.forEach(g=>{
-    if(g.repeat){ CLR[repKey(g)] = CLR[repKey(g)] || []; return; }
-    g.rows.forEach(r=>{ CLS[r.id]=newState(r); });
+function deetsInit(){
+  DEETS_CONFIG=CONT.checklist; DEETS_ROWS={}; DEETS_REPEATS={};
+  DEETS_CONFIG.groups.forEach(g=>{
+    if(g.repeat){ DEETS_REPEATS[repKey(g)] = DEETS_REPEATS[repKey(g)] || []; return; }
+    g.rows.forEach(r=>{ DEETS_ROWS[r.id]=newState(r); });
   });
 }
 const repKey = g => g.repeat.per.split(' ').pop();          // "prize card" -> card
-const flatRows = () => CL_CONFIG.groups.filter(g=>!g.repeat).flatMap(g=>g.rows);
-const clRow  = id => flatRows().find(r=>r.id===id) || CL_CONFIG.groups.flatMap(g=>g.rows).find(r=>r.id===id);
-const clShown = (r,S) => !r.showIf || r.showIf.in.includes((S[r.showIf.row]||{}).value);
-const clAsk   = r => r.ask||'';
+const flatRows = () => DEETS_CONFIG.groups.filter(g=>!g.repeat).flatMap(g=>g.rows);
+const deetsRow  = id => flatRows().find(r=>r.id===id) || DEETS_CONFIG.groups.flatMap(g=>g.rows).find(r=>r.id===id);
+const deetsShown = (r,S) => !r.showIf || r.showIf.in.includes((S[r.showIf.row]||{}).value);
+const deetsAsk   = r => r.ask||'';
 /* select labels: the clause library's types name the options where it has
    them (movie -> Movie passes); otherwise the option is its own label */
-function clOptions(r){
-  const types=Object.fromEntries((CL_CONFIG.types||[]).map(t=>[t.value,t.label]));
+function deetsOptions(r){
+  const types=Object.fromEntries((DEETS_CONFIG.types||[]).map(t=>[t.value,t.label]));
   return (r.options||[]).map(o=>[o, types[o] || (o==='other'?'Other…':o)]);
 }
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const clFmtDate = v => { if(!v) return '';
+const deetsFmtDay = v => { if(!v) return '';
   const d=new Date(v+'T00:00'); return DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()]; };
 /* a loose date ("20 September 2026", "20/9/26", "Sun 20 Sep") → ISO, or
    null. A net under the extract contract, never a guess: no year in the
    text means the next occurrence, same as the prompt says. */
-function clDateISO(v){
+function deetsDateISO(v){
   v=String(v).trim();
   if(/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
   let m=v.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})$/);
@@ -61,18 +61,18 @@ function clDateISO(v){
 /* one to twelve as words — display only; the state and the clauses keep
    the digit. The rule proper lives in brandvoice.md so the WRITER agrees. */
 const NUMWORDS=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve'];
-const clFmtNum = v => { const x=Number(v); return Number.isInteger(x)&&x>=1&&x<=12 ? NUMWORDS[x] : String(v); };
+const deetsFmtNum = v => { const x=Number(v); return Number.isInteger(x)&&x>=1&&x<=12 ? NUMWORDS[x] : String(v); };
 
 /* derive — a suggestion, human-editable, human-ticked. Two rules:
    nextWorkday:<row>, and typeCounts (the prize type's ticket words). */
-function clDerive(r,S){
+function deetsDerive(r,S){
   if(r.derive==='typeCounts'){
     /* a default, not a live derivation: it only ever overwrites its own
        last suggestion. Words off the dump, or the human's own, stand. */
     const s=S[r.id];
     if(s.touched) return;
     if(s.value && s.value!==s.seeded) return;
-    const t=dzType(); if(!t) return;
+    const t=deetsType(); if(!t) return;
     const many=Number((S.winners||{}).value||0)>1;
     const v=(many ? t.counts : (t.counts_one||t.counts))||'';
     if(v!==s.value){ s.value=v; s.seeded=v; s.ticked=false; }
@@ -99,76 +99,76 @@ function clDerive(r,S){
    is a section; the legals are the last one. A group of nothing but dates
    draws as the plain list. The group that owns the type row draws as the
    sentence, when its type has one. Everything else keeps the fact grid. */
-let DZ={};                 // section key -> 'open' | 'edit' | 'locked'
-let DZFLASH='';            // the section whose holes just refused a lock
-let DZSTD=false;           // the standard-terms panel, peeked open
+let DEETS_SECTIONS={};                 // section key -> 'open' | 'edit' | 'locked'
+let DEETS_FLASH='';            // the section whose holes just refused a lock
+let DEETS_STD_OPEN=false;           // the standard-terms panel, peeked open
 
-function dzSections(){
+function deetsSections(){
   const out=[], done=new Set();
-  CL_CONFIG.groups.forEach(g=>{
+  DEETS_CONFIG.groups.forEach(g=>{
     if(g.repeat){ const k=repKey(g); if(done.has(k)) return; done.add(k);
       out.push({key:'rep:'+k, title:k, kind:'repeat', rep:k}); return; }
     const rows=g.rows.filter(r=>r.type!=='legals');
     if(!rows.length) return;                      // a prose-only group draws nothing
-    const shown=rows.filter(r=>clShown(r,CLS));
+    const shown=rows.filter(r=>deetsShown(r,DEETS_ROWS));
     let kind='facts';
     if(shown.length && shown.every(r=>r.type==='date')) kind='dates';
-    else if(rows.some(r=>r.id.endsWith('_type')) && dzTemplate()) kind='sentence';
+    else if(rows.some(r=>r.id.endsWith('_type')) && deetsTemplate()) kind='sentence';
     out.push({key:'grp:'+g.title, title:g.title, kind, rows});
   });
   out.push({key:'legals', title:'The legals', kind:'legals'});
   return out;
 }
-const dzState = k => DZ[k] || (DZ[k]='open');
-function dzAllLocked(){ return !!CONT && dzSections().every(s=>dzState(s.key)==='locked'); }
+const deetsState = k => DEETS_SECTIONS[k] || (DEETS_SECTIONS[k]='open');
+function deetsAllLocked(){ return !!CONT && deetsSections().every(s=>deetsState(s.key)==='locked'); }
 
 /* every row a section owns, with the state object it lives in */
-function dzRows(sec){
+function deetsRows(sec){
   const out=[];
   if(sec.kind==='repeat'){
-    const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===sec.rep);
-    (CLR[sec.rep]||[]).forEach(S=>groups.forEach(g=>g.rows.forEach(r=>out.push({r,S}))));
-  } else if(sec.rows){ sec.rows.forEach(r=>out.push({r,S:CLS})); }
+    const groups=DEETS_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===sec.rep);
+    (DEETS_REPEATS[sec.rep]||[]).forEach(S=>groups.forEach(g=>g.rows.forEach(r=>out.push({r,S}))));
+  } else if(sec.rows){ sec.rows.forEach(r=>out.push({r,S:DEETS_ROWS})); }
   return out;
 }
-function dzHoles(sec){
-  return dzRows(sec).filter(({r,S})=>clShown(r,S)&&!cellFilled(r,S)).map(x=>x.r);
+function deetsHoles(sec){
+  return deetsRows(sec).filter(({r,S})=>deetsShown(r,S)&&!cellFilled(r,S)).map(x=>x.r);
 }
 
 /* ── the padlock loop — FIX IT's grammar verbatim: tap open or shut and you
    get the pencil; tap the pencil and it keeps. Opening one keeps the other:
    leaving locks. A section with a hole refuses — canon doesn't ship with a
    TBC in it — so the hole flashes and the robot says which one. ── */
-function dzPadTap(key){
-  const sec=dzSections().find(x=>x.key===key); if(!sec) return;
-  PADLOCK.tap(dzState(key), {keep:()=>dzKeep(sec), open:()=>dzOpen(sec)});
+function deetsPadTap(key){
+  const sec=deetsSections().find(x=>x.key===key); if(!sec) return;
+  PADLOCK.tap(deetsState(key), {keep:()=>deetsKeep(sec), open:()=>deetsOpen(sec)});
 }
-function dzOpen(sec){
-  dzSections().forEach(o=>{ if(o.key!==sec.key && dzState(o.key)==='edit') dzKeep(o); });
-  DZ[sec.key]='edit'; DZFLASH='';
-  dzRows(sec).forEach(({r,S})=>{ if(S[r.id]) S[r.id].ticked=false; });
-  clRender();
+function deetsOpen(sec){
+  deetsSections().forEach(o=>{ if(o.key!==sec.key && deetsState(o.key)==='edit') deetsKeep(o); });
+  DEETS_SECTIONS[sec.key]='edit'; DEETS_FLASH='';
+  deetsRows(sec).forEach(({r,S})=>{ if(S[r.id]) S[r.id].ticked=false; });
+  deetsRender();
 }
-function dzKeep(sec){
-  const holes=dzHoles(sec);
+function deetsKeep(sec){
+  const holes=deetsHoles(sec);
   if(holes.length){
-    DZ[sec.key]='edit'; DZFLASH=sec.key;
-    fdSay(2, holes.length===1
+    DEETS_SECTIONS[sec.key]='edit'; DEETS_FLASH=sec.key;
+    feedSay(2, holes.length===1
       ? "Can't lock that with a hole in it — I still need the "+String(holes[0].label).toLowerCase()+"."
       : "Can't lock that yet — "+holes.length+" bits are still TBC.");
-    clRender(); return;
+    deetsRender(); return;
   }
-  DZ[sec.key]='locked'; DZFLASH='';
-  dzRows(sec).forEach(({r,S})=>{ if(S[r.id]){ S[r.id].ticked=true; S[r.id].mode='view'; } });
-  clArm(); clRender();
+  DEETS_SECTIONS[sec.key]='locked'; DEETS_FLASH='';
+  deetsRows(sec).forEach(({r,S})=>{ if(S[r.id]){ S[r.id].ticked=true; S[r.id].mode='view'; } });
+  deetsArm(); deetsRender();
 }
-function dzPad(key, st){
+function deetsPad(key, st){
   const b=document.createElement('button');
-  b.className='dz-pad '+st;
+  b.className='deets-pad '+st;
   b.innerHTML = PADLOCK.face(st);
   const tip=PADLOCK.say[st];
   b.title=tip; b.setAttribute('aria-label',tip);
-  b.onclick=()=>dzPadTap(key);
+  b.onclick=()=>deetsPadTap(key);
   return b;
 }
 
@@ -179,58 +179,58 @@ function dzPad(key, st){
    that definition in its other dress. Same facts, fewer formalities, so the
    two can differ in tone and never in substance. The words live in the
    container (sentence: per prize type), never here. ── */
-function dzType(){
+function deetsType(){
   const tr=flatRows().find(r=>r.id.endsWith('_type')); if(!tr) return null;
-  const s=CLS[tr.id]; if(!s||!s.value) return null;
-  return (CL_CONFIG.types||[]).find(x=>x.value===s.value)||null;
+  const s=DEETS_ROWS[tr.id]; if(!s||!s.value) return null;
+  return (DEETS_CONFIG.types||[]).find(x=>x.value===s.value)||null;
 }
-const dzTemplate = () => (dzType()||{}).sentence||'';
+const deetsTemplate = () => (deetsType()||{}).sentence||'';
 
-const dzFmtDate = v => { if(!v) return '';
+const deetsFmtDate = v => { if(!v) return '';
   const d=new Date(v+'T00:00'); return d.getDate()+' '+MONTHS[d.getMonth()]+' '+d.getFullYear(); };
-function dzVal(id){
-  if(id==='counts')     return (dzType()||{}).counts||'';
-  if(id==='counts_one') return (dzType()||{}).counts_one||'';
-  const r=clRow(id); if(!r) return '';
-  const s=CLS[id]; if(!s||!s.value) return '';
-  if(r.type==='date')   return clFmtDate(s.value);
-  if(r.type==='number') return clFmtNum(s.value);
+function deetsVal(id){
+  if(id==='counts')     return (deetsType()||{}).counts||'';
+  if(id==='counts_one') return (deetsType()||{}).counts_one||'';
+  const r=deetsRow(id); if(!r) return '';
+  const s=DEETS_ROWS[id]; if(!s||!s.value) return '';
+  if(r.type==='date')   return deetsFmtDay(s.value);
+  if(r.type==='number') return deetsFmtNum(s.value);
   if(r.type==='select') return s.value==='other' ? (s.other||'')
-    : ((clOptions(r).find(o=>o[0]===s.value)||[])[1]||'');
+    : ((deetsOptions(r).find(o=>o[0]===s.value)||[])[1]||'');
   return s.value;
 }
 /* {id} a fact as the card shows it, {counts} the type's noun; [a/b] picks by
    winner count, the same switch the clauses use; [[ ]] is an optional run
    that vanishes whole when anything inside it is empty; *stars* bold. A
    missing fact outside an optional run reads TBC in red — the only alarm. */
-function dzFill(tpl){
-  const plural = Number(dzVal('winners')&&(CLS.winners||{}).value||1) > 1;
+function deetsFill(tpl){
+  const plural = Number(deetsVal('winners')&&(DEETS_ROWS.winners||{}).value||1) > 1;
   let t=String(tpl).replace(/\[([^\[\]]*?\/[^\[\]]*?)\]/g,(m,g)=>{
     const parts=g.split('/'); return (plural?parts[1]:parts[0]).trim(); });
   t=t.replace(/\[\[(.*?)\]\]/g,(m,run)=>{
-    let ok=true; run.replace(/\{(\w+)\}/g,function(_,id){ if(!dzVal(id)) ok=false; return ''; });
+    let ok=true; run.replace(/\{(\w+)\}/g,function(_,id){ if(!deetsVal(id)) ok=false; return ''; });
     return ok?run:''; });
   let html=t.replace(/\{(\w+)\}/g,(m,id)=>{
-    const v=dzVal(id); return v?esc(v):'<span class="tbc">TBC</span>'; });
+    const v=deetsVal(id); return v?esc(v):'<span class="tbc">TBC</span>'; });
   return html.replace(/\*([^*]+)\*/g,'<b>$1</b>');
 }
 
 /* ── the section bodies ── */
-function dzSentenceBody(box, sec, st){
-  if(st==='edit') return dzFactsBody(box, sec, st);
-  const p=document.createElement('div'); p.className='dz-prize';
-  p.innerHTML=dzFill(dzTemplate());
+function deetsSentenceBody(box, sec, st){
+  if(st==='edit') return deetsFactsBody(box, sec, st);
+  const p=document.createElement('div'); p.className='deets-prize';
+  p.innerHTML=deetsFill(deetsTemplate());
   box.appendChild(p);
 }
 /* label left, value right, hairlines between. Filled rows sit in ink and
    shut up; only TBC is red. Open, they become the platform's own picker. */
-function dzDatesBody(box, sec, st){
-  const list=document.createElement('div'); list.className='dz-dates';
-  sec.rows.filter(r=>clShown(r,CLS)).forEach(r=>{
-    clDerive(r,CLS);
-    const s=CLS[r.id];
-    const row=document.createElement('div'); row.className='dz-drow';
-    row.innerHTML='<span class="dz-dlabel">'+esc(r.label)+'</span>';
+function deetsDatesBody(box, sec, st){
+  const list=document.createElement('div'); list.className='deets-dates';
+  sec.rows.filter(r=>deetsShown(r,DEETS_ROWS)).forEach(r=>{
+    deetsDerive(r,DEETS_ROWS);
+    const s=DEETS_ROWS[r.id];
+    const row=document.createElement('div'); row.className='deets-drow';
+    row.innerHTML='<span class="deets-dlabel">'+esc(r.label)+'</span>';
     if(st==='edit'){
       const inp=document.createElement('input'); inp.type='date'; inp.value=s.value||'';
       inp.setAttribute('aria-label', r.label);
@@ -241,8 +241,8 @@ function dzDatesBody(box, sec, st){
       row.appendChild(inp);
     } else {
       const v=document.createElement('span');
-      v.className='dz-dval'+(s.value?'':' tbc');
-      v.textContent=s.value?dzFmtDate(s.value):'TBC';
+      v.className='deets-dval'+(s.value?'':' tbc');
+      v.textContent=s.value?deetsFmtDate(s.value):'TBC';
       row.appendChild(v);
     }
     list.appendChild(row);
@@ -251,54 +251,54 @@ function dzDatesBody(box, sec, st){
 }
 /* the fact grid, unchanged — the rows keep their own edit loop. It draws
    where a group has no sentence to wear, and where the prize is open. */
-function dzFactsBody(box, sec, st){
-  const grid=document.createElement('div'); grid.className='cl-factgrid';
-  sec.rows.filter(r=>clShown(r,CLS)&&!clTypeKnown(r,CLS)).forEach(r=>{
-    clDerive(r,CLS); grid.appendChild(clRowEl(r,CLS)); });
+function deetsFactsBody(box, sec, st){
+  const grid=document.createElement('div'); grid.className='deets-factgrid';
+  sec.rows.filter(r=>deetsShown(r,DEETS_ROWS)&&!deetsTypeKnown(r,DEETS_ROWS)).forEach(r=>{
+    deetsDerive(r,DEETS_ROWS); grid.appendChild(deetsRowEl(r,DEETS_ROWS)); });
   if(st!=='edit') grid.classList.add('inert');
   box.appendChild(grid);
 }
-function dzRepeatBody(box, sec, st){
-  clRepeatCards(sec.rep).forEach(c=>box.appendChild(c));
+function deetsRepeatBody(box, sec, st){
+  deetsRepeatCards(sec.rep).forEach(c=>box.appendChild(c));
   if(st!=='edit') box.classList.add('inert');
 }
 /* two forms, one lock. Standard terms are one quiet block naming the
    clauses — furniture, nothing to tick, "Read them" for the words as
    they'll print. Specific terms are the chips, and they are the only
    decisions in the section. */
-function dzLegalsBody(box, sec, st){
-  const fixedSrc = MENU.length ? MENU.filter(c=>c.fixed&&!c.sub) : (CL_CONFIG.legals.fixed||[]);
-  box.innerHTML='<div class="cl-title">'+clTitle(CL_CONFIG.legals.fixedTitle||'Standard terms')+'</div>';
-  const std=document.createElement('div'); std.className='dz-std';
-  std.innerHTML=esc(dzStdLine(fixedSrc))+' ';
-  const peek=document.createElement('span'); peek.className='dz-peek';
-  peek.textContent=DZSTD?'Hide terms':'Read terms';
-  peek.onclick=()=>{ DZSTD=!DZSTD; fixedSrc.forEach(c=>logPeek(c.id)); clRender(); };
+function deetsLegalsBody(box, sec, st){
+  const fixedSrc = TERMS_MENU.length ? TERMS_MENU.filter(c=>c.fixed&&!c.sub) : (DEETS_CONFIG.legals.fixed||[]);
+  box.innerHTML='<div class="deets-title">'+deetsTitle(DEETS_CONFIG.legals.fixedTitle||'Standard terms')+'</div>';
+  const std=document.createElement('div'); std.className='deets-std';
+  std.innerHTML=esc(deetsStdLine(fixedSrc))+' ';
+  const peek=document.createElement('span'); peek.className='deets-peek';
+  peek.textContent=DEETS_STD_OPEN?'Hide terms':'Read terms';
+  peek.onclick=()=>{ DEETS_STD_OPEN=!DEETS_STD_OPEN; fixedSrc.forEach(c=>logPeek(c.id)); deetsRender(); };
   std.appendChild(peek); box.appendChild(std);
-  const full=document.createElement('div'); full.className='dz-stdfull'+(DZSTD?' on':'');
-  full.innerHTML=fixedSrc.map(c=>'<b>'+esc(clLabel(c))+'</b>'+clWords(c.text)).join('');
+  const full=document.createElement('div'); full.className='deets-stdfull'+(DEETS_STD_OPEN?' on':'');
+  full.innerHTML=fixedSrc.map(c=>'<b>'+esc(deetsLabel(c))+'</b>'+deetsWords(c.text)).join('');
   box.appendChild(full);
-  const t2=document.createElement('div'); t2.className='cl-title dz-t2';
-  t2.innerHTML=clTitle(CL_CONFIG.legals.title||'Specific terms');
+  const t2=document.createElement('div'); t2.className='deets-title deets-t2';
+  t2.innerHTML=deetsTitle(DEETS_CONFIG.legals.title||'Specific terms');
   box.appendChild(t2);
-  const opt = MENU.length ? MENU.filter(c=>!c.fixed) : [];
+  const opt = TERMS_MENU.length ? TERMS_MENU.filter(c=>!c.fixed) : [];
   if(!opt.length && TERMS_FAILED){
-    box.appendChild(errLine(STR.deets.terms_fail,{stick:true}));
+    box.appendChild(robotLine(STR.deets.terms_fail,{stick:true}));
   } else if(!opt.length){
-    const w=document.createElement('div'); w.className='cl-legwait';
+    const w=document.createElement('div'); w.className='deets-legwait';
     w.textContent=TERMS_BUSY ? STR.deets.terms_wait : 'Finish the facts above and the legals sort themselves.';
     box.appendChild(w);
   } else {
-    const row=document.createElement('div'); row.className='cl-pills'+(st==='edit'?'':' inert');
-    opt.forEach(c=>{ const on=!!(CHOSEN&&CHOSEN.includes(c.id));
-      row.appendChild(clPill(c,on,false,()=>toggleClause(c.id))); });
+    const row=document.createElement('div'); row.className='deets-pills'+(st==='edit'?'':' inert');
+    opt.forEach(c=>{ const on=!!(TERMS_CHOSEN&&TERMS_CHOSEN.includes(c.id));
+      row.appendChild(deetsPill(c,on,false,()=>toggleClause(c.id))); });
     box.appendChild(row);
   }
 }
-const clLabel = c => c.label || String(c.id).replace(/_/g,' ').replace(/^./,x=>x.toUpperCase());
+const deetsLabel = c => c.label || String(c.id).replace(/_/g,' ').replace(/^./,x=>x.toUpperCase());
 /* the block names the clauses; it never prints them */
-function dzStdLine(list){
-  const names=list.map(c=>{ const l=clLabel(c);
+function deetsStdLine(list){
+  const names=list.map(c=>{ const l=deetsLabel(c);
     return /[A-Z]/.test(l.slice(1)) ? l : l.charAt(0).toLowerCase()+l.slice(1); });
   if(!names.length) return 'The standard terms ride along on every one of these.';
   const last=names.pop();
@@ -306,28 +306,28 @@ function dzStdLine(list){
   return joined.replace(/^./,c=>c.toUpperCase())+'. These are always included.';
 }
 
-function clRender(){
-  const wrap=$('clCards'); if(!wrap||!CONT) return; wrap.innerHTML='';
-  flatRows().forEach(r=>{ if(r.derive) clDerive(r,CLS); });
-  dzSections().forEach(sec=>{
-    const st=dzState(sec.key);
+function deetsRender(){
+  const wrap=$('deetsCards'); if(!wrap||!CONT) return; wrap.innerHTML='';
+  flatRows().forEach(r=>{ if(r.derive) deetsDerive(r,DEETS_ROWS); });
+  deetsSections().forEach(sec=>{
+    const st=deetsState(sec.key);
     const el=document.createElement('div');
-    el.className='dz-sec '+st+(DZFLASH===sec.key?' flash':'');
-    if(sec.kind!=='legals') el.innerHTML='<div class="cl-title">'+clTitle(sec.title)+'</div>';
-    const body=document.createElement('div'); body.className='dz-body';
-    if(sec.kind==='sentence')    dzSentenceBody(body, sec, st);
-    else if(sec.kind==='dates')  dzDatesBody(body, sec, st);
-    else if(sec.kind==='repeat') dzRepeatBody(body, sec, st);
-    else if(sec.kind==='legals') dzLegalsBody(body, sec, st);
-    else                         dzFactsBody(body, sec, st);
+    el.className='deets-sec '+st+(DEETS_FLASH===sec.key?' flash':'');
+    if(sec.kind!=='legals') el.innerHTML='<div class="deets-title">'+deetsTitle(sec.title)+'</div>';
+    const body=document.createElement('div'); body.className='deets-body';
+    if(sec.kind==='sentence')    deetsSentenceBody(body, sec, st);
+    else if(sec.kind==='dates')  deetsDatesBody(body, sec, st);
+    else if(sec.kind==='repeat') deetsRepeatBody(body, sec, st);
+    else if(sec.kind==='legals') deetsLegalsBody(body, sec, st);
+    else                         deetsFactsBody(body, sec, st);
     el.appendChild(body);
-    el.appendChild(dzPad(sec.key, st));
+    el.appendChild(deetsPad(sec.key, st));
     wrap.appendChild(el);
   });
-  $('clDoor').classList.toggle('live', dzAllLocked());
-  fdStages();
+  $('deetsDoor').classList.toggle('live', deetsAllLocked());
+  feedStages();
 }
-function clTitle(t){
+function deetsTitle(t){
   const w=String(t).split(' '); if(w.length<2) return esc(t);
   return esc(w.slice(0,-1).join(' '))+' <em>'+esc(w[w.length-1])+'</em>';
 }
@@ -335,40 +335,40 @@ function clTitle(t){
 /* a repeating group: one card per item (CARD 1, CARD 2…), the base rows,
    then any conditional group's rows when its condition holds. Items come
    from extraction or the + link; the group's min is the floor. */
-function clRepeatCards(key){
-  const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
+function deetsRepeatCards(key){
+  const groups=DEETS_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
   const base=groups.find(g=>!g.repeat.where)||groups[0];
-  const items=CLR[key];
+  const items=DEETS_REPEATS[key];
   while(items.length<base.repeat.min) items.push({});
   items.forEach(S=>{ groups.forEach(g=>g.rows.forEach(r=>{ if(!S[r.id]) S[r.id]=newState(r); })); });
   /* a prize story carries the draw clause by default; the human unticks */
   items.forEach(S=>{ const tr=groups.flatMap(g=>g.rows).find(r=>r.id.endsWith('_type')), tp=groups.flatMap(g=>g.rows).find(r=>r.type==='topics');
     if(tr&&tp&&S[tr.id].value==='prize'&&!S[tp.id].seeded){ S[tp.id].seeded=true;
-      (CL_CONFIG.topics||[]).filter(x=>x.default&&(!x.when||x.when==='prize')).forEach(x=>{ if(!S[tp.id].value.includes(x.id)) S[tp.id].value.push(x.id); }); } });
+      (DEETS_CONFIG.topics||[]).filter(x=>x.default&&(!x.when||x.when==='prize')).forEach(x=>{ if(!S[tp.id].value.includes(x.id)) S[tp.id].value.push(x.id); }); } });
   const cards=items.map((S,i)=>{
-    const card=document.createElement('div'); card.className='cl-card';
+    const card=document.createElement('div'); card.className='deets-card';
     const typeRow=base.rows.find(r=>r.id.endsWith('_type'));
     const type=typeRow?(S[typeRow.id].value||''):'';
     const topicRow=groups.flatMap(g=>g.rows).find(r=>r.type==='topics');
-    if(topicRow){ return clStoryCard(key,i,S,items,base,typeRow,topicRow); }
-    card.innerHTML=`<div class="cl-title">${esc(key).toUpperCase()} <em>${i+1}</em>${type?`<span class="cl-tag">${esc(type)}</span>`:''}
-      ${items.length>base.repeat.min?`<a class="cl-rm" title="Remove">&times;</a>`:''}</div>`;
-    const rm=card.querySelector('.cl-rm'); if(rm) rm.onclick=()=>{ items.splice(i,1); dirty(); clRender(); };
+    if(topicRow){ return deetsStoryCard(key,i,S,items,base,typeRow,topicRow); }
+    card.innerHTML=`<div class="deets-title">${esc(key).toUpperCase()} <em>${i+1}</em>${type?`<span class="deets-tag">${esc(type)}</span>`:''}
+      ${items.length>base.repeat.min?`<a class="deets-rm" title="Remove">&times;</a>`:''}</div>`;
+    const rm=card.querySelector('.deets-rm'); if(rm) rm.onclick=()=>{ items.splice(i,1); dirty(); deetsRender(); };
     card.classList.add('facts');
-    const grid=document.createElement('div'); grid.className='cl-factgrid';
+    const grid=document.createElement('div'); grid.className='deets-factgrid';
     const liveRows=[];
     groups.forEach(g=>{
       const w=g.repeat.where;
       if(w && String((S[w.row]||{}).value)!==w.is) return;
-      g.rows.forEach(r=>{ if(r.type==='legals'||!clShown(r,S)) return; clDerive(r,S); liveRows.push(r); grid.appendChild(clRowEl(r,S)); });
+      g.rows.forEach(r=>{ if(r.type==='legals'||!deetsShown(r,S)) return; deetsDerive(r,S); liveRows.push(r); grid.appendChild(deetsRowEl(r,S)); });
     });
     card.appendChild(grid);
     return card;
   });
   if(items.length<base.repeat.max){
-    const add=document.createElement('button'); add.className='cl-add';
+    const add=document.createElement('button'); add.className='deets-add';
     add.textContent=`+ another ${key}`;
-    add.onclick=()=>{ items.push({}); clRender(); };
+    add.onclick=()=>{ items.push({}); deetsRender(); };
     cards.push(add);
   }
   return cards;
@@ -377,63 +377,63 @@ function clRepeatCards(key){
 /* THE LINEUP — a story is one row: what it's about, its type as a tag,
    the circle tick; under it the legal topics as square chips. Click the
    words to edit subject and type. No title, no provenance. */
-function clStoryCard(key,i,S,items,base,typeRow,topicRow){
-  const card=document.createElement('div'); card.className='cl-card story';
+function deetsStoryCard(key,i,S,items,base,typeRow,topicRow){
+  const card=document.createElement('div'); card.className='deets-card story';
   const subjRow=base.rows.find(r=>r.type==='text')||base.rows[0];
   const s=S[subjRow.id], ty=typeRow?S[typeRow.id]:null, tp=S[topicRow.id];
   const type=ty?ty.value:'';
-  const row=document.createElement('div'); row.className='cl-row';
-  const main=document.createElement('div'); main.className='cl-main'; row.appendChild(main);
-  main.innerHTML=`<div class="cl-label">${esc(key)} ${i+1}</div>`;
-  const valEl=document.createElement('div'); valEl.className='cl-value'; main.appendChild(valEl);
+  const row=document.createElement('div'); row.className='deets-row';
+  const main=document.createElement('div'); main.className='deets-main'; row.appendChild(main);
+  main.innerHTML=`<div class="deets-label">${esc(key)} ${i+1}</div>`;
+  const valEl=document.createElement('div'); valEl.className='deets-value'; main.appendChild(valEl);
   const shown=s.value;
   if(s.mode==='edit'){
     const inp=document.createElement('input'); inp.type='text'; inp.value=s.value; inp.placeholder=(subjRow.ask||'').replace('{n}', i+1);
     valEl.appendChild(inp);
     let sel=null;
     if(typeRow){ sel=document.createElement('select');
-      sel.innerHTML='<option value="">—</option>'+clOptions(typeRow).map(o=>`<option value="${esc(o[0])}" ${o[0]===type?'selected':''}>${esc(o[1])}</option>`).join('');
+      sel.innerHTML='<option value="">—</option>'+deetsOptions(typeRow).map(o=>`<option value="${esc(o[0])}" ${o[0]===type?'selected':''}>${esc(o[1])}</option>`).join('');
       sel.style.marginTop='6px'; valEl.appendChild(document.createElement('br')); valEl.appendChild(sel); }
     const save=()=>{ if(s.mode!=='edit') return;
       if(sel && document.activeElement===sel) return;
       const nv=inp.value.trim(), nt=sel?sel.value:type;
       if(nv!==s.value||nt!==type){ s.value=nv; if(ty){ ty.value=nt; ty.ticked=true; } s.ticked=false; s.found=null; dirty(); }
-      s.mode='view'; clRender(); };
+      s.mode='view'; deetsRender(); };
     inp.onblur=()=>setTimeout(save,80); if(sel) sel.onblur=()=>setTimeout(save,80);
     inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
     setTimeout(()=>inp.focus(),0);
   } else {
     valEl.innerHTML = shown
-      ? `<span class="cl-storyname">${esc(shown)}</span>${type?`<span class="cl-tag grey">${esc(type)}</span>`:''}`
-      : `<span class="cl-ask">${esc((subjRow.ask||'').replace('{n}', i+1))}</span>`;
-    valEl.onclick=()=>{ s.mode='edit'; clRender(); };
+      ? `<span class="deets-storyname">${esc(shown)}</span>${type?`<span class="deets-tag grey">${esc(type)}</span>`:''}`
+      : `<span class="deets-ask">${esc((subjRow.ask||'').replace('{n}', i+1))}</span>`;
+    valEl.onclick=()=>{ s.mode='edit'; deetsRender(); };
   }
   card.appendChild(row);
-  const topics=(CL_CONFIG.topics||[]).filter(x=>!x.when||x.when===type);
+  const topics=(DEETS_CONFIG.topics||[]).filter(x=>!x.when||x.when===type);
   if(topics.length){
-    const box=document.createElement('div'); box.className='cl-pills';
+    const box=document.createElement('div'); box.className='deets-pills';
     topics.forEach(x=>{
       const on=tp.value.includes(x.id);
-      box.appendChild(clPill(x,on,false,()=>{
+      box.appendChild(deetsPill(x,on,false,()=>{
         tp.value = on ? tp.value.filter(v=>v!==x.id) : tp.value.concat([x.id]);
-        s.ticked=false; if(ty) ty.ticked=false; dirty(); clRender(); }));
+        s.ticked=false; if(ty) ty.ticked=false; dirty(); deetsRender(); }));
     });
     card.appendChild(box);
   } else if(shown){
-    const w=document.createElement('div'); w.className='cl-legwait'; w.textContent='Nothing to add. The standard footer covers it.'; card.appendChild(w);
+    const w=document.createElement('div'); w.className='deets-legwait'; w.textContent='Nothing to add. The standard footer covers it.'; card.appendChild(w);
   }
   if(items.length>base.repeat.min){
-    const rm=document.createElement('a'); rm.className='cl-rm'; rm.title='Remove'; rm.innerHTML='&times;';
-    rm.onclick=()=>{ items.splice(i,1); dirty(); clRender(); }; card.appendChild(rm);
+    const rm=document.createElement('a'); rm.className='deets-rm'; rm.title='Remove'; rm.innerHTML='&times;';
+    rm.onclick=()=>{ items.splice(i,1); dirty(); deetsRender(); }; card.appendChild(rm);
   }
   return card;
 }
 
-function clRowEl(r,S){
+function deetsRowEl(r,S){
   const s=S[r.id];
-  const row=document.createElement('div'); row.className='cl-row';
-  const main=document.createElement('div'); main.className='cl-main'; row.appendChild(main);
-  const valEl=document.createElement('div'); valEl.className='cl-value'; main.appendChild(valEl);
+  const row=document.createElement('div'); row.className='deets-row';
+  const main=document.createElement('div'); main.className='deets-main'; row.appendChild(main);
+  const valEl=document.createElement('div'); valEl.className='deets-value'; main.appendChild(valEl);
   const isSel=r.type==='select', hasOther=isSel&&(r.options||[]).includes('other');
 
   if(s.mode==='view'){
@@ -441,33 +441,33 @@ function clRowEl(r,S){
        dashed red, the ask inside. Click anywhere to update. The circle
        moved to the card; the row keeps no tick of its own. */
     const shown = isSel
-      ? (s.value==='other' ? (s.other||'') : (clOptions(r).find(o=>o[0]===s.value)||[])[1])
+      ? (s.value==='other' ? (s.other||'') : (deetsOptions(r).find(o=>o[0]===s.value)||[])[1])
       : s.value;
     let v;
     /* an unknown fact reads TBC, not its own question — a grid of asks is
        noise at a glance. The question survives as the edit placeholder. */
-    if(!shown) v='<span class="cl-ask">TBC</span>';
-    else if(r.type==='date') v=clFmtDate(s.value);
-    else if(r.type==='number'){ const u=clUnit(r,S); v=esc(clFmtNum(shown)+(u?' '+u:'')); }
+    if(!shown) v='<span class="deets-ask">TBC</span>';
+    else if(r.type==='date') v=deetsFmtDay(s.value);
+    else if(r.type==='number'){ const u=deetsUnit(r,S); v=esc(deetsFmtNum(shown)+(u?' '+u:'')); }
     else v=esc(shown);
     row.classList.add('pillrow'); if(!shown) row.classList.add('awake');
-    valEl.innerHTML=`<span class="cl-pilllabel">${esc(r.label)}</span> <span class="cl-pillval">${v}</span>`;
-    valEl.onclick=()=>{ s.mode='edit'; clRender(); };
+    valEl.innerHTML=`<span class="deets-pilllabel">${esc(r.label)}</span> <span class="deets-pillval">${v}</span>`;
+    valEl.onclick=()=>{ s.mode='edit'; deetsRender(); };
   }
   else if(s.mode==='edit'){
     row.classList.add('pillrow','editing');
     let inp;
     if(isSel){
       inp=document.createElement('select');
-      inp.innerHTML='<option value="">—</option>'+clOptions(r).map(o=>`<option value="${esc(o[0])}" ${o[0]===s.value?'selected':''}>${esc(o[1])}</option>`).join('');
+      inp.innerHTML='<option value="">—</option>'+deetsOptions(r).map(o=>`<option value="${esc(o[0])}" ${o[0]===s.value?'selected':''}>${esc(o[1])}</option>`).join('');
     } else {
       inp=document.createElement('input');
       inp.type = r.type==='date'?'date':(r.type==='number'?'number':'text');
       if(r.type==='number') inp.min=1;
-      inp.value=s.value; inp.placeholder=clAsk(r);
+      inp.value=s.value; inp.placeholder=deetsAsk(r);
     }
     if(r.sub!==undefined){
-      const si=document.createElement('input'); si.className='cl-subin';
+      const si=document.createElement('input'); si.className='deets-subin';
       si.value=s.sub; si.setAttribute('aria-label','At');
       si.oninput=()=>{ s.sub=si.value; };
       valEl.appendChild(si);
@@ -483,10 +483,10 @@ function clRowEl(r,S){
       inp.onchange=()=>{ otherIn.style.display = inp.value==='other'?'inline-block':'none';
         if(inp.value==='other') otherIn.focus(); };
     }
-    if(clAsk(r) && r.notsure){
-      const ns=document.createElement('span'); ns.className='cl-notsure';
+    if(deetsAsk(r) && r.notsure){
+      const ns=document.createElement('span'); ns.className='deets-notsure';
       ns.textContent='Not sure?';
-      ns.onmousedown=e=>{ e.preventDefault(); s.mode='doors'; clRender(); };
+      ns.onmousedown=e=>{ e.preventDefault(); s.mode='doors'; deetsRender(); };
       valEl.appendChild(document.createElement('br')); valEl.appendChild(ns);
     }
     setTimeout(()=>{ inp.focus();
@@ -498,7 +498,7 @@ function clRowEl(r,S){
       const changed = nv!==s.value || (otherIn && otherIn.value.trim()!==s.other);
       s.value=nv; if(otherIn) s.other=otherIn.value.trim();
       if(changed){ s.ticked=false; s.found=null; s.touched=true; dirty(); }
-      s.mode='view'; clRender();
+      s.mode='view'; deetsRender();
     };
     inp.onblur=()=>setTimeout(save,80);
     if(otherIn) otherIn.onblur=()=>setTimeout(save,80);
@@ -509,12 +509,12 @@ function clRowEl(r,S){
   if(s.mode==='doors'){
     row.classList.add('pillrow','editing');
     valEl.innerHTML='';
-    const panel=document.createElement('div'); panel.className='cl-doors';
-    panel.innerHTML=`<div class="cl-doorline"><span class="cl-doorbot">${BOT_AV()}</span>
+    const panel=document.createElement('div'); panel.className='deets-doors';
+    panel.innerHTML=`<div class="deets-doorline"><span class="deets-doorbot">${BOT_AV()}</span>
       <span>No sweat &mdash; ${esc(r.notsure)} Your call:</span></div>`;
-    const btns=document.createElement('div'); btns.className='cl-doorbtns';
+    const btns=document.createElement('div'); btns.className='deets-doorbtns';
     const tell=document.createElement('button'); tell.textContent="I'll tell it";
-    tell.onclick=()=>{ s.mode='edit'; clRender(); };
+    tell.onclick=()=>{ s.mode='edit'; deetsRender(); };
     btns.appendChild(tell);
     if(r.diggable){
       const dig=document.createElement('button'); dig.className='primary'; dig.textContent='Let it dig';
@@ -522,9 +522,9 @@ function clRowEl(r,S){
          open, the row's gap already in the field. Stop 3 to stop 1 is the
          concertina jump, and it's deliberate — the dig is the dump's job. */
       dig.onclick=()=>{
-        s.mode='view'; clRender();
-        acc(0); fdDoor('search');
-        const f=$('srField'); if(f){ f.value=r.label||''; fdDumpDraw(); f.focus(); }
+        s.mode='view'; deetsRender();
+        acc(0); feedDoor('search');
+        const f=$('searchField'); if(f){ f.value=r.label||''; feedDumpDraw(); f.focus(); }
       };
       btns.appendChild(dig);
     }
@@ -536,34 +536,34 @@ function clRowEl(r,S){
 /* a *_type row leaves the card once it's known — it keeps working
    backstage (which clauses propose, the prize line, which facts show).
    Known means ticked: the human never weighs the robot's read here. */
-function clTypeKnown(r,S){
+function deetsTypeKnown(r,S){
   if(!r.id.endsWith('_type')||r.type!=='select') return false;
   const s=S[r.id]; if(!s||!s.value||(s.value==='other'&&!s.other)) return false;
   if(!s.ticked){ s.ticked=true; }
   return true;
 }
 /* the noun a number wears: unit '@type' takes the current type's counts */
-function clUnit(r,S){
+function deetsUnit(r,S){
   if(!r.unit) return '';
   if(r.unit!=='@type') return r.unit;
   const tr=Object.keys(S).find(k=>k.endsWith('_type')); if(!tr) return '';
-  const t=(CL_CONFIG.types||[]).find(t=>t.value===S[tr].value);
+  const t=(DEETS_CONFIG.types||[]).find(t=>t.value===S[tr].value);
   return t&&t.counts ? t.counts : '';
 }
 
 /* a clause pill: label; tap the label and the pill opens into the words
    as they'll print. Facts still unconfirmed read as an honest blank. */
-const clWords = t => esc(String(t||'').replace(/\{\w+\}/g,'\u2026'));
+const deetsWords = t => esc(String(t||'').replace(/\{\w+\}/g,'\u2026'));
 let PEEKED = {};                       // id -> open, survives re-render
-function clPill(cl, on, fixed, flip){
+function deetsPill(cl, on, fixed, flip){
   const el=document.createElement('div');
-  el.className='cl-pill'+(fixed?' fixed':on?' on':' off')+(PEEKED[cl.id]?' peeked':'');
-  el.innerHTML=(fixed?'':`<span class="cl-ptick">${on?TICK:''}</span>`)+
-    `<span class="cl-pbody"><button class="cl-pname">${esc(cl.label||String(cl.id).replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()))}</button>
-     <span class="cl-pwords">${clWords(cl.text)}</span></span>`;
-  el.querySelector('.cl-pname').onclick=e=>{ e.stopPropagation();
+  el.className='deets-pill'+(fixed?' fixed':on?' on':' off')+(PEEKED[cl.id]?' peeked':'');
+  el.innerHTML=(fixed?'':`<span class="deets-ptick">${on?TICK:''}</span>`)+
+    `<span class="deets-pbody"><button class="deets-pname">${esc(cl.label||String(cl.id).replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()))}</button>
+     <span class="deets-pwords">${deetsWords(cl.text)}</span></span>`;
+  el.querySelector('.deets-pname').onclick=e=>{ e.stopPropagation();
     PEEKED[cl.id]=!PEEKED[cl.id]; el.classList.toggle('peeked'); logPeek(cl.id); };
-  if(!fixed && flip){ el.querySelector('.cl-ptick').onclick=e=>{ e.stopPropagation(); flip(); }; }
+  if(!fixed && flip){ el.querySelector('.deets-ptick').onclick=e=>{ e.stopPropagation(); flip(); }; }
   return el;
 }
 let PEEKLOG = new Set();
@@ -579,12 +579,12 @@ const rowVal = (r,S) => { const s=S[r.id]; if(!s) return '';
 function formData(){
   const f={};
   flatRows().forEach(r=>{ if(r.type==='legals') return;
-    f[r.id]=clShown(r,CLS)?rowVal(r,CLS):''; if(r.sub!==undefined) f[r.id+'__sub']=CLS[r.id].sub; });
-  Object.keys(CLR).forEach(key=>{
-    const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
-    f[key]=CLR[key].map(S=>{ const o={};
+    f[r.id]=deetsShown(r,DEETS_ROWS)?rowVal(r,DEETS_ROWS):''; if(r.sub!==undefined) f[r.id+'__sub']=DEETS_ROWS[r.id].sub; });
+  Object.keys(DEETS_REPEATS).forEach(key=>{
+    const groups=DEETS_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
+    f[key]=DEETS_REPEATS[key].map(S=>{ const o={};
       groups.forEach(g=>g.rows.forEach(r=>{ if(r.type==='legals'||!S[r.id]) return;
-        o[r.id]=clShown(r,S)?rowVal(r,S):''; if(r.sub!==undefined) o[r.id+'__sub']=S[r.id].sub; }));
+        o[r.id]=deetsShown(r,S)?rowVal(r,S):''; if(r.sub!==undefined) o[r.id+'__sub']=S[r.id].sub; }));
       return o; });
   });
   return f;
@@ -612,8 +612,8 @@ function briefBuild(){
   const st=storyData();
   const b={ container:CID, v:'', signed:false,
     source:  st.source,
-    sorted:  { point:st.point, insight:st.insight, angle:st.angle, steer:QBRIEF||null },
-    details: { facts:formData(), chosen:(CHOSEN||[]).slice() } };
+    sorted:  { point:st.point, insight:st.insight, angle:st.angle, steer:BOUNCE_STEER||null },
+    details: { facts:formData(), chosen:(TERMS_CHOSEN||[]).slice() } };
   b.v=briefHash(JSON.stringify([b.container, b.source, b.sorted, b.details]));
   return b;
 }
@@ -639,73 +639,73 @@ function backToStory(){ subView('story'); }
 
    The bounce is not a script. The robot lands the point, the insight and
    the angle in as few turns as it honestly takes, and it ends when the
-   human says nothing's missing — not when a counter says three. QTURNS is
+   human says nothing's missing — not when a counter says three. BOUNCE_TURNS is
    the whole record of it and the only state the server needs back. What
-   lands is QBRIEF: the steer the WRITER writes from. */
-let QZ=null, QTURNS=[], QBRIEF=null, QANGLE='', QNEED='point', QLAST='';
-const FD_SLOT={point:'storyPoint', insight:'storyInsight', angle:'storyAngle'};
-let ACC=0;                                // which stop is open
+   lands is BOUNCE_STEER: the steer the WRITER writes from. */
+let QUIZ=null, BOUNCE_TURNS=[], BOUNCE_STEER=null, BOUNCE_ANGLE='', BOUNCE_NEED='point', BOUNCE_LAST='';
+const FEED_SLOT={point:'storyPoint', insight:'storyInsight', angle:'storyAngle'};
+let STOP_OPEN=0;                                // which stop is open
 
 /* The concertina: one open, the rest closed, and all three reachable from
    the off. Wander in any order — the gate is the door, not the navigation.
    A stop is 'done' when it actually holds something, never because you
    happen to be standing past it. */
-function fdDone(j){
-  if(j===0) return !!fdDumpText().trim();
-  if(j===1) return !!QBRIEF && !!String(QBRIEF.angle||'').trim();
-  if(j===2) return dzAllLocked();
+function feedDone(j){
+  if(j===0) return !!feedDumpText().trim();
+  if(j===1) return !!BOUNCE_STEER && !!String(BOUNCE_STEER.angle||'').trim();
+  if(j===2) return deetsAllLocked();
   return false;
 }
-function fdStages(){
-  document.querySelectorAll('.fd-stage').forEach((st,j)=>{
-    st.className='fd-stage '+(j===ACC?'on':fdDone(j)?'done':'todo');
+function feedStages(){
+  document.querySelectorAll('.feed-stage').forEach((st,j)=>{
+    st.className='feed-stage '+(j===STOP_OPEN?'on':feedDone(j)?'done':'todo');
   });
 }
 function acc(i){
-  ACC=i; fdStages();
-  if(i===2){ clRender(); armDetail(); }
+  STOP_OPEN=i; feedStages();
+  if(i===2){ deetsRender(); armDetail(); }
 }
-/* the heads toggle: clicking the open stop shuts it, and ACC=-1 means
+/* the heads toggle: clicking the open stop shuts it, and STOP_OPEN=-1 means
    all three are closed. acc() stays imperative — accReach() uses it to
    move you forward, and must never close a stop it was sent to open. */
-function accToggle(i){ acc(ACC===i ? -1 : i); }
-function accReach(i){ acc(i); if(i!==1) fdThink(false); }
+function accToggle(i){ acc(STOP_OPEN===i ? -1 : i); }
+function accReach(i){ acc(i); if(i!==1) feedThink(false); }
 
 /* The robot, saying one short thing in the stop you've just been sent to.
    Its own words, so they live here in the engine, never in config.md. */
-const FD_SHORT=[
+const FEED_SHORT=[
   [0, 'Nothing to write about yet.'],
   [1, "Let's quickly bounce it first."],
   [2, 'Just need to lock the deets.'],
 ];
 
-function fdShort(){ return FD_SHORT.find(([j])=>!fdDone(j)) || null; }
-function fdSay(j,line,stick){
-  const st=document.querySelectorAll('.fd-stage')[j]; if(!st) return;
-  const bod=st.querySelector('.fd-bod'); if(!bod) return;
-  const old=$('fdSaid'); if(old){ clearTimeout(old._t); old.remove(); }
-  const el=errLine(line,{stick:!!stick}); el.id='fdSaid';
+function feedShort(){ return FEED_SHORT.find(([j])=>!feedDone(j)) || null; }
+function feedSay(j,line,stick){
+  const st=document.querySelectorAll('.feed-stage')[j]; if(!st) return;
+  const bod=st.querySelector('.feed-bod'); if(!bod) return;
+  const old=$('feedSaid'); if(old){ clearTimeout(old._t); old.remove(); }
+  const el=robotLine(line,{stick:!!stick}); el.id='feedSaid';
   bod.insertBefore(el, bod.firstChild);
 }
 
 async function quizInit(){
   if(!CONT) return;
-  QZ = CONT.quiz; QTURNS=[]; QBRIEF=null; QANGLE=''; QNEED='point'; ACC=0;
-  fdBoxClear();
-  $('fdChat').innerHTML=''; acc(0);
-  if(QZ.tagline) $('fdTagline').textContent = QZ.tagline;
-  (QZ.stops||[]).forEach((st,i)=>{
-    const t=$('fdT'+i), su=$('fdS'+i);
+  QUIZ = CONT.quiz; BOUNCE_TURNS=[]; BOUNCE_STEER=null; BOUNCE_ANGLE=''; BOUNCE_NEED='point'; STOP_OPEN=0;
+  feedBoxClear();
+  $('feedChat').innerHTML=''; acc(0);
+  if(QUIZ.tagline) $('feedTagline').textContent = QUIZ.tagline;
+  (QUIZ.stops||[]).forEach((st,i)=>{
+    const t=$('feedT'+i), su=$('feedS'+i);
     if(t) t.textContent=st.title||''; if(su) su.textContent=st.sub||'';
   });
-  const pad=(QZ.stops&&QZ.stops[0]&&QZ.stops[0].pad)||{};
-  $('fdBrowse').textContent  = pad.browse||'Browse';
-  FD_LINE = pad.line||'or drag it in.';
-  $('fdDump').placeholder    = pad.paste||'Cut and paste anything.';
-  DUMPDOOR='docs'; FD_DOCS=[]; fdDocsDraw();
-  $('fdDump').placeholder    = pad.paste||'Or paste it in here.';
-  fdGhostDraw();
-  fdToolsDraw();
+  const pad=(QUIZ.stops&&QUIZ.stops[0]&&QUIZ.stops[0].pad)||{};
+  $('feedBrowse').textContent  = pad.browse||'Browse';
+  FEED_LINE = pad.line||'or drag it in.';
+  $('feedDump').placeholder    = pad.paste||'Cut and paste anything.';
+  DUMPDOOR='docs'; FEED_DOCS=[]; feedDocsDraw();
+  $('feedDump').placeholder    = pad.paste||'Or paste it in here.';
+  feedGhostDraw();
+  feedToolsDraw();
 }
 
 /* THE GHOST — the engine's drawing of the artefact's shape. It walks the
@@ -713,20 +713,20 @@ async function quizInit(){
    each: a labelled pill, a strip, an image, some lines, a card. The
    vocabulary is the engine's; the order is the container's. Never wears
    the client. A repeating module draws once, count stated. */
-const GH_IMG = h => `<div class="fd-gimg" style="height:${h}px">
+const GH_IMG = h => `<div class="feed-gimg" style="height:${h}px">
   <svg class="x" preserveAspectRatio="none" viewBox="0 0 100 100">
     <line x1="0" y1="0" x2="100" y2="100" vector-effect="non-scaling-stroke"/>
     <line x1="100" y1="0" x2="0" y2="100" vector-effect="non-scaling-stroke"/></svg>
-  <svg class="fd-gmtn" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+  <svg class="feed-gmtn" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
     <rect x="2.5" y="4.5" width="19" height="15" rx="2"/><circle cx="8.6" cy="9.4" r="1.5"/>
     <path d="M4.5 17l4.8-4.6 3.4 3.2 3.5-3.4 5.3 4.8"/></svg></div>`;
-const GH_LINES = n => `<div class="fd-glines">${['w85','','w60'].slice(0,n).map(w=>`<div class="fd-gl ${w}"></div>`).join('')}</div>`;
-const GH_PILL  = l => `<div class="fd-ghed"><span class="fd-in">${esc(l)}</span></div>`;
-const GH_STRIP = l => `<div class="fd-gstrip"><span class="fd-in">${esc(l)}</span></div>`;
-const GH_BTN   = () => `<span class="fd-gcta"><span class="fd-in">Button</span></span>`;
+const GH_LINES = n => `<div class="feed-glines">${['w85','','w60'].slice(0,n).map(w=>`<div class="feed-gl ${w}"></div>`).join('')}</div>`;
+const GH_PILL  = l => `<div class="feed-ghed"><span class="feed-in">${esc(l)}</span></div>`;
+const GH_STRIP = l => `<div class="feed-gstrip"><span class="feed-in">${esc(l)}</span></div>`;
+const GH_BTN   = () => `<span class="feed-gcta"><span class="feed-in">Button</span></span>`;
 const ghLabel = m => m.replace(/-/g,' ').replace(/\bcta\b/,'button');
 
-function fdGhostDraw(){
+function feedGhostDraw(){
   const tags=CONT.ghost||[];
   const mods=CONT.modules||{all:[],writer:[],groups:[]};
   const opt=m=>{ const w=mods.writer.find(x=>x.module===m); return w&&w.options?w.options:1; };
@@ -751,17 +751,17 @@ function fdGhostDraw(){
         else card+=GH_LINES(3);
       });
       if(tags.includes(group.module+'-image')) card+=GH_IMG(56);
-      body+=`<div class="fd-gcards"><div class="fd-gcard">${card}</div><div class="fd-gmore">${rng?`${rng[1]}–${rng[2]} ${group.module}s`:`${group.module} × N`}</div></div>`;
+      body+=`<div class="feed-gcards"><div class="feed-gcard">${card}</div><div class="feed-gmore">${rng?`${rng[1]}–${rng[2]} ${group.module}s`:`${group.module} × N`}</div></div>`;
       return;
     }
-    if(/^(terms|legals|base|footer)$/.test(m)){ if(!body.includes('fd-gtcs')) body+=`</div><div class="fd-gtcs"><div class="fd-gl"></div><div class="fd-gl w85"></div><div class="fd-gl w45"></div>`; return; }
+    if(/^(terms|legals|base|footer)$/.test(m)){ if(!body.includes('feed-gtcs')) body+=`</div><div class="feed-gtcs"><div class="feed-gl"></div><div class="feed-gl w85"></div><div class="feed-gl w45"></div>`; return; }
     if(isImg(m)){ body+=GH_IMG(84); return; }
     if(m==='headline'){ body+=GH_PILL('Headline'); return; }
     if(/button|cta/.test(m)){ body+=GH_BTN(); return; }
     if(isStrip(m)){ body+=GH_STRIP(ghLabel(m)); return; }
     body+=GH_LINES(3);                     // anything else is copy: three lines
   });
-  $('fdGhost').innerHTML = (bar?`<div class="fd-gbar">${bar}</div>`:'') + '<div class="fd-gbody">' + body + '</div>';
+  $('feedGhost').innerHTML = (bar?`<div class="feed-gbar">${bar}</div>`:'') + '<div class="feed-gbody">' + body + '</div>';
 }
 
 /* the chat's only tool: the why-beat. The magnifying glass that used to sit
@@ -769,33 +769,33 @@ function fdGhostDraw(){
    and phase 3's (a row's 'let it dig'). The bounce enriches by finding gaps
    in what it has, not by going to the web — the angle comes from the person
    who knows the business. */
-function fdToolsDraw(){
+function feedToolsDraw(){
   const b=[];
-  b.push(`<button class="fd-tool" title="Why this question?" onclick="fdWhy()">
+  b.push(`<button class="feed-tool" title="Why this question?" onclick="feedWhy()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M9 9.2a3 3 0 1 1 3.6 3.1c-.8.2-1.1.8-1.1 1.7"/><circle cx="11.5" cy="17.6" r=".4" fill="currentColor"/></svg></button>`);
-  $('fdTools').innerHTML=b.join('');
+  $('feedTools').innerHTML=b.join('');
 }
 
 /* ---------- STOP 1: the landing pad ---------- */
 /* The browser reads plain text itself. Everything else goes to /api/read,
    which turns Word, PDF and pictures into words server-side — so the dump
    stays a string and the FEEDER never learns about file formats. */
-const FD_TEXT = f => /\.(txt|md|csv|markdown|log|json)$/i.test(f.name) || (f.type||'').startsWith('text/');
-let FD_LINE='or drag it in.';
-let FD_DOCS=[];                            // {name, text} — what's been dropped
-async function fdTake(files){
+const FEED_TEXT = f => /\.(txt|md|csv|markdown|log|json)$/i.test(f.name) || (f.type||'').startsWith('text/');
+let FEED_LINE='or drag it in.';
+let FEED_DOCS=[];                            // {name, text} — what's been dropped
+async function feedTake(files){
   const pending=[];
   for(const f of files){
-    if(FD_TEXT(f)){
+    if(FEED_TEXT(f)){
       const t=await f.text();
-      FD_DOCS.push({name:f.name, text:t.slice(0,12000)});
+      FEED_DOCS.push({name:f.name, text:t.slice(0,12000)});
     }else{
       const d={name:f.name, text:'', wait:true};
-      FD_DOCS.push(d); pending.push([d,f]);
+      FEED_DOCS.push(d); pending.push([d,f]);
     }
   }
-  fdDocsDraw();
+  feedDocsDraw();
   /* each on its own, so one unreadable file doesn't sink the others */
   await Promise.all(pending.map(async ([d,f])=>{
     try{
@@ -806,362 +806,362 @@ async function fdTake(files){
       /* the server sends a reason code; the words are ours */
       else { d.bad=true; d.why=STR.feed.read[(j&&j.reason)||'broken'] || STR.feed.read.broken; }
     }catch(e){ d.bad=true; d.why=STR.feed.read.nothing; }
-    d.wait=false; fdDocsDraw();
+    d.wait=false; feedDocsDraw();
   }));
 }
-function fdDocsDraw(){
-  $('fdDocs').innerHTML = FD_DOCS.map((d,i)=>
+function feedDocsDraw(){
+  $('feedDocs').innerHTML = FEED_DOCS.map((d,i)=>
     `<div class="dump-row${d.bad?' bad':''}${d.wait?' wait':''}">
        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/></svg>
        <span class="dump-name">${esc(d.name)}</span>
-       <button class="dump-x" onclick="fdDocDrop(${i});event.stopPropagation()" aria-label="Remove">&times;</button>
+       <button class="dump-x" onclick="feedDocDrop(${i});event.stopPropagation()" aria-label="Remove">&times;</button>
        <span class="dump-tick" aria-label="${d.wait?'Reading':d.bad?'Not read':'Read'}">${d.wait?'':TICK}</span>
      </div>`).join('')
     /* one line under the row for the first doc that didn't read — it
        asks for something, so it stays until the doc is dropped or replaced */
     + '';
-  const bad=FD_DOCS.find(d=>d.bad);
-  if(bad){ const w=document.createElement('div'); w.className='dump-bad'; w.appendChild(errLine(bad.why,{stick:true})); $('fdDocs').appendChild(w); }
-  fdDumpDraw();
+  const bad=FEED_DOCS.find(d=>d.bad);
+  if(bad){ const w=document.createElement('div'); w.className='dump-bad'; w.appendChild(robotLine(bad.why,{stick:true})); $('feedDocs').appendChild(w); }
+  feedDumpDraw();
 }
-function fdDocDrop(i){ FD_DOCS.splice(i,1); fdDocsDraw(); fdStages(); }
+function feedDocDrop(i){ FEED_DOCS.splice(i,1); feedDocsDraw(); feedStages(); }
 
 /* ---- the three doors ----------------------------------------------------
    DOCS and WORDS open the box. SEARCH is hollow until the engine's web tool
    lands (hit list 9) — tapping it says so and leaves the open door alone. */
 let DUMPDOOR='docs';
-function fdDoor(d){
-  DUMPDOOR=d; fdDumpDraw();
-  if(d==='words') setTimeout(()=>{ const t=$('fdDump'); if(t) t.focus(); },0);
-  if(d==='search') setTimeout(()=>{ const f=$('srField'); if(f&&SRSTAGE!=='looking') f.focus(); },0);
+function feedDoor(d){
+  DUMPDOOR=d; feedDumpDraw();
+  if(d==='words') setTimeout(()=>{ const t=$('feedDump'); if(t) t.focus(); },0);
+  if(d==='search') setTimeout(()=>{ const f=$('searchField'); if(f&&SEARCH_STAGE!=='looking') f.focus(); },0);
 }
 /* ---- SEARCH ------------------------------------------------------------
    ask -> plan -> looking -> hits, one grammar throughout: tick what we dig
    for, tick what's handy. Queries arrive UNTICKED — opt in, so nothing
    runs and nothing is spent that wasn't chosen. The field never leaves the
    screen: at any stage but looking, retype and hit the arrow for a fresh
-   plan — that IS the way back. Everything landed lives in SR_FACTS, which
+   plan — that IS the way back. Everything landed lives in SEARCH_FACTS, which
    is dump like any other dump; ticked facts ride across searches via
-   SR_KEPT. Barred facts (prices) are filtered server-side and simply not
+   SEARCH_KEPT. Barred facts (prices) are filtered server-side and simply not
    shown — we don't perform the rules. */
-let SRSTAGE='ask', SR_QS=[], SR_HITS=[], SR_FACTS=[], SR_KEPT=[], SR_DOING=-1;
+let SEARCH_STAGE='ask', SEARCH_QS=[], SEARCH_HITS=[], SEARCH_FACTS=[], SEARCH_KEPT=[], SEARCH_DOING=-1;
 
-function srDraw(){
-  const ask=$('srAsk'); if(!ask) return;
-  const f=$('srField'), go=$('srGo');
-  ask.className='sr-ask on';
-  if(f) f.disabled = SRSTAGE==='looking';
-  if(go) go.disabled = SRSTAGE==='looking' || !(f&&f.value.trim());
-  $('srHead').className='sr-head'+(SRSTAGE==='looking'?' on':'');
-  if(SRSTAGE==='looking'&&!$('srHead').innerHTML) $('srHead').innerHTML=thinkFace();
-  if(SRSTAGE!=='looking') $('srHead').innerHTML='';
+function searchDraw(){
+  const ask=$('searchAsk'); if(!ask) return;
+  const f=$('searchField'), go=$('searchGo');
+  ask.className='search-ask on';
+  if(f) f.disabled = SEARCH_STAGE==='looking';
+  if(go) go.disabled = SEARCH_STAGE==='looking' || !(f&&f.value.trim());
+  $('searchHead').className='search-head'+(SEARCH_STAGE==='looking'?' on':'');
+  if(SEARCH_STAGE==='looking'&&!$('searchHead').innerHTML) $('searchHead').innerHTML=thinkFace();
+  if(SEARCH_STAGE!=='looking') $('searchHead').innerHTML='';
 
   /* the subheads: a question over the plan, an instruction over the
      catch. Bebas in ink — a section signal, not a second title. */
-  const sub=$('srSub');
-  sub.className='sr-sub'+(SRSTAGE==='plan'||SRSTAGE==='hits'?' on':'');
-  sub.textContent = SRSTAGE==='plan' ? 'What shall we dig for?'
-                  : SRSTAGE==='hits' ? "Tick what's handy" : '';
+  const sub=$('searchSub');
+  sub.className='search-sub'+(SEARCH_STAGE==='plan'||SEARCH_STAGE==='hits'?' on':'');
+  sub.textContent = SEARCH_STAGE==='plan' ? 'What shall we dig for?'
+                  : SEARCH_STAGE==='hits' ? "Tick what's handy" : '';
 
-  const list=$('srList');
-  list.className='sr-list'+(SRSTAGE==='plan'||SRSTAGE==='looking'?' on':'');
-  if(SRSTAGE==='plan'){
+  const list=$('searchList');
+  list.className='search-list'+(SEARCH_STAGE==='plan'||SEARCH_STAGE==='looking'?' on':'');
+  if(SEARCH_STAGE==='plan'){
     /* opt-in: same tick furniture as the hits, so screen one teaches
        screen two. Nothing runs that wasn't chosen. */
-    list.innerHTML=SR_QS.map((x,i)=>
-      `<div class="sr-hit${x.on?' on':''}" role="button" tabindex="0" onclick="srQTick(${i})"
-         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();srQTick(${i});}">
-         <span class="sr-tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
-         <span><span class="sr-fact">${esc(x.q)}</span></span>
+    list.innerHTML=SEARCH_QS.map((x,i)=>
+      `<div class="search-hit${x.on?' on':''}" role="button" tabindex="0" onclick="searchQTick(${i})"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();searchQTick(${i});}">
+         <span class="search-tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+         <span><span class="search-fact">${esc(x.q)}</span></span>
        </div>`).join('');
-  } else if(SRSTAGE==='looking'){
-    const run=SR_QS.filter(x=>x.on);
+  } else if(SEARCH_STAGE==='looking'){
+    const run=SEARCH_QS.filter(x=>x.on);
     list.innerHTML=run.map((x,i)=>{
-      const st = i<SR_DOING?'done':i===SR_DOING?'doing':'';
+      const st = i<SEARCH_DOING?'done':i===SEARCH_DOING?'doing':'';
       const ico = st==='done'
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></svg>';
-      return `<div class="sr-line ${st}">${ico}${esc(x.q)}</div>`;
+      return `<div class="search-line ${st}">${ico}${esc(x.q)}</div>`;
     }).join('');
   } else list.innerHTML='';
 
   /* GO DIGGING lives in the flow it commits, centred, and sits hollow
      until at least one search is ticked — the button teaches the rule. */
-  const dig=$('srDig');
+  const dig=$('searchDig');
   if(dig){
-    dig.style.display = SRSTAGE==='plan' ? '' : 'none';
-    dig.classList.toggle('dormant', !SR_QS.some(x=>x.on));
+    dig.style.display = SEARCH_STAGE==='plan' ? '' : 'none';
+    dig.classList.toggle('dormant', !SEARCH_QS.some(x=>x.on));
   }
 
-  const hits=$('srHits');
-  hits.className='sr-hits'+(SRSTAGE==='hits'?' on':'');
-  if(SRSTAGE==='hits'){
+  const hits=$('searchHits');
+  hits.className='search-hits'+(SEARCH_STAGE==='hits'?' on':'');
+  if(SEARCH_STAGE==='hits'){
     /* a div, not a button: the source is a real link now, and a link
        can't legally live inside a button. Keyboard keeps its tick. */
-    hits.innerHTML = SR_HITS.map((x,i)=>
-      `<div class="sr-hit${x.on?' on':''}" role="button" tabindex="0" onclick="srTick(${i})"
-         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();srTick(${i});}">
-         <span class="sr-tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
-         <span><span class="sr-fact">${esc(x.fact)}</span>${srSrc(x)}</span>
+    hits.innerHTML = SEARCH_HITS.map((x,i)=>
+      `<div class="search-hit${x.on?' on':''}" role="button" tabindex="0" onclick="searchTick(${i})"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();searchTick(${i});}">
+         <span class="search-tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+         <span><span class="search-fact">${esc(x.fact)}</span>${searchSrc(x)}</span>
        </div>`).join('');
   } else hits.innerHTML='';
 }
 
-function srQTick(i){ SR_QS[i].on=!SR_QS[i].on; srDraw(); }
+function searchQTick(i){ SEARCH_QS[i].on=!SEARCH_QS[i].on; searchDraw(); }
 
 /* the source line is the receipt — click it to read the page it came
    from, in a new tab. stopPropagation so checking never ticks. */
-function srSrc(x){
+function searchSrc(x){
   return x.url
-    ? `<a class="sr-src" href="${esc(x.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(x.source)}</a>`
-    : `<span class="sr-src">${esc(x.source)}</span>`;
+    ? `<a class="search-src" href="${esc(x.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(x.source)}</a>`
+    : `<span class="search-src">${esc(x.source)}</span>`;
 }
 
-async function srPlan(){
-  if(SRSTAGE==='looking') return;
-  const f=$('srField'), q=(f?f.value:'').trim(); if(!q) return;
-  const go=$('srGo');
+async function searchPlan(){
+  if(SEARCH_STAGE==='looking') return;
+  const f=$('searchField'), q=(f?f.value:'').trim(); if(!q) return;
+  const go=$('searchGo');
   if(go){ go.disabled=true; go.classList.add('spin'); }
   try{
     const d=await api('/api/search',{container:CID, stage:'plan', subject:q});
-    if(!(d.queries||[]).length){ fdSay(0, STR.feed.plan_empty); }
+    if(!(d.queries||[]).length){ feedSay(0, STR.feed.plan_empty); }
     else{
       /* anything already ticked rides along to the next round */
-      SR_HITS.filter(x=>x.on).forEach(({fact,source,url})=>{
-        if(!SR_KEPT.some(k=>k.fact===fact)) SR_KEPT.push({fact,source,url});
+      SEARCH_HITS.filter(x=>x.on).forEach(({fact,source,url})=>{
+        if(!SEARCH_KEPT.some(k=>k.fact===fact)) SEARCH_KEPT.push({fact,source,url});
       });
-      SR_QS=d.queries.map(q=>({q, on:false})); SR_HITS=[]; SRSTAGE='plan';
+      SEARCH_QS=d.queries.map(q=>({q, on:false})); SEARCH_HITS=[]; SEARCH_STAGE='plan';
     }
-  }catch(e){ fdSay(0, e.code==='noplan' ? STR.feed.plan_empty : STR.feed.search_died, e.code!=='noplan'); }
+  }catch(e){ feedSay(0, e.code==='noplan' ? STR.feed.plan_empty : STR.feed.search_died, e.code!=='noplan'); }
   if(go) go.classList.remove('spin');
-  fdDumpDraw();
+  feedDumpDraw();
 }
 
-async function srRun(){
-  const run=SR_QS.filter(x=>x.on).map(x=>x.q);
+async function searchRun(){
+  const run=SEARCH_QS.filter(x=>x.on).map(x=>x.q);
   if(!run.length) return;
-  SRSTAGE='looking'; SR_DOING=0; fdDumpDraw();
+  SEARCH_STAGE='looking'; SEARCH_DOING=0; feedDumpDraw();
   /* the rows tick along on their own clock — the API doesn't report which
      search it's on, so this is honest about pace, not about position. */
-  const tick=setInterval(()=>{ if(SR_DOING<run.length-1){ SR_DOING++; srDraw(); } }, 2600);
+  const tick=setInterval(()=>{ if(SEARCH_DOING<run.length-1){ SEARCH_DOING++; searchDraw(); } }, 2600);
   try{
     const d=await api('/api/search',{container:CID, stage:'run',
-      subject:($('srField').value||'').trim(), queries:run});
+      subject:($('searchField').value||'').trim(), queries:run});
     /* kept facts land first, still ticked, so they can be unticked here.
        Barred facts never render — the server filters, we don't perform. */
-    const kept=SR_KEPT.map(x=>Object.assign({on:true},x));
-    const fresh=(d.facts||[]).filter(x=>!SR_KEPT.some(k=>k.fact===x.fact))
+    const kept=SEARCH_KEPT.map(x=>Object.assign({on:true},x));
+    const fresh=(d.facts||[]).filter(x=>!SEARCH_KEPT.some(k=>k.fact===x.fact))
       .map(x=>Object.assign({on:false},x));
-    SR_HITS=kept.concat(fresh); SR_KEPT=[];
-    SR_FACTS=SR_HITS.filter(x=>x.on).map(({fact,source,url})=>({fact,source,url}));
-    SRSTAGE='hits';
-    if(!SR_HITS.length) fdSay(0, STR.feed.dig_empty);
-  }catch(e){ fdSay(0, STR.feed.search_died, true); SRSTAGE='plan'; }
-  clearInterval(tick); SR_DOING=-1; fdDumpDraw();
+    SEARCH_HITS=kept.concat(fresh); SEARCH_KEPT=[];
+    SEARCH_FACTS=SEARCH_HITS.filter(x=>x.on).map(({fact,source,url})=>({fact,source,url}));
+    SEARCH_STAGE='hits';
+    if(!SEARCH_HITS.length) feedSay(0, STR.feed.dig_empty);
+  }catch(e){ feedSay(0, STR.feed.search_died, true); SEARCH_STAGE='plan'; }
+  clearInterval(tick); SEARCH_DOING=-1; feedDumpDraw();
 }
 
-function srTick(i){
-  SR_HITS[i].on=!SR_HITS[i].on;
-  SR_FACTS=SR_HITS.filter(x=>x.on).map(({fact,source,url})=>({fact,source,url}));
-  fdDumpDraw(); fdStages();
+function searchTick(i){
+  SEARCH_HITS[i].on=!SEARCH_HITS[i].on;
+  SEARCH_FACTS=SEARCH_HITS.filter(x=>x.on).map(({fact,source,url})=>({fact,source,url}));
+  feedDumpDraw(); feedStages();
 }
 
-function fdDumpDraw(){
-  const docs=FD_DOCS.length>0, words=!!($('fdDump')||{}).value.trim();
+function feedDumpDraw(){
+  const docs=FEED_DOCS.length>0, words=!!($('feedDump')||{}).value.trim();
   const set=(id,on,has)=>{ const el=$(id); if(!el) return;
     el.className='dump-door'+(on?' on':has?' has':''); };
-  set('fdDoorDocs',   DUMPDOOR==='docs',  docs);
-  set('fdDoorWords',  DUMPDOOR==='words', words);
-  set('fdDoorSearch', DUMPDOOR==='search', SR_FACTS.length>0);
-  const vd=$('fdViewDocs'), vw=$('fdViewWords'), vs=$('fdViewSearch');
+  set('feedDoorDocs',   DUMPDOOR==='docs',  docs);
+  set('feedDoorWords',  DUMPDOOR==='words', words);
+  set('feedDoorSearch', DUMPDOOR==='search', SEARCH_FACTS.length>0);
+  const vd=$('feedViewDocs'), vw=$('feedViewWords'), vs=$('feedViewSearch');
   if(vd) vd.className='dump-view'+(DUMPDOOR==='docs' ?' on':'')+(docs?' filled':'');
   if(vw) vw.className='dump-view'+(DUMPDOOR==='words'?' on':'')+(words?' filled':'');
   /* `filled` top-aligns the plate AND hides the baby icon (a pre-existing
      rule) — so it only goes on once the ask screen is behind us. */
-  if(vs) vs.className='dump-view'+(DUMPDOOR==='search'?' on':'')+(SRSTAGE!=='ask'?' filled':'');
-  srDraw();
-  const plate=$('fdPlate');
+  if(vs) vs.className='dump-view'+(DUMPDOOR==='search'?' on':'')+(SEARCH_STAGE!=='ask'?' filled':'');
+  searchDraw();
+  const plate=$('feedPlate');
   if(plate) plate.classList.toggle('filled', (DUMPDOOR==='docs'&&docs)
-    ||(DUMPDOOR==='words'&&words)||(DUMPDOOR==='search'&&SRSTAGE!=='ask'));
-  const line=$('fdPadLine');
-  if(line) line.textContent = docs ? (QZ&&QZ.stops&&QZ.stops[0]&&QZ.stops[0].pad&&QZ.stops[0].pad.more)
-    || 'or drag in another.' : (FD_LINE||'or drag it in.');
-  const go=$('fdDumpGo');
+    ||(DUMPDOOR==='words'&&words)||(DUMPDOOR==='search'&&SEARCH_STAGE!=='ask'));
+  const line=$('feedPadLine');
+  if(line) line.textContent = docs ? (QUIZ&&QUIZ.stops&&QUIZ.stops[0]&&QUIZ.stops[0].pad&&QUIZ.stops[0].pad.more)
+    || 'or drag in another.' : (FEED_LINE||'or drag it in.');
+  const go=$('feedDumpGo');
   if(go){
     /* mid-search the card holds exactly one decision. DONE comes back
        once facts land or you're back at the ask. */
-    const midflow = DUMPDOOR==='search' && (SRSTAGE==='plan'||SRSTAGE==='looking');
+    const midflow = DUMPDOOR==='search' && (SEARCH_STAGE==='plan'||SEARCH_STAGE==='looking');
     go.style.display = midflow ? 'none' : '';
-    go.classList.toggle('dormant', !(docs||words||SR_FACTS.length));
+    go.classList.toggle('dormant', !(docs||words||SEARCH_FACTS.length));
   }
   /* the mirror: the hidden field the robots read from tracks the dump
      live, so a fact ticked after DONE still reaches everyone. DONE is
      navigation now, not the courier. */
-  const bl=$('blurb'); if(bl) bl.value=fdDumpText();
+  const bl=$('blurb'); if(bl) bl.value=feedDumpText();
 }
-$('fdBrowse').addEventListener('click', e=>{ e.stopPropagation(); $('fdFile').click(); });
-$('fdFile').addEventListener('change', async e=>{ await fdTake(e.target.files); e.target.value=''; });
+$('feedBrowse').addEventListener('click', e=>{ e.stopPropagation(); $('feedFile').click(); });
+$('feedFile').addEventListener('change', async e=>{ await feedTake(e.target.files); e.target.value=''; });
 {
   /* a file over the card, whichever door is open: DOCS takes it. */
-  const card=$('fdCard0'), plate=$('fdPlate');
+  const card=$('feedCard0'), plate=$('feedPlate');
   const over=on=>{ if(plate) plate.classList.toggle('over',on);
-    if(on && DUMPDOOR!=='docs'){ DUMPDOOR='docs'; fdDumpDraw(); plate.classList.add('over'); } };
+    if(on && DUMPDOOR!=='docs'){ DUMPDOOR='docs'; feedDumpDraw(); plate.classList.add('over'); } };
   ['dragenter','dragover'].forEach(ev=>card.addEventListener(ev,e=>{e.preventDefault();over(true);}));
   ['dragleave','drop'].forEach(ev=>card.addEventListener(ev,e=>{e.preventDefault();over(false);}));
-  card.addEventListener('drop', e=>fdTake(e.dataTransfer.files));
-  const t=$('fdDump');
-  if(t) t.addEventListener('input', ()=>{ fdDumpDraw(); fdStages(); });
+  card.addEventListener('drop', e=>feedTake(e.dataTransfer.files));
+  const t=$('feedDump');
+  if(t) t.addEventListener('input', ()=>{ feedDumpDraw(); feedStages(); });
 }
 /* the dump is everything on the pad: pasted words plus every readable doc */
-function fdDumpText(){
-  const parts=FD_DOCS.filter(d=>d.text).map(d=>`--- ${d.name} ---\n${d.text}`);
+function feedDumpText(){
+  const parts=FEED_DOCS.filter(d=>d.text).map(d=>`--- ${d.name} ---\n${d.text}`);
   /* found facts carry their source into the dump. The FEEDER and the WRITER
      never see a bare claim — if it can't say where it came from it never
      got this far. */
-  if(SR_FACTS.length) parts.push('--- FOUND ---\n'
-    + SR_FACTS.map(f=>`${f.fact} (${f.source})`).join('\n'));
-  const typed=$('fdDump').value.trim();
+  if(SEARCH_FACTS.length) parts.push('--- FOUND ---\n'
+    + SEARCH_FACTS.map(f=>`${f.fact} (${f.source})`).join('\n'));
+  const typed=$('feedDump').value.trim();
   if(typed) parts.unshift(typed);
   return parts.join('\n\n');
 }
 
-async function fdDumpNext(){
-  const dump=fdDumpText();
-  if(!dump.trim()){ fdSay(0, FD_SHORT[0][1]); return; }
+async function feedDumpNext(){
+  const dump=feedDumpText();
+  if(!dump.trim()){ feedSay(0, FEED_SHORT[0][1]); return; }
   $('blurb').value=dump; dirty();
-  $('fdDumpGo').disabled=true;
+  $('feedDumpGo').disabled=true;
   accReach(1);
   /* the first turn. The robot reads the dump against what the container
      needs and opens on the point — usually by stating it, because it has
      read the thing and an empty question would prove it hadn't. The same
      read fills the checklist, so there's no second silent call any more. */
-  QTURNS=[]; QBRIEF=null;
-  fdThink(true);
+  BOUNCE_TURNS=[]; BOUNCE_STEER=null;
+  feedThink(true);
   let d;
   try{ d = await api('/api/feeder',{container:CID, dump:dump, turns:[]}); }
-  catch(e){ d = {ask:fdPlain('point'), need:'point', fell:true}; }
-  fdThink(false);
-  fdAsk(d);
-  if(d.fell) fdSay(1, STR.feed.feeder);
-  $('fdDumpGo').disabled=false;
+  catch(e){ d = {ask:feedPlain('point'), need:'point', fell:true}; }
+  feedThink(false);
+  feedAsk(d);
+  if(d.fell) feedSay(1, STR.feed.feeder);
+  $('feedDumpGo').disabled=false;
 }
 
 /* ---------- STOP 2: the chat ---------- */
-const fdScroll=()=>{ const c=$('fdChat'); c.scrollTop=c.scrollHeight; };
-function fdBubble(html, me){
+const feedScroll=()=>{ const c=$('feedChat'); c.scrollTop=c.scrollHeight; };
+function feedBubble(html, me){
   const row=document.createElement('div');
   row.className='chat-row'+(me?' me':'');
   row.innerHTML = me ? `<div class="chat-msg"></div>` : RAIL.cave()+`<div class="chat-msg">${html}</div>`;
   if(me) row.querySelector('.chat-msg').textContent=html;
-  $('fdChat').appendChild(row); fdScroll();
+  $('feedChat').appendChild(row); feedScroll();
 }
 /* thinking — the face does it, same pool as FIX IT (thinkFace) */
-function fdThink(on){
-  $('fdChat').querySelectorAll('.chat-think').forEach((x,i)=>{ if(!on||i>0) x.remove(); });
-  let t=$('fdChat').querySelector('.chat-think');
+function feedThink(on){
+  $('feedChat').querySelectorAll('.chat-think').forEach((x,i)=>{ if(!on||i>0) x.remove(); });
+  let t=$('feedChat').querySelector('.chat-think');
   if(on&&!t){ t=document.createElement('div'); t.className='chat-row chat-think';
     t.innerHTML=RAIL.think();
-    $('fdChat').appendChild(t); fdScroll(); }
+    $('feedChat').appendChild(t); feedScroll(); }
   if(!on&&t) t.remove();
 }
 
 /* the container's own words for a need — the silent fallback whenever the
    robot can't speak, and the source of the why-beat. */
-const fdNeed = n => (QZ&&QZ.bounce||[]).find(b=>b.need===n) || {};
-const fdPlain = n => fdNeed(n).plain || "What's this all about?";
+const feedNeed = n => (QUIZ&&QUIZ.bounce||[]).find(b=>b.need===n) || {};
+const feedPlain = n => feedNeed(n).plain || "What's this all about?";
 
 /* one bubble a turn: the reaction, then the ask. When the robot proposes an
    angle it rides in the same bubble — inline, in quotes, in ink. Not a red
    block: red would make a suggestion look like the answer, and this one is
    there to be talked over. */
-function fdAsk(d){
-  fdThink(false);
-  QNEED = d.need || QNEED;
+function feedAsk(d){
+  feedThink(false);
+  BOUNCE_NEED = d.need || BOUNCE_NEED;
   let html='';
   if(d.react) html+=`<span class="confirm">${esc(d.react)}</span>`;
-  QANGLE = (d.angle||'').trim();
+  BOUNCE_ANGLE = (d.angle||'').trim();
   /* a proposition dropped in cold reads like a verdict, so the robot walks
      you into it. The quotes are ours, not its — it's told to hand the angle
      over plain. */
-  if(QANGLE) html+=`${esc((d.lead||"I'm thinking").trim())} <i class="angle">\u201c${esc(QANGLE)}\u201d</i>. `;
-  QLAST = d.ask||fdPlain(QNEED);
-  html+=esc(QLAST);
-  fdBubble(html);
-  const box=$('fdBox');
-  box.placeholder=fdNeed(QNEED).placeholder||''; box.focus();
+  if(BOUNCE_ANGLE) html+=`${esc((d.lead||"I'm thinking").trim())} <i class="angle">\u201c${esc(BOUNCE_ANGLE)}\u201d</i>. `;
+  BOUNCE_LAST = d.ask||feedPlain(BOUNCE_NEED);
+  html+=esc(BOUNCE_LAST);
+  feedBubble(html);
+  const box=$('feedBox');
+  box.placeholder=feedNeed(BOUNCE_NEED).placeholder||''; box.focus();
   /* DONE once the angle is on the table — the last need, and usually the
      same beat as 'anything I've missed'. */
-  $('fdGo').textContent = QNEED==='angle' ? 'DONE' : 'NEXT';
+  $('feedGo').textContent = BOUNCE_NEED==='angle' ? 'DONE' : 'NEXT';
 }
 
 /* the close. The bounce ends on the human's word, so this only runs when
    the robot has said it's got what it needs and been told nothing's
    missing. The brief is what lands; the raw material travels whole and
    separately, and the checklist facts outrank both. */
-function fdClose(d){
-  QBRIEF = d.brief || {point:'', insight:'', angle:QANGLE};
-  if(!String(QBRIEF.angle||'').trim()) QBRIEF.angle = QANGLE;
-  Object.keys(FD_SLOT).forEach(k=>{
-    const slot=$(FD_SLOT[k]); if(slot) slot.value = String(QBRIEF[k]||'').trim();
+function feedClose(d){
+  BOUNCE_STEER = d.brief || {point:'', insight:'', angle:BOUNCE_ANGLE};
+  if(!String(BOUNCE_STEER.angle||'').trim()) BOUNCE_STEER.angle = BOUNCE_ANGLE;
+  Object.keys(FEED_SLOT).forEach(k=>{
+    const slot=$(FEED_SLOT[k]); if(slot) slot.value = String(BOUNCE_STEER[k]||'').trim();
   });
-  dirty(); fdStages();
+  dirty(); feedStages();
 }
 
 /* the composer is the height of what's in it, up to the cap the CSS sets.
    A paste used to be sliced through the middle of the third line. */
-function fdGrow(){
-  const b=$('fdBox'); if(!b) return;
+function feedGrow(){
+  const b=$('feedBox'); if(!b) return;
   b.style.height='auto';
   b.style.height=Math.min(b.scrollHeight, 150)+'px';
 }
 /* emptying it is emptying it — the height has to come back too, or the box
    keeps the shape of the answer you just sent. */
-function fdBoxClear(){
-  const b=$('fdBox'); if(!b) return;
+function feedBoxClear(){
+  const b=$('feedBox'); if(!b) return;
   b.value=''; b.style.height='';
 }
 
-let FDBUSY=false;
-async function fdNext(){
-  if(!QZ || FDBUSY) return;
-  const a=$('fdBox').value.trim();
-  if(a) fdBubble(a, true);
-  QTURNS.push({ask:QLAST, answer:a});
+let FEED_BUSY=false;
+async function feedNext(){
+  if(!QUIZ || FEED_BUSY) return;
+  const a=$('feedBox').value.trim();
+  if(a) feedBubble(a, true);
+  BOUNCE_TURNS.push({ask:BOUNCE_LAST, answer:a});
   /* it's been said, so it leaves the box now — not later, and not only on
      the paths that happen to ask another question. Closing the bounce used
      to leave your last answer sitting there looking unsent.
 
      The box stays open while the robot thinks. It used to be emptied again
      when the answer landed, which quietly ate anything typed during the
-     wait; now nothing clears it but sending, so a draft survives. FDBUSY
+     wait; now nothing clears it but sending, so a draft survives. FEED_BUSY
      stops a second send rather than the keyboard. */
-  fdBoxClear();
-  const box=$('fdBox');
-  FDBUSY=true; $('fdGo').disabled=true;
-  fdThink(true);
+  feedBoxClear();
+  const box=$('feedBox');
+  FEED_BUSY=true; $('feedGo').disabled=true;
+  feedThink(true);
   let d;
-  try{ d = await api('/api/feeder',{container:CID, dump:val('blurb'), turns:QTURNS}); }
-  catch(e){ d = {ask:fdPlain(QNEED), need:QNEED, fell:true}; }
-  fdThink(false);
-  if(d.fell) fdSay(1, STR.feed.feeder);
-  fdLand(d.found);
+  try{ d = await api('/api/feeder',{container:CID, dump:val('blurb'), turns:BOUNCE_TURNS}); }
+  catch(e){ d = {ask:feedPlain(BOUNCE_NEED), need:BOUNCE_NEED, fell:true}; }
+  feedThink(false);
+  if(d.fell) feedSay(1, STR.feed.feeder);
+  feedLand(d.found);
   if(d.done){
-    fdClose(d);
-    if(d.react) fdBubble(esc(d.react));
-    if(QZ.closing) fdBubble(esc(QZ.closing));
+    feedClose(d);
+    if(d.react) feedBubble(esc(d.react));
+    if(QUIZ.closing) feedBubble(esc(QUIZ.closing));
     accReach(2);
   }else{
-    fdAsk(d);
+    feedAsk(d);
   }
-  FDBUSY=false; $('fdGo').disabled=false;
+  FEED_BUSY=false; $('feedGo').disabled=false;
 }
 
 /* the ? — the why-beat, answered in the chat, from config. Help as
    conversation, not modal. The robot names which need it's on, so the
    why-beat follows the conversation rather than a counter. */
-function fdWhy(){
-  const w=fdNeed(QNEED).why;
-  if(w) fdBubble(esc(w));
+function feedWhy(){
+  const w=feedNeed(BOUNCE_NEED).why;
+  if(w) feedBubble(esc(w));
 }
 
 /* the bounce → the checklist. The FEEDER reads the dump for the checklist
@@ -1173,21 +1173,21 @@ function fdWhy(){
    The rule is untouched: a robot-found fact never arrives ticked, it
    carries its provenance, and a value the human has already put in is
    never overwritten. Suggestion, not gate. */
-function fdLand(found){
+function feedLand(found){
   const f = found || {};
   if(!Object.keys(f).length) return;
   const land=(S,r,v)=>{ if(!S[r.id]) return;
     if(r.type==='topics'){ if(Array.isArray(v)&&v.length&&!S[r.id].value.length) S[r.id].value=v.slice(); return; }
-    if(r.type==='date'&&v) v=clDateISO(v)||'';
+    if(r.type==='date'&&v) v=deetsDateISO(v)||'';
     if(v && !S[r.id].value){ S[r.id].value=String(v); S[r.id].found='from your docs'; S[r.id].ticked=false; } };
-  flatRows().forEach(r=>land(CLS,r,f[r.id]));
-  Object.keys(CLR).forEach(key=>{
+  flatRows().forEach(r=>land(DEETS_ROWS,r,f[r.id]));
+  Object.keys(DEETS_REPEATS).forEach(key=>{
     const rows=f[key]; if(!Array.isArray(rows)||!rows.length) return;
-    const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
+    const groups=DEETS_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
     if(!groups.length) return;
     const max=groups[0].repeat.max;
-    while(CLR[key].length<Math.min(rows.length,max)) CLR[key].push({});
-    rows.slice(0,max).forEach((item,i)=>{ const S=CLR[key][i];
+    while(DEETS_REPEATS[key].length<Math.min(rows.length,max)) DEETS_REPEATS[key].push({});
+    rows.slice(0,max).forEach((item,i)=>{ const S=DEETS_REPEATS[key][i];
       groups.forEach(g=>g.rows.forEach(r=>{ if(!S[r.id]) S[r.id]=newState(r); land(S,r,item[r.id]); })); });
   });
 }
@@ -1196,31 +1196,31 @@ function fdLand(found){
 /* a row is filled when it has a value — or when the container never asked
    it to (locked: no). The prize tier is the only optional row on the card,
    and a blank tier must not hold the whole stop hostage. */
-const cellFilled = (r,S) => { if(r.type==='legals'||r.type==='topics'||!clShown(r,S)) return true;
+const cellFilled = (r,S) => { if(r.type==='legals'||r.type==='topics'||!deetsShown(r,S)) return true;
   const s=S[r.id]; if(!s) return true;
   if(!r.locked) return true;
   return r.type==='select' ? !!(s.value&&(s.value!=='other'||s.other)) : !!s.value; };
 /* ticked now means *locked* — the section's padlock sets it, nothing else. */
-const rowReady = (r,S) => { if(r.type==='legals'||r.type==='topics'||!clShown(r,S)) return true;
+const rowReady = (r,S) => { if(r.type==='legals'||r.type==='topics'||!deetsShown(r,S)) return true;
   const s=S[r.id]; if(!s) return true;
   return cellFilled(r,S) && s.ticked; };
 /* every fact in, padlocks or not. This is what starts the writer. */
 function factsComplete(){
   if(!CONT) return false;
-  if(!flatRows().every(r=>cellFilled(r,CLS))) return false;
-  return Object.keys(CLR).every(key=>{
-    const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
-    return CLR[key].every(S=>groups.every(g=>{ const w=g.repeat.where;
+  if(!flatRows().every(r=>cellFilled(r,DEETS_ROWS))) return false;
+  return Object.keys(DEETS_REPEATS).every(key=>{
+    const groups=DEETS_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
+    return DEETS_REPEATS[key].every(S=>groups.every(g=>{ const w=g.repeat.where;
       if(w && String((S[w.row]||{}).value)!==w.is) return true;
       return g.rows.every(r=>cellFilled(r,S)); }));
   });
 }
 function detailReady(){
   if(!CONT) return false;
-  if(!flatRows().every(r=>rowReady(r,CLS))) return false;
-  return Object.keys(CLR).every(key=>{
-    const groups=CL_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
-    return CLR[key].every(S=>groups.every(g=>{ const w=g.repeat.where;
+  if(!flatRows().every(r=>rowReady(r,DEETS_ROWS))) return false;
+  return Object.keys(DEETS_REPEATS).every(key=>{
+    const groups=DEETS_CONFIG.groups.filter(g=>g.repeat&&repKey(g)===key);
+    return DEETS_REPEATS[key].every(S=>groups.every(g=>{ const w=g.repeat.where;
       if(w && String((S[w.row]||{}).value)!==w.is) return true;
       return g.rows.every(r=>rowReady(r,S)); }));
   });
@@ -1232,27 +1232,27 @@ let ARM=null, CRAFT=null, CRAFT_KEY='';
    it a dead /api/terms wore the unfinished-facts costume and lied. */
 let TERMS_FAILED=false, TERMS_BUSY=false;
 async function refreshLegals(){
-  const filled = flatRows().every(r=>cellFilled(r,CLS));
-  if(!filled){ MENU=[]; TERMS_FAILED=false; clRender(); return; }
-  TERMS_BUSY=true; clRender();
+  const filled = flatRows().every(r=>cellFilled(r,DEETS_ROWS));
+  if(!filled){ TERMS_MENU=[]; TERMS_FAILED=false; deetsRender(); return; }
+  TERMS_BUSY=true; deetsRender();
   try{
     const d = await api('/api/terms',{container:CID, form:formData()});
-    MENU=d.menu; TERMS_FAILED=false;
-    if(CHOSEN===null) CHOSEN = MENU.filter(c=>!c.fixed && c.default).map(c=>c.id);
-  }catch(e){ MENU=[]; TERMS_FAILED=true; }
-  TERMS_BUSY=false; clRender();
+    TERMS_MENU=d.menu; TERMS_FAILED=false;
+    if(TERMS_CHOSEN===null) TERMS_CHOSEN = TERMS_MENU.filter(c=>!c.fixed && c.default).map(c=>c.id);
+  }catch(e){ TERMS_MENU=[]; TERMS_FAILED=true; }
+  TERMS_BUSY=false; deetsRender();
 }
 
 function toggleClause(id){
-  CHOSEN = CHOSEN.includes(id) ? CHOSEN.filter(x=>x!==id) : CHOSEN.concat([id]);
-  clRender();
+  TERMS_CHOSEN = TERMS_CHOSEN.includes(id) ? TERMS_CHOSEN.filter(x=>x!==id) : TERMS_CHOSEN.concat([id]);
+  deetsRender();
 }
 
 /* ---------------- background crafting ----------------
    The robot starts writing the moment the facts are complete — before the
    padlocks shut, while the human is still reading the legals. Waiting for
    the locks would hand them the whole Opus wait at the door. */
-function clArm(){ armDetail(); }
+function deetsArm(){ armDetail(); }
 function armDetail(){
   clearTimeout(ARM);
   ARM = setTimeout(()=>{ refreshLegals(); armCraft(); }, 700);
@@ -1285,12 +1285,12 @@ function toPics(){ cardReset('plate'); buildIt(); }
 async function buildIt(){
   /* typed into the pad but never pressed DONE: take it anyway, and drop the
      background craft, which went out with an empty source. */
-  const typed=fdDumpText().trim();
+  const typed=feedDumpText().trim();
   if(typed && !val('blurb').trim()){ $('blurb').value=typed; CRAFT=null; CRAFT_KEY=''; }
   /* every stop has to hold something. Press early and the robot names the
      short one and opens it — the line explains, the navigation solves. */
-  const short=fdShort();
-  if(short){ acc(short[0]); fdSay(short[0], short[1]); return; }
+  const short=feedShort();
+  if(short){ acc(short[0]); feedSay(short[0], short[1]); return; }
   const b = briefSign();                    // WRITE THE WORDS is the signature
   if(assetFresh(b.v)){ reach(1); return; }   // already written from this brief; no beat to play
   const beat = thinkStart();
@@ -1306,7 +1306,7 @@ async function buildIt(){
       /* the craft died: FIX IT shows its plate card. TRY AGAIN runs buildIt
          again; the counter only resets when WRITE THE WORDS is pressed. */
       await thinkEnd(beat); reach(1);
-      fxFail(buildIt);
+      fixFail(buildIt);
       return;
     }
   }
@@ -1314,7 +1314,7 @@ async function buildIt(){
   reach(1);
   /* the handover: the signed brief is in BRIEF; the WRITER's result and the
      engine's terms menu go across as the seed of the asset */
-  fxInit(d, {menu:MENU, termsFailed:TERMS_FAILED});
+  fixInit(d, {menu:TERMS_MENU, termsFailed:TERMS_FAILED});
 }
 
 /* The blocks the tour walks: every writer module, in the html's order;

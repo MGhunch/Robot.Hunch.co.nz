@@ -17,59 +17,59 @@ const BASE='http://127.0.0.1:5055';
   const w=dom.window, d=w.document; const E=s=>w.eval(s); const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const errors=[]; w.addEventListener('error', e=>errors.push(e.message));
   await sleep(500);
-  d.getElementById('siWord').value='taniwha'; await w.sayWord(); await sleep(900);
-  console.log('echo:', d.getElementById('echo').textContent, '| tiles:', [...d.querySelectorAll('#rooms .room')].map(r=>r.querySelector('.room-t').textContent).join(' / '));
+  d.getElementById('doorWord').value='taniwha'; await w.sayWord(); await sleep(900);
+  console.log('echo:', d.getElementById('echo').textContent, '| tiles:', [...d.querySelectorAll('#doorTiles .door-tile')].map(r=>r.querySelector('.door-tile-t').textContent).join(' / '));
   // prize draw
   await w.enterRoom('prize_draw'); await sleep(300);
-  console.log('quiz stops:', d.getElementById('fdT0').textContent,'|', d.getElementById('fdT2').textContent, '| ghost tags:', d.getElementById('fdGhost').querySelectorAll('.fd-in').length);
-  console.log('checklist cards:', d.querySelectorAll('#clCards .cl-card').length, 'rows:', d.querySelectorAll('#clCards .cl-row').length, 'first asks:', [...d.querySelectorAll('#clCards .cl-ask')].slice(0,3).map(e=>e.textContent).join(' | '));
+  console.log('quiz stops:', d.getElementById('feedT0').textContent,'|', d.getElementById('feedT2').textContent, '| ghost tags:', d.getElementById('feedGhost').querySelectorAll('.feed-in').length);
+  console.log('checklist cards:', d.querySelectorAll('#deetsCards .deets-card').length, 'rows:', d.querySelectorAll('#deetsCards .deets-row').length, 'first asks:', [...d.querySelectorAll('#deetsCards .deets-ask')].slice(0,3).map(e=>e.textContent).join(' | '));
   // fill via state, as the UI would
-  const set=(id,v)=>{ E('CLS')[id].value=v; E('CLS')[id].ticked=true; };
+  const set=(id,v)=>{ E('DEETS_ROWS')[id].value=v; E('DEETS_ROWS')[id].ticked=true; };
   set('prize_type','movie'); set('prize_name','Practical Magic 2'); set('winners','5'); set('opens','2026-08-24'); set('closes','2026-09-06');
-  w.clRender(); E('CLS').drawn.ticked=true; w.clRender();
-  console.log('drawn derived:', E('CLS').drawn.value, '| form:', JSON.stringify(w.formData()));
+  w.deetsRender(); E('DEETS_ROWS').drawn.ticked=true; w.deetsRender();
+  console.log('drawn derived:', E('DEETS_ROWS').drawn.value, '| form:', JSON.stringify(w.formData()));
   await w.refreshLegals(); await sleep(200);
-  console.log('legals menu:', E('MENU').length, 'optional:', d.querySelectorAll('#clCards .cl-pill').length, '| ready:', w.detailReady(), '| door live:', d.getElementById('clDoor').classList.contains('live'));
+  console.log('legals menu:', E('TERMS_MENU').length, 'optional:', d.querySelectorAll('#deetsCards .deets-pill').length, '| ready:', w.detailReady(), '| door live:', d.getElementById('deetsDoor').classList.contains('live'));
   // fake a WRITER result and mount FIX IT
   w.eval('ASSET=null; REACHED=1;');
   // v035: the handover is a signed brief plus the WRITER's result and the engine's menu
   w.briefSign(); console.log('brief:', Object.keys(E('BRIEF')).join(','), '| signed:', E('BRIEF').signed, '| v:', E('BRIEF').v, '| facts:', Object.keys(E('BRIEF').details.facts).length, 'chosen:', E('BRIEF').details.chosen.length, '| sorted keys:', Object.keys(E('BRIEF').sorted).join(','));
-  w.fxInit({copy:{subject:['Double, double, toil and a double pass','B option','C option'],headline:'Win one of {winners_word} double passes to {prize_name}',body:'The Owens sisters are back. Enter before {closes_day}.',why:{subject:'Playful front page',headline:'Plain about what you win',body:'Story then the ask'},wants:null},facts:{},context:{winners_word:'five',prize_name:'Practical Magic 2',closes_day:'Sunday'},flags:[]}, {menu:E('MENU')});
+  w.fixInit({copy:{subject:['Double, double, toil and a double pass','B option','C option'],headline:'Win one of {winners_word} double passes to {prize_name}',body:'The Owens sisters are back. Enter before {closes_day}.',why:{subject:'Playful front page',headline:'Plain about what you win',body:'Story then the ask'},wants:null},facts:{},context:{winners_word:'five',prize_name:'Practical Magic 2',closes_day:'Sunday'},flags:[]}, {menu:E('TERMS_MENU')});
   await sleep(600);
   console.log('asset:', Object.keys(E('ASSET')).join(','), '| brief_v matches:', E('ASSET').brief_v===E('BRIEF').v, '| menu:', E('ASSET').menu.length, '| tweaks:', E('ASSET').tweaks.length);
-  const fr=d.querySelector('#fxArt iframe');
-  console.log('FXORDER:', E('FXORDER').join(','), '| pads:', d.querySelectorAll('#fxGutter .fx-pad').length, '| topic:', d.getElementById('fxTopic').textContent, '| wrap:', d.getElementById('fxWrapLbl').textContent);
-  const D=E('FXDOC'); console.log('poured headline:', D&&D.querySelector('[data-module="headline"]').textContent, '| terms starts:', D&&D.querySelector('[data-module="terms"]').textContent.slice(0,40), '| chat:', d.querySelectorAll('#fxChat .chat-row').length, 'drawer:', d.querySelectorAll('#fxChat .chat-opt').length);
+  const fr=d.querySelector('#fixArt iframe');
+  console.log('FIX_ORDER:', E('FIX_ORDER').join(','), '| pads:', d.querySelectorAll('#fixGutter .fix-pad').length, '| topic:', d.getElementById('fixTopic').textContent, '| wrap:', d.getElementById('fixWrapLbl').textContent);
+  const D=E('FIX_DOC'); console.log('poured headline:', D&&D.querySelector('[data-module="headline"]').textContent, '| terms starts:', D&&D.querySelector('[data-module="terms"]').textContent.slice(0,40), '| chat:', d.querySelectorAll('#fixChat .chat-row').length, 'drawer:', d.querySelectorAll('#fixChat .chat-opt').length);
   // the loop: tap a padlock → pencil, thread opens; tap again → kept, next opens
-  w.fxPadTap('subject'); await sleep(100);
-  console.log('focus:', E('FXFOCUS'), '| topic:', d.getElementById('fxTopic').textContent, '| chat:', d.querySelectorAll('#fxChat .chat-row').length, 'drawer:', d.querySelectorAll('#fxChat .chat-opt').length, '| pad states:', [...d.querySelectorAll('#fxGutter .fx-pad')].map(b=>b.className.replace('fx-pad ','')).join(','), '| lifted:', D.querySelectorAll('.fx-sec.editing').length, '| wrap:', d.getElementById('fxWrapLbl').textContent);
-  w.fxPickOption('subject',1); await sleep(100); console.log('after pick:', D.querySelector('[data-module="subject"]').textContent, '| drawer left:', d.querySelectorAll('#fxChat .chat-opt').length);
-  w.fxPadTap('subject'); await sleep(600);
-  console.log('after keep — focus:', E('FXFOCUS'), '| locks:', JSON.stringify(E('ASSET').locks), '| wrap:', d.getElementById('fxWrapLbl').textContent, '| pads:', [...d.querySelectorAll('#fxGutter .fx-pad')].map(b=>b.className.replace('fx-pad ','')).join(','));
+  w.fixPadTap('subject'); await sleep(100);
+  console.log('focus:', E('FIX_FOCUS'), '| topic:', d.getElementById('fixTopic').textContent, '| chat:', d.querySelectorAll('#fixChat .chat-row').length, 'drawer:', d.querySelectorAll('#fixChat .chat-opt').length, '| pad states:', [...d.querySelectorAll('#fixGutter .fix-pad')].map(b=>b.className.replace('fix-pad ','')).join(','), '| lifted:', D.querySelectorAll('.fix-sec.editing').length, '| wrap:', d.getElementById('fixWrapLbl').textContent);
+  w.fixPickOption('subject',1); await sleep(100); console.log('after pick:', D.querySelector('[data-module="subject"]').textContent, '| drawer left:', d.querySelectorAll('#fixChat .chat-opt').length);
+  w.fixPadTap('subject'); await sleep(600);
+  console.log('after keep — focus:', E('FIX_FOCUS'), '| locks:', JSON.stringify(E('ASSET').locks), '| wrap:', d.getElementById('fixWrapLbl').textContent, '| pads:', [...d.querySelectorAll('#fixGutter .fix-pad')].map(b=>b.className.replace('fix-pad ','')).join(','));
   // a typed keep never leaves the browser
-  d.getElementById('fxNote').value='yep'; await w.fxSend(); await sleep(600);
-  console.log('after typed keep — focus:', E('FXFOCUS'), '| wrap:', d.getElementById('fxWrapLbl').textContent);
-  console.log('asset tweaks after drawer pick:', E('ASSET').tweaks.length, '| pick:', E('ASSET').pick, '| final copy subject:', w.fxFinalCopy().subject);
+  d.getElementById('fixNote').value='yep'; await w.fixSend(); await sleep(600);
+  console.log('after typed keep — focus:', E('FIX_FOCUS'), '| wrap:', d.getElementById('fixWrapLbl').textContent);
+  console.log('asset tweaks after drawer pick:', E('ASSET').tweaks.length, '| pick:', E('ASSET').pick, '| final copy subject:', w.fixFinalCopy().subject);
   // change a fact: the brief moves on, the asset is stale, FIX IT goes — same as it always did
-  E('CLS').winners.value='6'; w.dirty(); await sleep(50);
+  E('DEETS_ROWS').winners.value='6'; w.dirty(); await sleep(50);
   console.log('after a fact change — asset:', E('ASSET'), '| reached:', E('REACHED'), '| brief v moved:', w.briefBuild().v!==E('BRIEF').v);
-  w.eval('REACHED=1;'); w.briefSign(); w.fxInit({copy:{subject:['A','B','C'],headline:'H',body:'B',why:{},wants:null},facts:{},context:{},flags:[]}, {menu:E('MENU')}); await sleep(300);
+  w.eval('REACHED=1;'); w.briefSign(); w.fixInit({copy:{subject:['A','B','C'],headline:'H',body:'B',why:{},wants:null},facts:{},context:{},flags:[]}, {menu:E('TERMS_MENU')}); await sleep(300);
   // back to a locked one: thread remembered
-  w.fxPadTap('subject'); await sleep(100);
-  console.log('reopened subject — rows:', d.querySelectorAll('#fxChat .chat-row').length, '| topic:', d.getElementById('fxTopic').textContent, '| headline now:', E('ASSET').locks.headline);
+  w.fixPadTap('subject'); await sleep(100);
+  console.log('reopened subject — rows:', d.querySelectorAll('#fixChat .chat-row').length, '| topic:', d.getElementById('fixTopic').textContent, '| headline now:', E('ASSET').locks.headline);
   // wrap early takes you to the open bit
-  w.fxWrapGo(); await sleep(100); console.log('wrap early → focus:', E('FXFOCUS'), '| wrap:', d.getElementById('fxWrapLbl').textContent);
+  w.fixWrapGo(); await sleep(100); console.log('wrap early → focus:', E('FIX_FOCUS'), '| wrap:', d.getElementById('fixWrapLbl').textContent);
   // one update — the lineup
   w.eval('ASSET=null'); await w.enterRoom('one_update'); await sleep(300);
-  console.log('OU tabs:', [...d.querySelectorAll('.fx-tabs .fx-loz')].map(x=>x.textContent).join('/'), '| ghost bar:', !!d.querySelector('#fdGhost .fd-gbar'), '| stories:', d.querySelectorAll('#clCards .cl-card.story').length, '| legals card:', !!d.querySelector('#clCards .cl-card.legals'));
-  const st=E('CLR').story; const fill=(o,kv)=>Object.entries(kv).forEach(([k,v])=>{ o[k].value=v; o[k].ticked=true; });
+  console.log('OU tabs:', [...d.querySelectorAll('.fix-tabs .fix-loz')].map(x=>x.textContent).join('/'), '| ghost bar:', !!d.querySelector('#feedGhost .feed-gbar'), '| stories:', d.querySelectorAll('#deetsCards .deets-card.story').length, '| legals card:', !!d.querySelector('#deetsCards .deets-card.legals'));
+  const st=E('DEETS_REPEATS').story; const fill=(o,kv)=>Object.entries(kv).forEach(([k,v])=>{ o[k].value=v; o[k].ticked=true; });
   fill(st[0],{story_type:'prize',story_subject:'Win 500 Phone Dollars'}); fill(st[1],{story_type:'news',story_subject:'Satellite calls'}); fill(st[2],{story_type:'news',story_subject:'2G switch-off'});
-  st[1].story_legals.value=['satellite']; w.clRender();
-  const cards=d.querySelectorAll('#clCards .cl-card.story');
-  console.log('OU pills on prize:', cards[0].querySelectorAll('.cl-pill').length, 'ticked:', cards[0].querySelectorAll('.cl-pill.on').length, '| news chips on:', cards[1].querySelectorAll('.cl-pill.on').length, '| ready:', w.detailReady(), '| story1:', JSON.stringify(w.formData().story[0]));
-  await w.refreshLegals(); await sleep(200); console.log('OU menu:', E('MENU').length);
-  w.briefSign(); w.fxInit({copy:{subject:['Toilets, and a draw','Headphones, and toilets'],preheader:'Win things',headline:'Be in to win.',"intro-copy":'Three things.',"signoff-copy":'Ngā mihi',cards:[{'card-title':'Win Phone Dollars','card-body':'One pair.','card-cta':'Enter now'},{'card-title':'Satellite','card-body':'Bear with us.','card-cta':'Find out more'},{'card-title':'2G','card-body':'Round two.','card-cta':'Learn more'}],why:{subject:'front page',card:'says what it is'},wants:null},facts:{},context:{},flags:[]}, {menu:E('MENU')});
+  st[1].story_legals.value=['satellite']; w.deetsRender();
+  const cards=d.querySelectorAll('#deetsCards .deets-card.story');
+  console.log('OU pills on prize:', cards[0].querySelectorAll('.deets-pill').length, 'ticked:', cards[0].querySelectorAll('.deets-pill.on').length, '| news chips on:', cards[1].querySelectorAll('.deets-pill.on').length, '| ready:', w.detailReady(), '| story1:', JSON.stringify(w.formData().story[0]));
+  await w.refreshLegals(); await sleep(200); console.log('OU menu:', E('TERMS_MENU').length);
+  w.briefSign(); w.fixInit({copy:{subject:['Toilets, and a draw','Headphones, and toilets'],preheader:'Win things',headline:'Be in to win.',"intro-copy":'Three things.',"signoff-copy":'Ngā mihi',cards:[{'card-title':'Win Phone Dollars','card-body':'One pair.','card-cta':'Enter now'},{'card-title':'Satellite','card-body':'Bear with us.','card-cta':'Find out more'},{'card-title':'2G','card-body':'Round two.','card-cta':'Learn more'}],why:{subject:'front page',card:'says what it is'},wants:null},facts:{},context:{},flags:[]}, {menu:E('TERMS_MENU')});
   await sleep(700);
-  const D2=E('FXDOC'); console.log('OU FXORDER:', E('FXORDER').length, 'terms in order:', E('FXORDER').includes('terms'), '| cards in doc:', D2.querySelectorAll('[data-module="card"]').length, '| legals module untouched:', D2.querySelector('[data-module="legals"]').textContent.includes('competition'), '| pads:', d.querySelectorAll('#fxGutter .fx-pad').length);
+  const D2=E('FIX_DOC'); console.log('OU FIX_ORDER:', E('FIX_ORDER').length, 'terms in order:', E('FIX_ORDER').includes('terms'), '| cards in doc:', D2.querySelectorAll('[data-module="card"]').length, '| legals module untouched:', D2.querySelector('[data-module="legals"]').textContent.includes('competition'), '| pads:', d.querySelectorAll('#fixGutter .fix-pad').length);
   console.log('errors:', errors);
 })().catch(e=>{ console.log('SMOKE FAIL', e.stack); process.exit(1); });
