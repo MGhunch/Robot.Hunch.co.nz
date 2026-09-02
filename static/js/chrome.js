@@ -56,8 +56,9 @@ const BOT_AV  = kind => `<span class="botdisc">${BOT_FACE(kind)}</span>`;
 const FD_ROBOT = kind => `<div class="chat-cav">${BOT_AV(kind)}</div>`;
 /* markup that wears a face declares it with data-face; filled once the DOM
    is there, because this file loads in the head, before the body exists */
+function ready(fn){ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
 function faceFill(){ document.querySelectorAll('[data-face]').forEach(el=>{ el.innerHTML = BOT_FACE(el.dataset.face||''); }); }
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', faceFill); else faceFill();
+ready(faceFill);
 
 /* ================= ONE FAILURE SURFACE =================
    Twenty-odd ways to fail, one voice, two pieces of furniture. The robot
@@ -287,3 +288,64 @@ const RAIL = {
   err:   text => `<div class="chat-row"><div class="chat-cav">${BOT_AV('err')}</div><div class="fd-said err nodisc" role="alert"><span class="fd-said-t">${esc(text)}</span></div></div>`,
   think: () => `<div class="chat-cav">${thinkFace()}</div>`,
 };
+
+/* ---------------- THE SHELL'S MENU ----------------
+   The burger, ABOUT and the FAQs — on every room, so it's furniture. Waits
+   for the DOM because this file loads in the head. */
+/* ── the hamburger: ABOUT + FAQS ── */
+const HM_FAQS = [
+  ["How can I be sure the robot won't go off on one?",
+   "You're in the driver's seat at every turn. You feed it. You fix stuff. You press go on the finished outputs. Human in every loop."],
+  ["Who's on the block if it all goes wrong?",
+   "Everyone, really. But ultimately the human in the loop is checking all the detail. The robot is just a robot at the end of the day."],
+  ["Isn't robot copy pretty average?",
+   "Straight from the machine, it can be. But great context and a smart prompt can get your robot to pretty damn good most days."],
+  ["How can I be sure it sounds like us?",
+   "That's all in the set up and the prompt. Your tone of voice, your best examples, your rules. So your robot should sound more like you than you do."],
+  ["What's a container and why does it matter?",
+   "Literally, it's the thing you put content in. The structure, the design, the word lengths, all that stuff. A smart container is the difference between consistent work and robots painting with beige."],
+  ["How does the robot learn?",
+   "The robot catches all your tweaks and writes them down in its robot notebook. Every now and then we check this list and use it to refine your prompts."],
+  ["Will the robot spill my secrets?",
+   "Nope. Robot Sandwich runs on Anthropic's API. And there's clear rules that prevent the robots from grabbing stuff and running away. Your copy is yours. Stays yours. No worries."],
+  ["Why would Hunch give this away?",
+   "It's the easy bit. The fun work is solving the problems and designing smart solutions. Besides, you're already using robots to write stuff. Might as well make them good ones."]
+];
+ready(function(){
+  const list = $('faqList');
+  HM_FAQS.forEach(([q,a],i)=>{
+    const d=document.createElement('div');
+    d.className='faq'+(i===0?' open':'');
+    d.innerHTML=`<button class="faq-q" aria-expanded="${i===0}">${q}
+        <svg class="faq-chev" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 6.5 L9 12 L15 6.5"/></svg>
+      </button><div class="faq-a"><p>${a}</p></div>`;
+    d.querySelector('.faq-q').onclick=()=>{
+      const was=d.classList.contains('open');
+      list.querySelectorAll('.faq').forEach(f=>{f.classList.remove('open');
+        f.querySelector('.faq-q').setAttribute('aria-expanded','false')});
+      if(!was){d.classList.add('open');
+        d.querySelector('.faq-q').setAttribute('aria-expanded','true')}
+    };
+    list.appendChild(d);
+  });
+});
+function hmMenu(){
+  const on=$('hmMenuBox').classList.toggle('on');
+  $('burger').classList.toggle('x',on);
+  $('burger').setAttribute('aria-expanded',on);
+}
+function hmOpen(id){ hmMenu(); $('hm-'+id).classList.add('on'); }
+function hmClose(id){ $('hm-'+id).classList.remove('on'); }
+ready(()=>document.querySelectorAll('.hm-shade').forEach(s=>{
+  s.addEventListener('click',e=>{ if(e.target===s) s.classList.remove('on'); });
+}));
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    document.querySelectorAll('.hm-shade.on').forEach(s=>s.classList.remove('on'));
+    if($('hmMenuBox').classList.contains('on')) hmMenu();
+  }
+});
+document.addEventListener('click',e=>{
+  const m=$('hmMenuBox'),b=$('burger');
+  if(m.classList.contains('on') && !m.contains(e.target) && !b.contains(e.target)) hmMenu();
+});
