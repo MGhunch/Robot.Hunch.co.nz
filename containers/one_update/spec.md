@@ -1,5 +1,5 @@
 # SPEC — one_update
-*What's built. Outputs, modules and lengths, why-beats, the voice lean, the engine's rules, the image sizes. One home for every number. The skin is the brand's (brands/one_nz/skin.md).*
+*What's built. Outputs, modules and lengths, why-beats, the voice lean, the engine's rules, the image sizes. One home for every number. The look is the brand's (brands/one_nz/brandlook.md).*
 
 ## Outputs (primary first)
 | id | name | files emitted |
@@ -47,8 +47,8 @@ Min 3, max 5. Guidelines cap imagery at 40% of the email; five cards plus a hero
 - Prize cards fire a draw clause each (config.md). Needs a short prize name and a close date per card.
 - Q1 broke most of the lengths. The container html has them truncated to show the cut.
 
-## VOICE LEAN
-*Appended to the brand voice on every WRITER and FIXER call. Where this format bends the voice, and no more. Brand stays in brands/one_nz/voice.md.*
+## VOICE SPECIFICS
+*Appended to the brand voice on every WRITER and FIXER call. Where this format adjusts it, and no more. Brand stays in the brand folder.*
 
 - **Register:** roundup-newsy, not single-prize-excited. A mate catching you up on a few things, in order. Warmest in the intro; flattest in the base.
 - **Where the voice bends for the shape:**

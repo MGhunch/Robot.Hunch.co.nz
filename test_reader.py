@@ -25,7 +25,6 @@ tmp = tempfile.mkdtemp()
 broken = os.path.join(tmp, "broken")
 shutil.copytree(os.path.join(C.CONTAINERS_DIR, "prize_draw"), broken)
 os.remove(os.path.join(broken, "spec.md"))
-os.rename(os.path.join(broken, "prize_draw.html"), os.path.join(broken, "broken.html"))
 cfg = open(os.path.join(broken, "config.md"), encoding="utf-8").read()
 
 

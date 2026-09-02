@@ -36,12 +36,12 @@ fixes itself is a tool nobody learns to trust.
 Nothing per-client or per-container lives in the code. A format is two folders,
 and the engine reads both.
 
-    brands/<id>/         brand.md  voice.md  skin.md  legals.md  assets/
-    containers/<id>/     config.md spec.md   <id>.html
+    brands/<id>/         brand.md  brandvoice.md  brandlook.md  brandlegals.md  assets/
+    containers/<id>/     config.md spec.md   container.html
 
-- **brand** — one per client. How they sound (`voice.md`, eaten whole by WRITER
-  and FIXER), their font and colours (`skin.md`, artefact only — every tool
-  around it stays Hunch red), and their shared clause library (`legals.md`).
+- **brand** — one per client. How they sound (`brandvoice.md`, eaten whole by WRITER
+  and FIXER), their font and colours (`brandlook.md`, artefact only — every tool
+  around it stays Hunch red), and their shared clause library (`brandlegals.md`).
 - **container** — one per format, pointing at its brand. What FEED IT asks
   (`config.md`), what gets built (`spec.md`), and the artefact itself with its
   modules tagged.

@@ -214,7 +214,7 @@ def _pretty(mod):
     return L
 
 def _logo(c):
-    """skin.md's Logo line names a file in the brand's assets/. PNG or JPG
+    """brandlook.md's Logo line names a file in the brand's assets/. PNG or JPG
     goes in; an SVG can't (docx won't take it) — the validator's job to say."""
     m = re.search(r"assets/([\w.\-]+\.(png|jpg|jpeg))", c["brand_data"].get("skin", {}).get("logo", ""), re.I)
     if not m:

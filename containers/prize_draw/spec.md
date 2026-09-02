@@ -1,5 +1,5 @@
 # SPEC — prize_draw
-*What's built. Outputs, modules and lengths, why-beats, the voice lean, the engine's rules, the image sizes. One home for every number. The skin is the brand's (brands/one_nz/skin.md).*
+*What's built. Outputs, modules and lengths, why-beats, the voice lean, the engine's rules, the image sizes. One home for every number. The look is the brand's (brands/one_nz/brandlook.md).*
 
 ## Outputs (primary first)
 | id | name | files emitted |
@@ -35,8 +35,8 @@ The writer never writes a number or a date as a literal. Only these, in curly br
 - A piece that bursts its block is wrong, however good the words.
 - The subject can be playful. The headline can't.
 
-## VOICE LEAN
-*Appended to the brand voice on every WRITER and FIXER call. Where this format bends the voice, and no more. Brand stays in brands/one_nz/voice.md.*
+## VOICE SPECIFICS
+*Appended to the brand voice on every WRITER and FIXER call. Where this format adjusts it, and no more. Brand stays in the brand folder.*
 
 - **Register:** one prize, one night out. An enthusiast. Dig for what's genuinely cool about this show, band or movie and serve it up snappy and interesting.
 - **The hook:** always the human one. What the reader gets to do, feel, or tell their mates about, not what the product is.

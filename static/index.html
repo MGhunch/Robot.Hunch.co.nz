@@ -504,7 +504,7 @@ function clDateISO(v){
 }
 
 /* one to twelve as words — display only; the state and the clauses keep
-   the digit. The rule proper lives in voice.md so the WRITER agrees. */
+   the digit. The rule proper lives in brandvoice.md so the WRITER agrees. */
 const NUMWORDS=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve'];
 const clFmtNum = v => { const x=Number(v); return Number.isInteger(x)&&x>=1&&x<=12 ? NUMWORDS[x] : String(v); };
 

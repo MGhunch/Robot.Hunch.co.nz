@@ -71,7 +71,7 @@ Per prize story, once read off the dump and confirmed (parked): `{prize_name}` `
 ### Standard (locked in, client never unticks)
 fixed_title: Standard footer
 
-The words live in the brand library — brands/one_nz/legals.md. This
+The words live in the brand library — brands/one_nz/brandlegals.md. This
 table includes them by id; @brand pulls the clause in whole.
 
 | id | fixed | default | label | text |

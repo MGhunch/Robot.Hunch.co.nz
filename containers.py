@@ -3,8 +3,8 @@ ROBOT — THE READER
 ==================
 brands/<id>/ and containers/<id>/ are the product. This reads them.
 
-    brands/<id>/        brand.md  voice.md  skin.md  assets/
-    containers/<id>/    config.md spec.md   <id>.html
+    brands/<id>/        brand.md  brandvoice.md  brandlook.md  brandlegals.md  assets/
+    containers/<id>/    config.md spec.md   container.html
 
 Every folder compiles to one dict: the manifest, the FEED IT words, the
 needs list (checklist rows, grouped, with repeats), the clause library,
@@ -147,7 +147,7 @@ def _mtime_of(folder):
 
 def _parse_brand(folder, bid, problems):
     b = {"id": bid, "folder": folder, "voice": "", "skin": {}, "assets": []}
-    for req in ("brand.md", "voice.md", "skin.md"):
+    for req in ("brand.md", "brandvoice.md", "brandlook.md"):
         if not os.path.isfile(os.path.join(folder, req)):
             problems.append(f"brand {bid}: {req} is missing")
     if problems:
@@ -158,15 +158,15 @@ def _parse_brand(folder, bid, problems):
     if man.get("id") and man["id"] != bid:
         problems.append(f"brand {bid}: brand.md says id {man['id']}; the folder name wins")
 
-    voice = _read(os.path.join(folder, "voice.md"))
+    voice = _read(os.path.join(folder, "brandvoice.md"))
     b["voice"] = voice.strip()
     for need in ("pillars", "Hard rules", "Guardrail"):
         if not any(need.lower() in t.lower() for t, _ in _sections(voice)):
-            problems.append(f"brand {bid}: voice.md has no '## {need}' section")
+            problems.append(f"brand {bid}: brandvoice.md has no '## {need}' section")
     if "- More:" not in voice or "- Less:" not in voice:
-        problems.append(f"brand {bid}: voice.md pillars need More/Less proof")
+        problems.append(f"brand {bid}: brandvoice.md pillars need More/Less proof")
 
-    skin = _read(os.path.join(folder, "skin.md"))
+    skin = _read(os.path.join(folder, "brandlook.md"))
     kv = _bold_lines(skin)
     tokens = {}
     for k, v in kv.items():
@@ -174,9 +174,9 @@ def _parse_brand(folder, bid, problems):
         if m:
             tokens[k.lower().replace(" ", "_")] = m.group(0)
     b["skin"] = {"font": kv.get("Font", ""), "logo": kv.get("Logo", ""), "tokens": tokens}
-    # legals.md — the brand's clause library (optional; validated if named)
+    # brandlegals.md — the brand's clause library (optional; validated if named)
     b["legals"] = []
-    lp = os.path.join(folder, "legals.md")
+    lp = os.path.join(folder, "brandlegals.md")
     if os.path.isfile(lp):
         for r in _table(_read(lp))["rows"]:
             b["legals"].append({"id": r.get("id", ""), "fixed": _yes(r.get("fixed")),
@@ -186,13 +186,13 @@ def _parse_brand(folder, bid, problems):
     b["assets"] = sorted(os.listdir(assets_dir)) if os.path.isdir(assets_dir) else []
     if not os.path.isdir(assets_dir):
         problems.append(f"brand {bid}: assets/ folder is missing")
-    # every filename skin.md names must exist
+    # every filename brandlook.md names must exist
     for fn in re.findall(r"assets/([\w.\-]+\.\w+)", skin):
         if fn not in b["assets"]:
             # "pending" / "still to come" is the schema's honest escape hatch
             line = next((l for l in skin.split("\n") if fn in l), "")
             if not re.search(r"pending|still to come|to come", line, re.I):
-                problems.append(f"brand {bid}: skin.md names assets/{fn} but it isn't there")
+                problems.append(f"brand {bid}: brandlook.md names assets/{fn} but it isn't there")
     return b
 
 
@@ -476,9 +476,9 @@ def _parse_spec(text, cid, problems):
             if ":" in b:
                 k, v = b.split(":", 1)
                 s["why"][k.strip()] = v.strip()
-    lean = _section(text, "VOICE LEAN")
+    lean = _section(text, "VOICE SPECIFICS")
     if lean is None:
-        problems.append(f"{cid}: spec.md has no '## VOICE LEAN'")
+        problems.append(f"{cid}: spec.md has no '## VOICE SPECIFICS'")
     else:
         # drop the italic note under the heading; the WRITER doesn't need it
         s["lean"] = re.sub(r"^\*[^*\n]+\*\n+", "", lean).strip()
@@ -538,8 +538,8 @@ def _parse_container(folder, cid):
     c = {"id": cid, "folder": folder, "problems": problems}
     cfg = os.path.join(folder, "config.md")
     spec = os.path.join(folder, "spec.md")
-    html = os.path.join(folder, cid + ".html")
-    for p, what in ((cfg, "config.md"), (spec, "spec.md"), (html, cid + ".html")):
+    html = os.path.join(folder, "container.html")
+    for p, what in ((cfg, "config.md"), (spec, "spec.md"), (html, "container.html")):
         if not os.path.isfile(p):
             problems.append(f"{cid}: {what} is missing")
     if os.path.isfile(cfg):
@@ -636,7 +636,7 @@ def containers():
 
 def _resolve_brand_clauses(c):
     """A container includes a brand clause by putting @brand in the text
-    cell against its id. The words come from brands/<b>/legals.md; a
+    cell against its id. The words come from brands/<b>/brandlegals.md; a
     missing id is a problem, not a silent blank."""
     lib = {x["id"]: x for x in c.get("brand_data", {}).get("legals", []) or []}
     for key in ("base", "extras"):
