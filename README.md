@@ -66,6 +66,7 @@ Shipping now: `prize_draw` (live) and `one_update` (testing) — both on the
 | `prompts/*.md` | The workers — writer, fixer, feeder, search, reader. They never mention a container. |
 | `static/index.html` | The whole UI |
 | `static/robot.css` | The whole stylesheet |
+| `static/js/strings.js` | Every word the robot says when something goes wrong, by room. The server sends codes; the words live here |
 | `static/tokens.css` | Hunch design tokens, lifted from Prompter |
 
 Blueprints are additive — adding a room touches nothing that already works.

@@ -110,19 +110,19 @@ def mode():
 def word():
     ip = _client_ip()
     if _braked(ip):
-        return jsonify({"error": "Too many guesses. Give it a minute."}), 429
+        return jsonify({"error": "braked"}), 429
 
     data = request.get_json() or {}
     given = (data.get("word") or "").strip().lower()
     name = (data.get("name") or "").strip()
 
     if not given:
-        return jsonify({"error": "Needs a word."}), 400
+        return jsonify({"error": "empty"}), 400
     if given in WORDS:
         name = WORDS[given]
     elif given != WORD:
         _miss(ip)
-        return jsonify({"error": "That's not it."}), 403
+        return jsonify({"error": "wrong"}), 403
 
     _misses.pop(ip, None)
 

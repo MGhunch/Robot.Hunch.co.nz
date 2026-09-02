@@ -320,7 +320,8 @@ def wrap():
     try:
         P = parcel(c, data)
     except TermsError as e:
-        return jsonify({"error": str(e)}), 400
+        print(f"[robot] terms refused: {e}", flush=True)
+        return jsonify({"error": "terms"}), 400
     on = {t["id"] for t in menu(c, run) if t["on"]}
     take = [t for t in (data.get("take") or []) if t in on]
     if not take:

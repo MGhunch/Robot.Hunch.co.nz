@@ -13,7 +13,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=031">
+<link rel="stylesheet" href="robot.css?v=033">
+<script src="js/strings.js?v=033"></script>
 
 </head>
 <body>
@@ -311,6 +312,7 @@
         </div>
       </div>
     </div>
+  </div><!-- /pane 1 — this close was missing, so FILE IT's pane sat inside FIX IT's and vanished with it -->
 
   <!-- 3 FILE IT — the takeaway counter. Four fillings, one button. The
        tiles render off /api/fillings; grey means the container can't or
@@ -327,7 +329,7 @@
         </div>
         <div class="fi-done" id="fiDone">
           <div class="fi-say">
-            <span class="botdisc" aria-hidden="true"><img src="robot-face.svg" alt=""></span>
+            <span class="botdisc" aria-hidden="true" data-face></span>
             <div class="fi-msg"><b>WRAPPED.</b>That's a sandwich.</div>
           </div>
           <div class="fi-files" id="fiFiles"></div>
@@ -358,26 +360,125 @@ const fillPh = t => esc(t).replace(/\{(\w+)\}/g,(m,k)=>`<span class="ph">${esc(C
 const fillPlain = t => String(t??'').replace(/\{(\w+)\}/g,(m,k)=>String(CTX[k]??k));
 const hasPh = t => /\{\w+\}/.test(String(t??''));
 
+/* The server sends codes, never sentences. Whatever it said, e.message is
+   the parachute line from strings.js; e.status and e.code are there for the
+   paths that want to say something more specific. The client owns the voice. */
 async function api(path, body){
   const r = await fetch(path, body ? {method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify(body)} : {});
-  const d = await r.json().catch(()=>({error:'The server said something odd.'}));
-  if(!r.ok) throw new Error(d.error || 'Something went wrong.');
+  const d = await r.json().catch(()=>null);
+  if(!r.ok || !d){
+    const e = new Error(STR.fell); e.status = r.status; e.code = (d && d.error) || '';
+    console.warn('[robot]', path, r.status, e.code); throw e;
+  }
   return d;
 }
 
-/* ---------------- the door ---------------- */
+/* ================= THE FACE =================
+   One face, one place. The engine's own mark — antenna, head, eyes, mouth —
+   white on the red disc that wears it. Two faces: the plain one, and the
+   error face (X eyes, the lamp gone out). Everything that shows a face draws
+   from here, so the eyes and the lamp can never drift apart between copies.
+   The .eye and .bulb classes are what THINKING animates. */
+function BOT_FACE(kind){
+  const eyes = kind==='err'
+    ? '<path class="eye" d="M11 14l4 4M15 14l-4 4" stroke="#ED1C24" stroke-width="1.9" stroke-linecap="round"/>'
+    + '<path class="eye" d="M19 14l4 4M23 14l-4 4" stroke="#ED1C24" stroke-width="1.9" stroke-linecap="round"/>'
+    : '<circle class="eye" cx="13" cy="16" r="2.2" fill="#ED1C24"/><circle class="eye" cx="21" cy="16" r="2.2" fill="#ED1C24"/>';
+  const bulb = kind==='err'
+    ? '<circle class="bulb" cx="17" cy="3.5" r="1.8" fill="none" stroke="#fff" stroke-width="1.2"/>'
+    : '<circle class="bulb" cx="17" cy="3.5" r="1.8" fill="#fff"/>';
+  return '<svg viewBox="0 0 34 32" fill="none" aria-hidden="true">'
+    + '<line x1="17" y1="4" x2="17" y2="8.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>' + bulb
+    + '<rect x="6" y="8" width="22" height="16" rx="5" fill="#fff"/>' + eyes
+    + '<rect x="11" y="26" width="12" height="3.4" rx="1.7" fill="#fff"/></svg>';
+}
+const BOT_AV  = kind => `<span class="botdisc">${BOT_FACE(kind)}</span>`;
+const FD_ROBOT = kind => `<div class="chat-cav">${BOT_AV(kind)}</div>`;
+document.querySelectorAll('[data-face]').forEach(el=>{ el.innerHTML = BOT_FACE(el.dataset.face||''); });
+
+/* ================= ONE FAILURE SURFACE =================
+   Twenty-odd ways to fail, one voice, two pieces of furniture. The robot
+   says it, near the wound, wearing the error face. No modals, no X's.
+   The stops are always the way out; the surface carries only the way
+   forward. Every word is in strings.js. */
+
+/* THE LINE — something failed, the room stands. Fades after 7s unless
+   it's asking for something (stick), in which case it stays till acted on. */
+function errLine(text, o={}){
+  const el=document.createElement('div');
+  el.className='fd-said err'+(o.cls?' '+o.cls:'');
+  el.setAttribute('role','alert');
+  el.innerHTML=`${BOT_AV('err')}<span class="fd-said-t">${esc(text)}</span>`;
+  if(!o.stick) el._t=setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),300); }, 7000);
+  return el;
+}
+/* one line per anchor — a fresh failure replaces the last one, never stacks */
+function errAt(anchor, text, o={}){
+  if(!anchor) return null;
+  anchor.querySelectorAll(':scope > .fd-said.err').forEach(x=>{ clearTimeout(x._t); x.remove(); });
+  const el=errLine(text,o);
+  if(o.first) anchor.insertBefore(el, anchor.firstChild); else anchor.appendChild(el);
+  return el;
+}
+function errClear(anchor){ if(anchor) anchor.querySelectorAll(':scope > .fd-said.err').forEach(x=>{ clearTimeout(x._t); x.remove(); }); }
+
+/* THE CARD — a whole pane failed to arrive. Renders in the page flow, in
+   the space the missing thing should occupy. TRY AGAIN retries; a second
+   consecutive failure on the same card is structural, not a blip: the
+   beacon fires, the card reads BUNG, and its button just acknowledges the
+   news and kills the card. The counter resets on room entry, not on retry. */
+const CARD_FAILS={};
+function cardReset(room){ CARD_FAILS[room]=0; }
+function errCard(room, retry, what){
+  CARD_FAILS[room]=(CARD_FAILS[room]||0)+1;
+  const stop = CARD_FAILS[room]>=2;
+  const w = stop ? STR.card.stop : STR.card[room];
+  const el=document.createElement('div'); el.className='errcard'+(stop?' stop':'');
+  el.setAttribute('role','alert');
+  el.innerHTML=`<span class="botdisc">${BOT_FACE('err')}</span><div class="errcard-h">${esc(w.head)}</div>
+    <div class="errcard-p">${esc(w.line)}</div><button class="errcard-go">${esc(w.go)}</button>`;
+  const go=el.querySelector('.errcard-go');
+  if(stop){
+    beacon(what, room);                       // the email goes before the card claims it
+    go.onclick=()=>{ el.remove(); if(room==='plate'){ const t=document.querySelector('.fx-tabs'); if(t) t.innerHTML=''; } };
+  } else {
+    go.onclick=()=>{ el.remove(); retry(); };
+  }
+  return el;
+}
+/* the beacon: one POST, the server logs it and emails Hunch (throttled
+   server-side, so an outage isn't fifty emails). Fire and forget — if this
+   fails too, the server log is the witness and there's nothing to press. */
+function beacon(what, room){
+  api('/api/bung',{what, room, container:CID||'', run:RUN||''}).catch(()=>{});
+}
+
+/* ---------------- the door ----------------
+   The guess ladder walks on the status the server sends — 403 is a wrong
+   word, 429 is the brake — never on its words. Resets on a right one. */
+let DOOR_MISSES=0;
+function siNote(line){
+  const note=$('siNote'); note.className='si-note bad'; note.innerHTML='';
+  note.appendChild(errLine(line,{stick:true, cls:'onred'}));
+}
 async function sayWord(){
   const note=$('siNote'), go=$('siGo'), w=$('siWord').value.trim();
-  if(!w){ note.className='si-note bad'; note.textContent='Needs a word.'; return; }
-  go.disabled=true; note.className='si-note'; note.textContent='Checking…';
+  if(!w){ siNote(STR.door.empty); return; }
+  go.disabled=true; note.className='si-note'; note.textContent=STR.door.checking;
   try{
     const d = await api('/api/auth/word',{word:w});
+    DOOR_MISSES=0;
     go.classList.add('open');                       // the padlock pops
     setTimeout(()=>signedIn(d), 430);
   }
   catch(e){
-    note.className='si-note bad'; note.textContent=e.message;
+    let line;
+    if(e.status===429) line=STR.door.braked;
+    else if(e.status===403){ line=STR.door.wrong[Math.min(DOOR_MISSES, STR.door.wrong.length-1)]; DOOR_MISSES++; }
+    else if(e.status===400) line=STR.door.empty;
+    else line=STR.fell;
+    siNote(line);
     $('siWord').value=''; $('siWord').focus(); go.disabled=false;
   }
 }
@@ -419,7 +520,7 @@ async function doorway(){
   const box=$('rooms'); box.innerHTML='';
   let d;
   try{ d = await api('/api/containers'); }
-  catch(e){ box.innerHTML=`<div class="room soon"><div><div class="room-t">NO CONTAINERS</div><div class="room-d">${esc(e.message)}</div></div></div>`; box.style.display='flex'; return; }
+  catch(e){ errAt(box, STR.doorway.list, {cls:'onred', stick:true}); box.style.display='flex'; return; }
   TILES=d.tiles||[];
   const brands=[...new Set(TILES.map(t=>t.brand))];
   brands.forEach(b=>{
@@ -432,7 +533,7 @@ async function doorway(){
       el.className='room'+(t.status==='testing'?' testing':'');
       el.innerHTML=`<div><div class="room-t">${esc(t.name).toUpperCase()}${t.status==='testing'?'<span class="badge">Testing</span>':''}</div>
         <div class="room-d">${esc(t.line||t.purpose.split('. ')[0])}</div></div><div class="room-go">&rarr;</div>`;
-      el.onclick=()=>enterRoom(t.id);
+      el.onclick=()=>enterRoom(t.id, el);
       box.appendChild(el);
     });
   });
@@ -761,9 +862,11 @@ function dzLegalsBody(box, sec, st){
   t2.innerHTML=clTitle(CL_CONFIG.legals.title||'Specific terms');
   box.appendChild(t2);
   const opt = MENU.length ? MENU.filter(c=>!c.fixed) : [];
-  if(!opt.length){
+  if(!opt.length && TERMS_FAILED){
+    box.appendChild(errLine(STR.deets.terms_fail,{stick:true}));
+  } else if(!opt.length){
     const w=document.createElement('div'); w.className='cl-legwait';
-    w.textContent='Finish the facts above and the legals sort themselves.';
+    w.textContent=TERMS_BUSY ? STR.deets.terms_wait : 'Finish the facts above and the legals sort themselves.';
     box.appendChild(w);
   } else {
     const row=document.createElement('div'); row.className='cl-pills'+(st==='edit'?'':' inert');
@@ -987,7 +1090,7 @@ function clRowEl(r,S){
     row.classList.add('pillrow','editing');
     valEl.innerHTML='';
     const panel=document.createElement('div'); panel.className='cl-doors';
-    panel.innerHTML=`<div class="cl-doorline"><span class="cl-doorbot">${BOT_AV}</span>
+    panel.innerHTML=`<div class="cl-doorline"><span class="cl-doorbot">${BOT_AV()}</span>
       <span>No sweat &mdash; ${esc(r.notsure)} Your call:</span></div>`;
     const btns=document.createElement('div'); btns.className='cl-doorbtns';
     const tell=document.createElement('button'); tell.textContent="I'll tell it";
@@ -995,12 +1098,13 @@ function clRowEl(r,S){
     btns.appendChild(tell);
     if(r.diggable){
       const dig=document.createElement('button'); dig.className='primary'; dig.textContent='Let it dig';
-      /* SEARCH (hit list 9) isn't built. The honest answer, in character. */
+      /* The apologetic ask aims SEARCH: back to the dump, the search door
+         open, the row's gap already in the field. Stop 3 to stop 1 is the
+         concertina jump, and it's deliberate — the dig is the dump's job. */
       dig.onclick=()=>{
-        panel.querySelector('.cl-doorline span:last-child').innerHTML=
-          "Can't dig yet &mdash; that bit of me is still being built. Tell me for now?";
-        btns.remove();
-        setTimeout(()=>{ s.mode='edit'; clRender(); },1600);
+        s.mode='view'; clRender();
+        acc(0); fdDoor('search');
+        const f=$('srField'); if(f){ f.value=r.label||''; fdDumpDraw(); f.focus(); }
       };
       btns.appendChild(dig);
     }
@@ -1067,10 +1171,17 @@ function formData(){
 }
 
 /* into the room: fetch the container, deal the checklist, wake the quiz */
-async function enterRoom(cid){
+async function enterRoom(cid, tile){
   CID=cid;
   try{ CONT = await api('/api/container/'+encodeURIComponent(cid)); }
-  catch(e){ alert(e.message); return; }
+  catch(e){
+    /* the line sits under the tapped tile — beside the wound */
+    errClear($('rooms'));
+    if(tile) tile.insertAdjacentElement('afterend', errLine(STR.doorway.open, {cls:'onred', stick:true}));
+    else errAt($('rooms'), STR.doorway.open, {cls:'onred', stick:true});
+    return;
+  }
+  cardReset('plate'); cardReset('grid'); TERMS_FAILED=false;
   $('door').style.display='none'; $('room').classList.add('on');
   FACTS=null; COPY=null; PICK=0; MENU=[]; CHOSEN=null; TWEAKS=0; CTX={}; REACHED=0; unlock(); go(0);
   EXTRACTED=false; EXTRACTING=null; CRAFT=null; CRAFT_KEY=''; FXDOC=null;
@@ -1106,8 +1217,6 @@ function backToStory(){ subView('story'); }
    lands is QBRIEF: the steer the WRITER writes from. */
 let QZ=null, QTURNS=[], QBRIEF=null, QANGLE='', QNEED='point', QLAST='';
 const FD_SLOT={point:'storyPoint', insight:'storyInsight', angle:'storyAngle'};
-const BOT_AV='<span class="botdisc"><img src="robot-face.svg" alt=""></span>';
-const FD_ROBOT='<div class="chat-cav">'+BOT_AV+'</div>';
 let ACC=0;                                // which stop is open
 
 /* The concertina: one open, the rest closed, and all three reachable from
@@ -1142,16 +1251,14 @@ const FD_SHORT=[
   [1, "Let's quickly bounce it first."],
   [2, 'Just need to lock the deets.'],
 ];
-let SAID=null;
+
 function fdShort(){ return FD_SHORT.find(([j])=>!fdDone(j)) || null; }
-function fdSay(j,line){
+function fdSay(j,line,stick){
   const st=document.querySelectorAll('.fd-stage')[j]; if(!st) return;
   const bod=st.querySelector('.fd-bod'); if(!bod) return;
-  let el=$('fdSaid');
-  if(!el){ el=document.createElement('div'); el.id='fdSaid'; el.className='fd-said'; }
-  el.textContent=line;
+  const old=$('fdSaid'); if(old){ clearTimeout(old._t); old.remove(); }
+  const el=errLine(line,{stick:!!stick}); el.id='fdSaid';
   bod.insertBefore(el, bod.firstChild);
-  clearTimeout(SAID); SAID=setTimeout(()=>{ if(el.parentNode) el.remove(); }, 7000);
 }
 
 async function quizInit(){
@@ -1267,10 +1374,11 @@ async function fdTake(files){
     try{
       const fd=new FormData(); fd.append('file', f, f.name);
       const r=await fetch('/api/read',{method:'POST',body:fd});
-      const j=await r.json().catch(()=>({}));
+      const j=await r.json().catch(()=>null);
       if(j&&j.success&&j.text){ d.text=j.text; }
-      else { d.bad=true; d.why=(j&&j.error)||'couldn\'t read that one'; }
-    }catch(e){ d.bad=true; d.why='couldn\'t read that one'; }
+      /* the server sends a reason code; the words are ours */
+      else { d.bad=true; d.why=STR.feed.read[(j&&j.reason)||'broken'] || STR.feed.read.broken; }
+    }catch(e){ d.bad=true; d.why=STR.feed.read.nothing; }
     d.wait=false; fdDocsDraw();
   }));
 }
@@ -1282,11 +1390,11 @@ function fdDocsDraw(){
        <button class="dump-x" onclick="fdDocDrop(${i});event.stopPropagation()" aria-label="Remove">&times;</button>
        <span class="dump-tick" aria-label="${d.wait?'Reading':d.bad?'Not read':'Read'}">${d.wait?'':'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-6.5"/></svg>'}</span>
      </div>`).join('')
-    /* the failure names what it couldn't do, then what does work — a list
-       of formats that don't work is no use to anyone holding a file. */
-    + (FD_DOCS.some(d=>d.bad)
-        ? `<p class="dump-bad">${esc(FD_DOCS.find(d=>d.bad).why||"Couldn't read that one")}. Word, PDF, a screenshot or plain text — or paste the words in.</p>`
-        : '');
+    /* one line under the row for the first doc that didn't read — it
+       asks for something, so it stays until the doc is dropped or replaced */
+    + '';
+  const bad=FD_DOCS.find(d=>d.bad);
+  if(bad){ const w=document.createElement('div'); w.className='dump-bad'; w.appendChild(errLine(bad.why,{stick:true})); $('fdDocs').appendChild(w); }
   fdDumpDraw();
 }
 function fdDocDrop(i){ FD_DOCS.splice(i,1); fdDocsDraw(); fdStages(); }
@@ -1389,7 +1497,7 @@ async function srPlan(){
   if(go){ go.disabled=true; go.classList.add('spin'); }
   try{
     const d=await api('/api/search',{container:CID, stage:'plan', subject:q});
-    if(!(d.queries||[]).length){ fdSay(0, 'Not much to go on. Give me a bit more.'); }
+    if(!(d.queries||[]).length){ fdSay(0, STR.feed.plan_empty); }
     else{
       /* anything already ticked rides along to the next round */
       SR_HITS.filter(x=>x.on).forEach(({fact,source,url})=>{
@@ -1397,7 +1505,7 @@ async function srPlan(){
       });
       SR_QS=d.queries.map(q=>({q, on:false})); SR_HITS=[]; SRSTAGE='plan';
     }
-  }catch(e){ fdSay(0, e.message); }
+  }catch(e){ fdSay(0, e.code==='noplan' ? STR.feed.plan_empty : STR.feed.search_died, e.code!=='noplan'); }
   if(go) go.classList.remove('spin');
   fdDumpDraw();
 }
@@ -1420,8 +1528,8 @@ async function srRun(){
     SR_HITS=kept.concat(fresh); SR_KEPT=[];
     SR_FACTS=SR_HITS.filter(x=>x.on).map(({fact,source,url})=>({fact,source,url}));
     SRSTAGE='hits';
-    if(!SR_HITS.length) fdSay(0, "Couldn't find a thing worth keeping. Paste it in and I'll work from that.");
-  }catch(e){ fdSay(0, e.message); SRSTAGE='plan'; }
+    if(!SR_HITS.length) fdSay(0, STR.feed.dig_empty);
+  }catch(e){ fdSay(0, STR.feed.search_died, true); SRSTAGE='plan'; }
   clearInterval(tick); SR_DOING=-1; fdDumpDraw();
 }
 
@@ -1504,9 +1612,10 @@ async function fdDumpNext(){
   fdThink(true);
   let d;
   try{ d = await api('/api/feeder',{container:CID, dump:dump, turns:[]}); }
-  catch(e){ d = {ask:fdPlain('point'), need:'point'}; }
+  catch(e){ d = {ask:fdPlain('point'), need:'point', fell:true}; }
   fdThink(false);
   fdAsk(d);
+  if(d.fell) fdSay(1, STR.feed.feeder);
   $('fdDumpGo').disabled=false;
 }
 
@@ -1515,7 +1624,7 @@ const fdScroll=()=>{ const c=$('fdChat'); c.scrollTop=c.scrollHeight; };
 function fdBubble(html, me){
   const row=document.createElement('div');
   row.className='chat-row'+(me?' me':'');
-  row.innerHTML = me ? `<div class="chat-msg"></div>` : FD_ROBOT+`<div class="chat-msg">${html}</div>`;
+  row.innerHTML = me ? `<div class="chat-msg"></div>` : FD_ROBOT()+`<div class="chat-msg">${html}</div>`;
   if(me) row.querySelector('.chat-msg').textContent=html;
   $('fdChat').appendChild(row); fdScroll();
 }
@@ -1605,8 +1714,9 @@ async function fdNext(){
   fdThink(true);
   let d;
   try{ d = await api('/api/feeder',{container:CID, dump:val('blurb'), turns:QTURNS}); }
-  catch(e){ d = {ask:fdPlain(QNEED), need:QNEED}; }
+  catch(e){ d = {ask:fdPlain(QNEED), need:QNEED, fell:true}; }
   fdThink(false);
+  if(d.fell) fdSay(1, STR.feed.feeder);
   fdLand(d.found);
   if(d.done){
     fdClose(d);
@@ -1691,15 +1801,19 @@ function detailReady(){
 
 let ARM=null, CRAFT=null, CRAFT_KEY='';
 
+/* TERMS_FAILED is the difference between 'not yet' and 'can't' — without
+   it a dead /api/terms wore the unfinished-facts costume and lied. */
+let TERMS_FAILED=false, TERMS_BUSY=false;
 async function refreshLegals(){
   const filled = flatRows().every(r=>cellFilled(r,CLS));
-  if(!filled){ MENU=[]; clRender(); return; }
+  if(!filled){ MENU=[]; TERMS_FAILED=false; clRender(); return; }
+  TERMS_BUSY=true; clRender();
   try{
     const d = await api('/api/terms',{container:CID, form:formData()});
-    MENU=d.menu; FACTS=d.facts;
+    MENU=d.menu; FACTS=d.facts; TERMS_FAILED=false;
     if(CHOSEN===null) CHOSEN = MENU.filter(c=>!c.fixed && c.default).map(c=>c.id);
-    clRender();
-  }catch(e){ MENU=[]; }
+  }catch(e){ MENU=[]; TERMS_FAILED=true; }
+  TERMS_BUSY=false; clRender();
 }
 
 function toggleClause(id){
@@ -1757,7 +1871,7 @@ function reach(n){ if(n>REACHED){REACHED=n; unlock();} go(n); }
    session's tweaks in the log. */
 const RUN = (crypto.randomUUID ? crypto.randomUUID()
              : Date.now()+'-'+Math.random().toString(36).slice(2)).replace(/[^a-z0-9-]/gi,'');
-function toPics(){ buildIt(); }
+function toPics(){ cardReset('plate'); buildIt(); }
 
 /* ---------------- THINKING ----------------
    The beat while the WRITER runs. The lines are the robot's own, so they
@@ -1863,9 +1977,11 @@ async function buildIt(){
     try{
       d = await api('/api/copy',{container:CID, form:formData(), story:storyData(), source:val('blurb')});
     }catch(e){
-      await thinkEnd(beat); reach(1);       // the existing failure surface, unchanged
+      /* the plate card, in the artefact's slot. TRY AGAIN runs buildIt
+         again; the counter only resets when WRITE THE WORDS is pressed. */
+      await thinkEnd(beat); reach(1);
       $('fxGutter').innerHTML=''; $('fxChat').innerHTML=''; fxTopicSet(null);
-      $('fxArt').innerHTML=`<div class="err" style="margin:20px">${esc(e.message)}</div>`;
+      $('fxArt').innerHTML=''; $('fxArt').appendChild(errCard('plate', buildIt, 'copy'));
       return;
     }
   }
@@ -1933,7 +2049,7 @@ function fxInit(d){
   FXFOCUS=null; FXTHREAD={};
   LOCKED=FXLOCK;
   $('fxChat').innerHTML=''; fxTopicSet(null); fxQuoteSet(null);
-  fxMount(()=>{ drawFix(); });
+  fxMount(()=>{ drawFix(); if(TERMS_FAILED) fxErr(STR.fix.terms_fail); });
 }
 
 const fxDiffWords=(o,n)=>{
@@ -2130,17 +2246,23 @@ function fxThreadRender(){
   c.querySelectorAll('.chat-opt').forEach(b=>{ b.onclick=()=>fxPickOption(b.dataset.k,+b.dataset.i); });
   c.scrollTop=c.scrollHeight;
 }
+/* the error turn: the robot's turn in the rail, wearing the error face,
+   the line where the bubble would be. A transcript row, so it stays. */
+function fxErr(text){
+  const row=`<div class="chat-row"><div class="chat-cav">${BOT_AV('err')}</div><div class="fd-said err nodisc" role="alert"><span class="fd-said-t">${esc(text)}</span></div></div>`;
+  if(FXFOCUS){ (FXTHREAD[FXFOCUS]=FXTHREAD[FXFOCUS]||[]).push(row); fxThreadRender(); }
+  else { $('fxChat').insertAdjacentHTML('beforeend',row); $('fxChat').scrollTop=$('fxChat').scrollHeight; }
+}
 function fxSay(html,who,withAv){
   const row = who==='me'
     ? `<div class="chat-row me"><div class="chat-msg">${html}</div></div>`
-    : `<div class="chat-row"><div class="chat-cav ${withAv?'':'ghost'}">${BOT_AV}</div><div class="chat-msg">${html}</div></div>`;
+    : `<div class="chat-row"><div class="chat-cav ${withAv?'':'ghost'}">${BOT_AV()}</div><div class="chat-msg">${html}</div></div>`;
   if(FXFOCUS){ (FXTHREAD[FXFOCUS]=FXTHREAD[FXFOCUS]||[]).push(row); fxThreadRender(); }
   else { $('fxChat').insertAdjacentHTML('beforeend',row); $('fxChat').scrollTop=$('fxChat').scrollHeight; }
 }
 /* thinking: the face does it — one behaviour from the pool per wait,
    never the same twice running, and a 1.2s floor so a quick answer
    still reads as the robot reading. The bubble stays empty. */
-const BOT_FACE='<svg viewBox="0 0 34 32" fill="none"><line x1="17" y1="4" x2="17" y2="8.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle class="bulb" cx="17" cy="3.5" r="1.8" fill="#fff"/><rect x="6" y="8" width="22" height="16" rx="5" fill="#fff"/><circle class="eye" cx="13" cy="16" r="2.2" fill="#ED1C24"/><circle class="eye" cx="21" cy="16" r="2.2" fill="#ED1C24"/><rect x="11" y="26" width="12" height="3.4" rx="1.7" fill="#fff"/></svg>';
 const THINK_POOL=['eyeroll','rollboth','rock','blink']; let THINK_LAST='';
 /* The first wait of a session is always the spin. Every later wait is read
    against an expectation the first one taught, so the first has to be the
@@ -2150,7 +2272,7 @@ function thinkFace(){ let p;
   if(!THINK_LAST){ p='rollboth'; }
   else { do{ p=THINK_POOL[Math.floor(Math.random()*THINK_POOL.length)]; }while(p===THINK_LAST); }
   THINK_LAST=p;
-  return `<span class="botdisc think ${p}">${BOT_FACE}</span>`; }
+  return `<span class="botdisc think ${p}">${BOT_FACE()}</span>`; }
 function fxThink(){
   const t=document.createElement('div');
   t.className='chat-row chat-think'; t.innerHTML=`<div class="chat-cav">${thinkFace()}</div>`;
@@ -2244,17 +2366,16 @@ async function fxSend(){
       FXLIST.push({label:FXLBL[k], note}); TWEAKS++;
       fxClearOpts();
       fxSay(esc(d.say||'Like this?'),'robot',true);
-      if(d.flags && d.flags.length) fxSay('Careful \u2014 '+esc(d.flags[0]),'robot',false);
+      if(d.flags && d.flags.length) fxSay(esc(STR.fix.flag)+esc(d.flags[0]),'robot',false);
       if(d.wants) fxSay(esc(d.wants),'robot',false);
       fxApplyFx(k);
     } else {
-      fxSay(esc(d.say||'Say that another way?'),'robot',true);
+      fxErr(STR.fix.tweak_blank);
     }
-  }catch(e){ await th.done(); fxSay(esc(e.message),'robot',true); }
+  }catch(e){ await th.done(); fxErr(STR.fix.tweak_fail); }
 }
 
-const FX_LOCKED_LINE='That\u2019s from the brief — dates, numbers and legals travel locked. Change it back in FEED IT and it changes everywhere.';
-function fxDeflect(){ fxSay(FX_LOCKED_LINE,'robot',true); }
+function fxDeflect(){ fxErr(STR.fix.locked); }
 function fxSnap(full,part){
   const i=full.indexOf(part); if(i===-1) return part;
   let a=i,b=i+part.length;
@@ -2283,8 +2404,9 @@ const FI_ICON={
 const FI_TICK='<svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3L13 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 let FI_LAST=null;                                   // the last wrap, so a re-press is a re-build
 async function toReview(){ return toFileIt(); }     // FIX IT's WRAP IT UP still calls this
-async function toFileIt(){
-  reach(2); fiUnwrap();
+async function toFileIt(retry){
+  if(!retry) cardReset('grid');
+  reach(2); fiUnwrap(); errClear($('fiBar'));
   $('fiTiles').innerHTML='<div class="load" style="color:#fff"><div class="spin"></div>Checking the menu…</div>';
   try{
     const d=await api('/api/fillings',{container:CID, run:RUN});
@@ -2294,7 +2416,7 @@ async function toFileIt(){
       <span class="tile-t">${esc(t.title)}</span>
       <span class="tile-d">${esc(t.line)}</span></button>`).join('');
     fiArm();
-  }catch(e){ $('fiTiles').innerHTML=`<div class="err">${esc(e.message)}</div>`; }
+  }catch(e){ $('fiTiles').innerHTML=''; $('fiTiles').appendChild(errCard('grid', ()=>toFileIt(true), 'fillings')); fiArm(); }
 }
 function fiFlip(t){ if(t.classList.contains('off')) return; t.classList.toggle('on'); t.setAttribute('aria-pressed',t.classList.contains('on')); fiArm(); }
 function fiArm(){ $('fiWrap').classList.toggle('live', document.querySelectorAll('#fiTiles .tile.on').length>0); }
@@ -2310,7 +2432,7 @@ async function fiWrap(){
     $('fiFiles').innerHTML=(d.all?row(d.all,true):'')+d.files.map(f=>row(f)).join('');
     $('fiTiles').classList.add('wrapped'); $('fiBar').style.display='none'; $('fiDone').classList.add('on');
     $('fiDone').scrollIntoView({behavior:'smooth',block:'nearest'});
-  }catch(e){ alert(e.message); }
+  }catch(e){ errAt($('fiBar'), STR.file.wrap, {cls:'onred', stick:true}); }
   w.textContent='WRAP IT'; fiArm();
 }
 function fiUnwrap(){ $('fiDone').classList.remove('on'); $('fiBar').style.display=''; $('fiTiles').classList.remove('wrapped'); }

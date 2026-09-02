@@ -186,7 +186,8 @@ def terms():
         facts = build_facts(c, data.get("form") or {})
         menu = clause_menu(c, facts)
     except TermsError as e:
-        return jsonify({"error": str(e)}), 400
+        print(f"[robot] terms refused: {e}", flush=True)
+        return jsonify({"error": "terms"}), 400
     chosen = data.get("chosen")
     return jsonify({"success": True, "facts": facts, "menu": menu,
                     "clauses": assemble_terms(c, facts, chosen),
@@ -205,7 +206,8 @@ def parcel():
     try:
         P = _parcel(c, data)
     except TermsError as e:
-        return jsonify({"error": str(e)}), 400
+        print(f"[robot] terms refused: {e}", flush=True)
+        return jsonify({"error": "terms"}), 400
     return jsonify({"success": True, "copy": P["copy"], "terms": P["terms"], "slug": P["slug"],
                     "clause_count": len(assemble_terms(c, P["facts"], data.get("chosen")))})
 
@@ -230,7 +232,7 @@ def too_big(_):
     """Flask answers an oversize upload with an HTML page, which a fetch()
     can only read as 'something went wrong'. Say it in JSON so the row can
     say it in words."""
-    return jsonify({"success": False,
+    return jsonify({"success": False, "reason": "big",
                     "error": "too big — 10MB is the limit"}), 413
 
 _SAFE = re.compile(r"[^a-z0-9-]")
@@ -293,7 +295,70 @@ _MODELS_OK, _MODELS = robots.check(os.environ.get("ANTHROPIC_API_KEY"))
 def health():
     return jsonify({"status": "ok", "service": "robot",
                     "lanes": robots.lanes(),
-                    "models_ok": _MODELS_OK, "models": _MODELS})
+                    "models_ok": _MODELS_OK, "models": _MODELS,
+                    "bung_today": {k: v for k, v in _BUNG_COUNT.items()}})
+
+
+# ---------------------------------------------------------------------------
+# THE BEACON — /api/bung
+# The front end posts here when a card fails twice running: structural, not
+# a blip. The server logs it every time and emails Hunch, throttled to one
+# email per container per BUNG_EVERY, so an outage is one email, not fifty.
+# The card says "I've emailed the tech squad" — this is what makes that
+# true. No Resend key: log loudly, the log is the witness. The counter is
+# on /api/health so the regular check can see a bad day without the inbox.
+# ---------------------------------------------------------------------------
+BUNG_EVERY = timedelta(minutes=15)
+BUNG_TO = os.environ.get("ROBOT_BUNG_TO", "michael@hunch.co.nz")
+_BUNG_LAST = {}     # container id -> last email time
+_BUNG_COUNT = {}    # container id -> beacons today (resets on restart)
+
+
+@app.route("/api/bung", methods=["POST"])
+@require_auth
+def bung():
+    from datetime import datetime
+    data = request.get_json(silent=True) or {}
+    cid = re.sub(r"[^a-z0-9_-]", "", str(data.get("container") or "")) or "-"
+    what = str(data.get("what") or "?")[:40]
+    room = str(data.get("room") or "?")[:20]
+    run = str(data.get("run") or "")[:64]
+    who = session.get("email") or "?"
+    _BUNG_COUNT[cid] = _BUNG_COUNT.get(cid, 0) + 1
+    line = f"{what} died twice in {room} — container={cid} run={run} who={who}"
+    print(f"[robot/bung] {line}", flush=True)
+
+    now = datetime.utcnow()
+    last = _BUNG_LAST.get(cid)
+    if last and now - last < BUNG_EVERY:
+        return jsonify({"success": True, "emailed": False, "throttled": True})
+    _BUNG_LAST[cid] = now
+
+    key = os.environ.get("RESEND_API_KEY")
+    sender = os.environ.get("ROBOT_FROM", "robot@hunch.co.nz")
+    if not key:
+        print(f"[robot/bung] No RESEND_API_KEY — nobody was emailed: {line}", flush=True)
+        return jsonify({"success": True, "emailed": False})
+    try:
+        import requests
+        requests.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"from": f"Robot <{sender}>", "to": [BUNG_TO],
+                  "subject": f"Robot: something's gone bung in {cid}",
+                  "text": (f"{what} failed twice running in {room}.\n\n"
+                           f"Container: {cid}\nRun: {run}\nWho: {who}\n"
+                           f"When: {now.isoformat()}Z\n\n"
+                           f"Railway logs will have the detail — grep for "
+                           f"[robot/{what}] around that time.\n\n"
+                           f"Next email for this container no sooner than "
+                           f"{int(BUNG_EVERY.total_seconds() // 60)} minutes from now.")},
+            timeout=10,
+        )
+        return jsonify({"success": True, "emailed": True})
+    except Exception as e:
+        print(f"[robot/bung] Resend failed ({e}): {line}", flush=True)
+        return jsonify({"success": True, "emailed": False})
 
 
 @app.route("/")

@@ -112,6 +112,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .si-go.open .shackle{transform:rotate(-38deg) translateY(-1px)}
 .si-note{font-size:12px;color:var(--white-hi);margin-top:11px;line-height:1.55;min-height:18px}
 .si-note.bad{color:#fff;font-weight:500}
+.si-note .fd-said{margin:0;text-align:left;font-size:13.5px;padding:7px 12px 7px 9px}
+.si-note .fd-said .botdisc{width:24px;height:24px}
+.si-note .fd-said .botdisc svg{width:17px;height:17px}
 
 .rooms{margin:0 auto;display:none;flex-direction:column;gap:10px;width:100%;max-width:360px;
   animation:up .3s .18s ease both}
@@ -306,9 +309,9 @@ mark.fx-hl{background:var(--yellow);color:var(--ink);border-radius:2px;padding:0
    size in the chat, one shadow, and it never reskins. */
 .botdisc{width:27px;height:27px;border-radius:50%;background:var(--red);
   display:flex;align-items:center;justify-content:center}
-.botdisc img{width:19px;height:19px;object-fit:contain;display:block}
+.botdisc svg{width:19px;height:19px;display:block;overflow:visible}
 .chat-cav .botdisc{width:36px;height:36px;box-shadow:0 3px 10px rgba(0,0,0,.22)}
-.chat-cav .botdisc img{width:25px;height:25px}
+.chat-cav .botdisc svg{width:25px;height:25px}
 /* the composer: quote (if any), the box, ? and the arrow. Paper is
    enough — no dashed box, no rule, no SEND. */
 .fx-compose{border-top:1px solid var(--border);padding-top:12px;position:relative;}
@@ -440,8 +443,6 @@ mark.fx-hl{background:var(--yellow);color:var(--ink);border-radius:2px;padding:0
 .spin{width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--red);
   border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
-.err{background:#fff;border:1px solid var(--red);border-radius:var(--r-md);padding:13px 15px;
-  font-size:13px;color:var(--red-dark);margin-bottom:14px}
 .sect{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--mid);
   margin:26px 0 10px}
 .robotwork{width:130px;margin:0 auto 10px;display:block;animation:bob 1.6s ease-in-out infinite}
@@ -633,13 +634,45 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .fd-acc{display:flex;flex-direction:column;gap:12px;position:relative;margin-left:46px}
 /* the robot naming the short stop, in the stop it just sent you to.
    Says its piece and gets out of the way after a few seconds. */
-.fd-said{background:var(--delta);border-left:3px solid var(--red);
+/* THE LINE — something failed, the room stands. The robot disc wearing the
+   error face, a red-tinted strip, a 3px red left border and a square left
+   edge (deliberate: no curve on the left). Sits beside the wound. Fades
+   after 7s unless it's asking for something, in which case it stays. */
+.fd-said{display:flex;align-items:center;gap:11px;
+  background:var(--delta);border-left:3px solid var(--red);
   color:var(--red);font-weight:500;font-size:14.5px;line-height:1.35;
-  padding:10px 14px;border-radius:var(--r-sm);margin:0 0 14px;
-  animation:fd-said-in .28s ease-out both}
+  padding:9px 14px 9px 11px;border-radius:0 var(--r-sm) var(--r-sm) 0;margin:0 0 14px;
+  animation:fd-said-in .28s ease-out both;transition:opacity .28s ease}
+.fd-said .botdisc{flex:none}
+.fd-said.out{opacity:0}
+/* on the red rooms the strip goes solid white so it reads as furniture */
+.fd-said.onred{background:#fff;border-left-color:var(--red-dark);box-shadow:0 3px 10px rgba(0,0,0,.18)}
+/* in the docs row it claims a whole row of the wrapping flex */
+.fd-docs .fd-said{flex:0 0 100%;width:100%;margin:6px 0 0;box-sizing:border-box}
+/* under a doorway tile */
+.rooms .fd-said{margin:-2px 0 0;text-align:left}
+/* in the chat rail: the line replaces the bubble, the disc sits in the cave */
+.chat-row .fd-said{margin:0;flex:1;min-width:0}
 @keyframes fd-said-in{from{opacity:0;transform:translateY(-4px)}
   to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.fd-said{animation:none}}
+
+/* THE CARD — a whole pane failed to arrive. Renders in the page flow, in
+   the space the missing thing should occupy. White on the red room, the
+   same tile grammar as FILE IT's fillings and the Doorway's rooms. */
+.errcard{background:#fff;border-radius:var(--r-lg);padding:34px 28px 30px;text-align:center;
+  display:flex;flex-direction:column;align-items:center;box-shadow:0 8px 28px rgba(0,0,0,.18);
+  animation:up .3s ease}
+.errcard .botdisc{width:44px;height:44px;box-shadow:0 4px 14px rgba(0,0,0,.22);margin-bottom:18px}
+.errcard .botdisc svg{width:31px;height:31px}
+.errcard-h{font-family:'Oswald',var(--display),sans-serif;font-weight:500;font-size:20px;letter-spacing:2.5px;
+  text-transform:uppercase;line-height:1.1;margin-bottom:8px;color:var(--ink)}
+.errcard-p{font-size:14.5px;line-height:1.55;color:#3a3835;max-width:36ch;margin-bottom:22px}
+.errcard-go{background:var(--red);color:#fff;border-radius:var(--pill);padding:13px 30px 11px;
+  font-family:var(--display);font-size:18px;letter-spacing:1.5px;line-height:1;cursor:pointer}
+.errcard-go:hover{background:var(--red-dark)}
+.fi-tiles .errcard{grid-column:1 / -1}
+.fx-art .errcard{margin:0}
 .fd-stage{position:relative}
 .fd-card{background:#fff;border-radius:var(--r-lg);overflow:hidden;
   box-shadow:0 4px 16px rgba(0,0,0,.10)}
@@ -753,8 +786,7 @@ label.dchip.small{font-size:19px;padding:7px 16px;border-width:1px;top:6px}
 .dump-row.bad .dump-tick{background:#fff;border:1.5px solid #cfcfcf;color:transparent}
 /* .fd-docs is a wrapping flex row, so the line has to claim a whole one
    of its own — otherwise it sits beside whichever row wrapped last. */
-.dump-bad{flex:0 0 100%;width:100%;text-align:center;margin:4px 0 0;
-  font-size:12px;color:var(--red)}
+.dump-bad{flex:0 0 100%;width:100%;margin:0}
 
 /* ---- SEARCH: the third door ---------------------------------------------
    A tool, not a container. Its furniture is the engine's: the same discs,
@@ -926,7 +958,7 @@ a.sr-src:hover{color:var(--red)}
 .cl-doorline{display:flex;gap:10px;align-items:flex-start;color:#fff;font-size:14px;line-height:1.5}
 .cl-doorbot{flex:none;width:26px;height:26px;border-radius:50%;background:#fff;
   display:flex;align-items:center;justify-content:center}
-.cl-doorbot img{width:17px;height:17px}
+.cl-doorbot svg{width:17px;height:17px}
 .cl-doorbtns{display:flex;gap:10px;margin:12px 0 0 36px}
 .cl-doorbtns button{font-family:var(--display);font-size:14px;letter-spacing:.08em;
   padding:8px 16px;border-radius:6px;border:1.5px solid #fff;background:transparent;color:#fff;cursor:pointer}
@@ -1178,14 +1210,15 @@ mark.fx-hl{background:var(--paper);color:var(--red);padding:0 2px;border-radius:
 .tile .cl-tick{position:absolute;top:14px;right:14px}
 .tile.on .cl-tick{border-color:var(--red);background:var(--red);color:#fff}
 .tile.off .cl-tick{display:none}
-.fi-bar{display:flex;justify-content:center;max-width:900px;margin-top:26px}
+.fi-bar{display:flex;flex-direction:column;align-items:center;max-width:900px;margin-top:26px}
+.fi-bar .fd-said{margin:14px 0 0}
 .fi-bar .cl-door{font-size:21px;padding:14px 38px 12px}
 .fi-bar .cl-door.live:hover{background:var(--paper)}
 .fi-done{display:none;margin-top:30px;max-width:900px;animation:up .3s ease}
 .fi-done.on{display:block}
 .fi-say{display:flex;gap:10px;align-items:flex-end;margin-bottom:14px}
 .fi-say .botdisc{width:36px;height:36px;box-shadow:0 3px 10px rgba(0,0,0,.22)}
-.fi-say .botdisc img{width:25px;height:25px}
+.fi-say .botdisc svg{width:25px;height:25px}
 .fi-msg{background:#fff;border-radius:14px;border-bottom-left-radius:4px;padding:12px 16px;font-size:13.5px;line-height:1.55}
 .fi-msg b{font-family:var(--display);font-weight:400;font-size:20px;letter-spacing:1px;display:block;color:var(--red);line-height:1;margin-bottom:3px}
 .fi-files{background:#fff;border-radius:var(--r-lg);overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.10)}

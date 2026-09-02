@@ -327,13 +327,14 @@ def _flags(c, result, facts):
 def generate():
     c, data = _container()
     if not c:
-        return jsonify({"error": "No such container."}), 404
+        return jsonify({"error": "no_container"}), 404
     if not ANTHROPIC_API_KEY:
-        return jsonify({"error": "No API key configured on the server."}), 500
+        return jsonify({"error": "no_key"}), 500
     try:
         facts = build_facts(c, data.get("form") or {})
     except TermsError as e:
-        return jsonify({"error": str(e)}), 400
+        print(f"[robot] terms refused: {e}", flush=True)
+        return jsonify({"error": "terms"}), 400
 
     shape, notes = _shape(c, facts)
     user = (_brief(c, facts, data.get("story") or {}, data.get("source"))
@@ -343,11 +344,12 @@ def generate():
     try:
         result = _json_from(_call("writer", _system(c, "writer"), user, 2000))
     except Exception as e:
-        print(f"[robot/copy] generate failed: {e}")
-        return jsonify({"error": "The robot fell over. Try again?"}), 500
+        print(f"[robot/copy] generate failed ({robots.robot('writer')}): {e}", flush=True)
+        return jsonify({"error": "fell"}), 500
     top, _ = writer_modules(c)
     if not result or not any(m["module"] in result for m in top):
-        return jsonify({"error": "The robot said something we couldn't read. Try again?"}), 500
+        print(f"[robot/copy] generate returned nothing usable ({robots.robot('writer')})", flush=True)
+        return jsonify({"error": "unreadable"}), 500
     return jsonify({"success": True, "copy": result, "facts": facts,
                     "context": copy_context(c, facts), "flags": _flags(c, result, facts)})
 
@@ -417,18 +419,19 @@ def _keep_found(c, raw):
 def tweak():
     c, data = _container()
     if not c:
-        return jsonify({"error": "No such container."}), 404
+        return jsonify({"error": "no_container"}), 404
     if not ANTHROPIC_API_KEY:
-        return jsonify({"error": "No API key configured on the server."}), 500
+        return jsonify({"error": "no_key"}), 500
     block = (data.get("block") or "").strip()
     current = (data.get("current") or "").strip()
     note = (data.get("note") or "").strip()
     if not current or not note:
-        return jsonify({"error": "Need something to tweak and a note about it."}), 400
+        return jsonify({"error": "no_note"}), 400
     try:
         facts = build_facts(c, data.get("form") or {})
     except TermsError as e:
-        return jsonify({"error": str(e)}), 400
+        print(f"[robot] terms refused: {e}", flush=True)
+        return jsonify({"error": "terms"}), 400
 
     user = f"THE BLOCK: {block}\n\nCURRENT:\n{current}\n\nTHE NOTE:\n{note}"
     hl = (data.get("highlight") or "").strip()
@@ -442,10 +445,11 @@ def tweak():
     try:
         result = _json_from(_call("fixer", _system(c, "fixer"), user, 700))
     except Exception as e:
-        print(f"[robot/tweak] failed: {e}")
-        return jsonify({"error": "The robot fell over. Try again?"}), 500
+        print(f"[robot/tweak] failed ({robots.robot('fixer')}): {e}", flush=True)
+        return jsonify({"error": "fell"}), 500
     if not result:
-        return jsonify({"error": "The robot said something we couldn't read."}), 500
+        print(f"[robot/tweak] returned nothing usable ({robots.robot('fixer')})", flush=True)
+        return jsonify({"error": "unreadable"}), 500
 
     say = result.get("say") or ""
     action = result.get("action")
@@ -499,7 +503,7 @@ TURN_LIMIT = 8
 def feeder():
     c, data = _container()
     if not c:
-        return jsonify({"error": "No such container."}), 404
+        return jsonify({"error": "no_container"}), 404
     fi = c["feed_it"]
     dress = {b["need"]: b for b in fi["bounce"]}
     turns = [t for t in (data.get("turns") or []) if isinstance(t, dict)]
@@ -616,33 +620,48 @@ def _call_blocks(worker, system, blocks, max_tokens=1500):
 def read_file():
     f = request.files.get("file")
     if not f:
-        return jsonify({"error": "Nothing arrived."}), 400
+        return jsonify({"success": False, "reason": "nothing", "error": "nothing"}), 400
     name = f.filename or "dropped file"
     data = f.read()
     text, needs_model, err = readers.read(name, data)
     if err:
-        return jsonify({"success": False, "name": name, "error": err})
+        # readers.read says why in its own words; that's for the log. The
+        # row gets a reason code and says it in the robot's voice.
+        print(f"[robot/read] {name}: {err}", flush=True)
+        return jsonify({"success": False, "name": name, "reason": _read_reason(err), "error": err})
     if text:
         return jsonify({"success": True, "name": name, "text": text})
 
     # a picture, or a scan with no text layer
     if not ANTHROPIC_API_KEY:
-        return jsonify({"success": False, "name": name,
-                        "error": "can't read pictures just now"})
+        return jsonify({"success": False, "name": name, "reason": "nopics"})
     if readers.kind(name) == "pdf":
-        return jsonify({"success": False, "name": name,
-                        "error": "that PDF is a scan with no text in it — a screenshot works better"})
+        return jsonify({"success": False, "name": name, "reason": "scan"})
     try:
         out = _call_blocks("reader", prompt("reader"),
                            [readers.image_block(name, data),
                             {"type": "text", "text": "Transcribe this."}])
     except Exception as e:
-        print(f"[robot/read] {name} failed ({robots.robot('reader')}): {e}")
-        return jsonify({"success": False, "name": name, "error": "couldn\'t read that picture"})
+        print(f"[robot/read] {name} failed ({robots.robot('reader')}): {e}", flush=True)
+        return jsonify({"success": False, "name": name, "reason": "glasses"})
     out = (out or "").strip()[:readers.MAX_CHARS]
     if not out:
-        return jsonify({"success": False, "name": name, "error": "nothing in it I could read"})
+        return jsonify({"success": False, "name": name, "reason": "nowords"})
     return jsonify({"success": True, "name": name, "text": out})
+
+
+def _read_reason(err):
+    """readers.read's error strings, folded to the reason codes the row
+    speaks: format, big, empty, broken. Keyed on the words the reader
+    actually uses, so a new reason lands as 'broken' until it's named."""
+    e = (err or "").lower()
+    if "format" in e:
+        return "format"
+    if "too big" in e:
+        return "big"
+    if "empty" in e or "nothing in it" in e:
+        return "empty"
+    return "broken"
 
 
 # ---------------------------------------------------------------------------
@@ -710,13 +729,13 @@ def _cited_urls(resp):
 def search():
     c, data = _container()
     if not c:
-        return jsonify({"error": "No such container."}), 404
+        return jsonify({"error": "no_container"}), 404
     stage = (data.get("stage") or "plan").strip()
     subject = (data.get("subject") or "").strip()[:200]
     if not subject:
         return jsonify({"success": True, "queries": [], "facts": []})
     if not ANTHROPIC_API_KEY:
-        return jsonify({"error": "No API key configured on the server."}), 500
+        return jsonify({"error": "no_key"}), 500
     needs = ((c.get("feed_it") or {}).get("needs") or "")[:1200]
 
     # ---- plan: what it would look for, before it looks -------------------
@@ -726,8 +745,8 @@ def search():
             text, _ = _search_call(prompt("search"), user, max_tokens=400)
             out = _json_from(text) or {}
         except Exception as e:
-            print(f"[robot/search] plan failed ({robots.robot('search')}): {e}")
-            return jsonify({"error": "Couldn't work out what to look for. Try saying it another way?"}), 502
+            print(f"[robot/search] plan failed ({robots.robot('search')}): {e}", flush=True)
+            return jsonify({"error": "noplan"}), 502
         queries = [str(q).strip()[:120] for q in (out.get("queries") or []) if str(q).strip()]
         return jsonify({"success": True, "queries": queries[:SEARCH_MAX]})
 
@@ -744,10 +763,9 @@ def search():
         text, resp = _search_call(prompt("search"), user, tools=tools)
         out = _json_from(text) or {}
     except Exception as e:
-        print(f"[robot/search] run failed ({robots.robot('search')}, {SEARCH_TOOL}): {e}")
-        if "model" in str(e).lower():
-            return jsonify({"error": "The search model isn't right. Check /api/health."}), 502
-        return jsonify({"error": "Couldn't go looking just then. Try again in a moment?"}), 502
+        print(f"[robot/search] run failed ({robots.robot('search')}, {SEARCH_TOOL}): {e}"
+              + ("  <- looks like a model id; check /api/health" if "model" in str(e).lower() else ""), flush=True)
+        return jsonify({"error": "search_died"}), 502
 
     read = _cited_urls(resp)
     facts, barred = [], []
