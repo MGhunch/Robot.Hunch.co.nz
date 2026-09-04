@@ -35,6 +35,7 @@ from file_it import file_bp, parcel as _parcel
 import containers as CT
 import robots
 import setup_room
+import setup_edit
 from engine import (build_facts, assemble_terms, render_terms, render_copy,
                     clause_menu, type_options, TermsError)
 
@@ -185,25 +186,65 @@ def _sid():
     return session["sid"]
 
 
+def _named_files(*texts):
+    return re.findall(r"assets/([\w.\-]+\.\w+)", " ".join(texts))
+
+
 def _brand_payload(b):
-    """What the reader got out of a brand folder. Not a verdict — the parse
-    itself, so a blank that validated clean is visible instead of implied.
-    That is the whole reason this stop exists: Hunch's own folder read clean
-    and shipped an empty font for two days."""
+    """What the reader got out of a brand folder, in the five sections you'd
+    edit it in: FONTS, ASSETS, COLOURS, LEGALS, PROMPT.
+
+    Not a verdict — the parse itself, so a blank that validated clean is
+    visible instead of implied. Hunch's own folder read clean and shipped an
+    empty font for two days; a screen that only said "0 problems" would have
+    kept that hidden.
+
+    Each section carries both halves of the truth: the files that are in the
+    folder, and the lines the reader actually reads. When those two disagree
+    — a font sitting there that nothing names, a file named that isn't there
+    — that gap is the bug, and it only shows if you show both."""
     skin = b.get("skin", {})
-    named = re.findall(r"assets/([\w.\-]+\.\w+)", skin.get("logo", "") + " " +
-                       skin.get("mark", "") + " " + " ".join(f["text"] for f in skin.get("fonts", [])))
+    folder = b.get("folder", "")
+    look = ""
+    try:
+        with open(os.path.join(folder, "brandlook.md"), encoding="utf-8") as f:
+            look = f.read()
+    except OSError:
+        pass
     have = b.get("assets", [])
+    fontlines = skin.get("fonts", [])
+    named_by_fonts = set(_named_files(*(f["text"] for f in fontlines)))
+    named_anywhere = set(_named_files(look))
+
+    def afile(f):
+        return {"file": f, "named": f in named_anywhere,
+                "font": f.lower().endswith(setup_room.FONT_EXT),
+                "url": "/api/setup/asset/" + b.get("id", "") + "/assets/" + f}
+
+    files = [afile(f) for f in have]
+    # the colour lines, in the order brandlook declares them, each keyed by
+    # the bold word the reader turned into a token
+    colours = []
+    for m in re.finditer(r"^\*\*([^*]+?):\*\*[ \t]*(.*)$", look, re.M):
+        hexes = re.findall(r"#[0-9A-Fa-f]{6}", m.group(2))
+        if hexes:
+            colours.append({"key": m.group(1).strip(), "hex": hexes[0], "line": m.group(2).strip()})
+
+    voice = b.get("voice", "")
+    sections = [{"title": t, "body": body} for t, body in CT.sections_of(voice)]
+
     return {
         "id": b.get("id", ""), "name": b.get("name", ""), "version": b.get("version", ""),
-        "fonts": skin.get("fonts", []),
+        "fonts": {"lines": [dict(f, names=_named_files(f["text"])) for f in fontlines],
+                  "files": [f for f in files if f["font"]]},
+        "assets": {"files": [f for f in files if not f["font"]],
+                   "missing": sorted(named_anywhere - set(have)),
+                   "spare": sorted(f["file"] for f in files if not f["named"])},
         "logo": skin.get("logo", ""), "mark": skin.get("mark", ""),
-        "tokens": skin.get("tokens", {}),
-        "assets": [{"file": f, "named": f in named} for f in have],
-        "missing": sorted(set(f for f in named if f not in have)),
-        "legals": [{"id": c["id"], "label": c.get("label", ""), "fixed": c.get("fixed", False)}
-                   for c in (b.get("legals") or [])],
-        "voice": b.get("voice", ""),
+        "colours": colours,
+        "legals": [{"id": c["id"], "label": c.get("label", ""), "fixed": c.get("fixed", False),
+                    "text": c.get("text", "")} for c in (b.get("legals") or [])],
+        "prompt": {"sections": sections, "chars": len(voice)},
         "problems": b.get("problems", []),
     }
 
@@ -245,6 +286,18 @@ def setup_check():
     return jsonify(out)
 
 
+@app.route("/api/setup/held")
+@require_auth
+def setup_held():
+    """What the room is holding. The drop pad asks, because the container
+    job needs a brand and this is where you find out you haven't dropped
+    one yet."""
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    _root, cids, bids = setup_room.held(_sid())
+    return jsonify({"held": {"containers": sorted(cids), "brands": sorted(bids)}})
+
+
 @app.route("/api/setup/clear", methods=["POST"])
 @require_auth
 def setup_clear():
@@ -258,8 +311,9 @@ def setup_clear():
 @app.route("/api/setup/asset/<path:name>")
 @require_auth
 def setup_asset(name):
-    """Fonts and the logo out of the dropped brand folder, so the artefact
-    wears the client's face while you look at it."""
+    """A file out of a held brand folder — so the artefact wears the client's
+    face while you look at it, and so an asset pill can show the thing rather
+    than its filename."""
     if not is_hunch():
         return jsonify({"error": "hunch"}), 403
     base = os.path.join(setup_room.SCRATCH, re.sub(r"[^A-Za-z0-9_-]", "", session.get("sid", "")), "brands")
@@ -267,6 +321,120 @@ def setup_asset(name):
     if not full.startswith(os.path.normpath(base) + os.sep) or not os.path.isfile(full):
         return jsonify({"error": "gone"}), 404
     return send_from_directory(os.path.dirname(full), os.path.basename(full))
+
+
+# ---------------------------------------------------------------------------
+# EDITING WHAT'S HELD — surgical, scratch only, changelogged.
+#
+# The check page can change a dropped folder. Four edits, because a brand
+# has four shapes of thing in it: a hex inside a line, a whole line, a
+# section of a document, a cell in a table. Nothing here regenerates a file
+# from parsed structure — see setup_edit.py for why that rule exists.
+# ---------------------------------------------------------------------------
+
+EDIT_FILES = {"look": "brandlook.md", "voice": "brandvoice.md", "legals": "brandlegals.md"}
+
+
+@app.route("/api/setup/edit", methods=["POST"])
+@require_auth
+def setup_edit_route():
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    d = request.get_json(silent=True) or {}
+    folder = setup_room.brand_dir(_sid(), d.get("brand", ""))
+    if not folder:
+        return jsonify({"error": "gone"}), 404
+    which = EDIT_FILES.get(d.get("file", ""))
+    if not which:
+        return jsonify({"error": "nofile"}), 400
+    path = os.path.join(folder, which)
+    if not os.path.isfile(path):
+        return jsonify({"error": "nofile"}), 400
+    op, val = d.get("op", ""), d.get("value", "")
+    try:
+        if op == "hex":
+            setup_edit.set_hex(path, d.get("key", ""), val)
+            what = f"{d.get('key','')} recoloured."
+        elif op == "line":
+            setup_edit.set_line(path, d.get("key", ""), val)
+            what = f"The {d.get('key','')} line rewritten."
+        elif op == "section":
+            setup_edit.set_section(path, d.get("heading", ""), val)
+            what = f"{d.get('heading','')} rewritten."
+        elif op == "cell":
+            setup_edit.set_cell(path, d.get("row", ""), d.get("column", "text"), val)
+            what = f"The {d.get('row','')} clause rewritten."
+        else:
+            return jsonify({"error": "noop"}), 400
+    except setup_edit.EditError as e:
+        return jsonify({"error": str(e)}), 400
+    setup_edit.log(folder, "brand.md", what)
+    return jsonify(_reread(d.get("brand", "")))
+
+
+@app.route("/api/setup/asset/add", methods=["POST"])
+@require_auth
+def setup_asset_add():
+    """Filling a gap. The check names a file brandlook.md wants and hasn't
+    got; this is where you hand it over."""
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    bid = request.form.get("brand", "")
+    f = request.files.get("file")
+    if not f:
+        return jsonify({"error": "nofile"}), 400
+    try:
+        name = setup_room.add_asset(_sid(), bid, f.filename, f)
+    except setup_room.DropError as e:
+        return jsonify({"error": str(e)}), 400
+    folder = setup_room.brand_dir(_sid(), bid)
+    setup_edit.log(folder, "brand.md", f"{name} added to assets/.")
+    return jsonify(_reread(bid))
+
+
+@app.route("/api/setup/asset/drop", methods=["POST"])
+@require_auth
+def setup_asset_drop():
+    """Pruning. Scratch only, and the folder is re-read straight after — so
+    deleting something a line still names comes back as a problem, loudly,
+    rather than as silence."""
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    d = request.get_json(silent=True) or {}
+    bid = d.get("brand", "")
+    try:
+        name = setup_room.drop_asset(_sid(), bid, d.get("file", ""))
+    except setup_room.DropError as e:
+        return jsonify({"error": str(e)}), 400
+    setup_edit.log(setup_room.brand_dir(_sid(), bid), "brand.md", f"{name} removed from assets/.")
+    return jsonify(_reread(bid))
+
+
+def _reread(bid):
+    """After every write: parse it again and answer with the parse. The page
+    never keeps its own idea of what the folder says."""
+    root, cids, bids = setup_room.held(_sid())
+    with CT.folders_at(os.path.join(root, "brands"), os.path.join(root, "containers")):
+        bs = CT.brands()
+        b = bs.get(bid)
+        out = {"brandRead": _brand_payload(b) if b else None,
+               "problems": (b or {}).get("problems", [])}
+    out["held"] = {"containers": sorted(cids), "brands": sorted(bids)}
+    return out
+
+
+@app.route("/api/setup/download")
+@require_auth
+def setup_download():
+    """The way out. Everything held, in the shape the reader accepts."""
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    try:
+        path = setup_room.zip_out(_sid())
+    except setup_room.DropError as e:
+        return jsonify({"error": str(e)}), 400
+    return send_from_directory(os.path.dirname(path), os.path.basename(path),
+                               as_attachment=True, download_name="set-up.zip")
 
 
 @app.route("/api/peek", methods=["POST"])

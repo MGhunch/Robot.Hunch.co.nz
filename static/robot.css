@@ -1131,32 +1131,41 @@ a.search-src:hover{color:var(--red)}
 }
 
 
-/* ================= SET UP CHECK =================
-   The fifth room, Hunch only. It borrows the site whole — the stepper, the
-   lozenges, FIX IT's grid and padlock, the deets card, the chat — because
-   a page that checks a container should look like the thing it's checking
-   for. The only rules here are the ones the borrowed furniture doesn't
-   already carry: the room's own ground, the drop pad, and the three panes
-   the stepper switches between. */
-#setup{display:none;background:var(--red);min-height:calc(100vh - 52px);padding-bottom:70px}
+/* ================= SET UP =================
+   The fifth room, Hunch only, two doors. It borrows the site whole — the
+   stepper, the lozenges, FIX IT's grid and padlock, the deets card, the
+   chat — because a page that checks a container should look like the thing
+   it's checking for. Only what the borrowed furniture doesn't carry lives
+   here: the room's ground, the two doors, the drop pad, and the rows the
+   brand's five sections are made of. */
+#setup{display:none;background:var(--red);min-height:calc(100vh - 52px);padding:34px 0 70px}
 #setup.on{display:block}
 .setup-wrap{max-width:1120px}
-#setup .rail{border-bottom-color:rgba(255,255,255,.25);margin-bottom:30px}
+#setup .rail{border-bottom-color:rgba(255,255,255,.25);margin:0 0 30px}
 #setup .step{color:rgba(255,255,255,.55)}
 #setup .step:hover{color:#fff}
 #setup .step.on{color:#fff;border-bottom-color:#fff}
-#setup .step.done{color:#fff}
-#setup .step i{color:#fff}
+#setup .step.done,#setup .step i{color:#fff}
+#setup .step.locked{opacity:.4;cursor:default}
 #setup .feed-hed{color:#fff}
-
 .setup-tagline{color:rgba(255,255,255,.82);font-size:11px;letter-spacing:2px;
   text-transform:uppercase;font-weight:600;margin:4px 0 26px}
 
-/* the drop pad — one door, and a way back */
-.setup-drop{max-width:560px}
+/* the two doors — two jobs, said once, at the start */
+.setup-doorrow{display:grid;grid-template-columns:repeat(2,minmax(0,320px));gap:20px}
+.setup-door{background:#fff;border:none;border-radius:var(--r-lg);padding:30px 26px;text-align:left;
+  cursor:pointer;font-family:inherit;box-shadow:0 8px 28px rgba(0,0,0,.16);transition:transform .15s}
+.setup-door:hover{transform:translateY(-2px)}
+.setup-doorname{display:block;font-size:34px;letter-spacing:1.5px;color:var(--red);line-height:.9;margin-bottom:12px}
+.setup-doorsub{display:block;font-size:13px;line-height:1.55;color:var(--mid)}
+
+/* the drop pad */
+.setup-drop{max-width:600px}
 .setup-pad{background:#fff;border-radius:var(--r-lg);padding:34px 26px;text-align:center;
   box-shadow:0 8px 28px rgba(0,0,0,.16)}
 .setup-padline{color:var(--mid);font-size:13px;margin-top:14px}
+.setup-holding{margin-top:16px;font-size:12.5px;color:var(--mid)}
+.setup-warn{color:var(--red);margin-top:10px;font-size:13px}
 .setup-back{background:none;border:none;color:rgba(255,255,255,.8);font-family:inherit;
   font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0;margin-top:18px}
 .setup-back:hover{color:#fff}
@@ -1169,7 +1178,13 @@ a.search-src:hover{color:var(--red)}
 .setup-status{background:var(--yellow);border-radius:var(--pill);font-size:10px;font-weight:700;
   letter-spacing:2px;padding:6px 12px}
 .setup-status.live{background:var(--ink);color:#fff}
-.setup-meta .setup-back{margin:0 0 0 auto}
+.setup-status.waiting{background:#fff;color:var(--mid)}
+.setup-meta .setup-more{margin-left:auto}
+.setup-meta .setup-back{margin:0}
+.setup-morebtn{background:#fff;color:var(--red);border-radius:var(--pill);padding:7px 16px;
+  font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;display:inline-block;
+  box-shadow:0 3px 10px rgba(0,0,0,.14)}
+.setup-morebtn:hover{background:var(--paper)}
 
 .setup-grid{grid-template-columns:600px 380px;gap:90px;max-width:1120px}
 .setup-grid .fix-artwrap{width:600px}
@@ -1177,15 +1192,50 @@ a.search-src:hover{color:var(--red)}
 .setup-pane{display:none}
 .setup-pane.on{display:block}
 .setup-hint{color:rgba(255,255,255,.75);font-size:11.5px;margin-top:14px;max-width:600px}
-
-/* 1 the bones — the ghost, at a size you can actually check */
+.setup-lock{top:14px}
 .setup-hold{width:250px;margin:0 auto;zoom:2.2}
-/* 2 the deets — the card on its own white, since it has no concertina here */
 .setup-card{background:#fff;border-radius:var(--r-lg);padding:22px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
-/* 3 the artefact — its own document, framed, so its css can't touch ours */
 .setup-art{width:100%;height:880px;border:0;border-radius:var(--r-sm);display:block;background:#e9e6e0}
 
-.setup-lock{top:14px}
+/* the brand's rows: label left, the thing itself right */
+.setup-brow{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;
+  padding:14px 0;border-top:1px solid var(--border);font-size:13.5px;line-height:1.55}
+.setup-brow:first-child{border-top:none;padding-top:0}
+.setup-blab{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;
+  color:var(--mid);padding-top:5px}
+.setup-bval.empty{color:var(--red)}
+.setup-sub{color:var(--mid);font-size:11.5px;margin-top:7px;line-height:1.5}
+.setup-ro{white-space:pre-wrap}
+
+/* a value you can change is a box you type in and tab out of */
+.setup-edit{width:100%;border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 11px;
+  font-family:inherit;font-size:13px;line-height:1.55;resize:vertical;background:#fff;color:var(--ink);
+  outline:none;transition:border-color .15s,background .15s}
+.setup-edit:focus{border-color:var(--red)}
+.setup-edit.saving{background:var(--paper)}
+.setup-edit.bad{border-color:var(--red);background:rgba(237,28,36,.06)}
+
+.setup-swatches{display:flex;flex-wrap:wrap;gap:8px}
+.setup-sw{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);
+  border-radius:var(--pill);padding:4px 10px 4px 4px;font-size:12px;color:var(--mid)}
+.setup-sw i{width:20px;height:20px;border-radius:50%;border:1px solid var(--border);display:block}
+.setup-swname{white-space:nowrap}
+.setup-hex{width:72px;border:none;border-bottom:1px solid var(--border);background:none;
+  font-family:inherit;font-size:12px;font-weight:600;color:var(--ink);outline:none;padding:1px 0}
+.setup-hex:focus{border-bottom-color:var(--red)}
+
+.setup-files{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.setup-file{display:inline-flex;align-items:center;border:1px solid var(--border);
+  border-radius:var(--pill);font-size:12px;color:var(--mid);overflow:hidden}
+.setup-file.named{border-color:var(--ink);color:var(--ink)}
+.setup-file.gone{border-color:var(--red);color:var(--red);padding:4px 11px}
+.setup-fname{background:none;border:none;font-family:inherit;font-size:12px;color:inherit;
+  padding:4px 4px 4px 11px;cursor:pointer}
+.setup-fname:hover{text-decoration:underline}
+.setup-fx{background:none;border:none;color:var(--mid);cursor:pointer;font-size:14px;
+  line-height:1;padding:4px 9px 5px 4px}
+.setup-fx:hover{color:var(--red)}
+
 .setup-probs{margin:4px 0 0 16px;padding:0}
 .setup-probs li{margin-bottom:5px}
 .setup-note{display:none;background:#fff;border-radius:var(--r-md);padding:15px 17px;font-size:13px;
@@ -1193,10 +1243,20 @@ a.search-src:hover{color:var(--red)}
 .setup-note.on{display:block}
 .setup-note code{background:var(--paper);border-radius:4px;padding:1px 6px;font-size:12px}
 
+/* what a pill points at, full size */
+.menu-card.wide{max-width:640px}
+.setup-spec{font-size:30px;line-height:1.35;letter-spacing:.5px}
+.setup-shot{background:var(--paper);border-radius:var(--r-sm);padding:24px;text-align:center}
+.setup-shot img{max-width:100%;max-height:360px}
+.setup-voice{white-space:pre-wrap;background:var(--paper);border-radius:var(--r-sm);padding:14px;
+  font-family:inherit;font-size:12.5px;line-height:1.6;max-height:420px;overflow:auto}
+.setup-peeklink{color:var(--red);font-weight:600}
+
 @media(max-width:1060px){
   .setup-grid{grid-template-columns:1fr;gap:34px}
   .setup-grid .fix-artwrap{width:auto}
   .setup-grid .fix-gutter{display:none}
+  .setup-doorrow{grid-template-columns:1fr}
 }
 
 /* the client's side of the SET UP door: one line and one way to answer it */
@@ -1204,38 +1264,3 @@ a.search-src:hover{color:var(--red)}
   border-radius:var(--pill);padding:12px 26px;font-family:var(--display);font-size:19px;
   letter-spacing:1.5px;line-height:1;text-decoration:none}
 .menu-cta:hover{background:var(--red-dark)}
-
-/* 1 THE BRAND — what the reader got, laid out flat. Label left, value
-   right, one row per thing, and a blank value wearing its blankness. */
-.setup-brow{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;
-  padding:12px 0;border-top:1px solid var(--border);font-size:13.5px;line-height:1.55}
-.setup-brow:first-child{border-top:none;padding-top:0}
-.setup-blab{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;
-  color:var(--mid);padding-top:3px}
-.setup-bval.empty{color:var(--red)}
-.setup-swatches{display:flex;flex-wrap:wrap;gap:8px}
-.setup-sw{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);
-  border-radius:var(--pill);padding:4px 11px 4px 4px;font-size:12px;color:var(--mid)}
-.setup-sw i{width:18px;height:18px;border-radius:50%;border:1px solid var(--border);display:block}
-.setup-sw b{color:var(--ink);font-weight:600}
-.setup-files{display:flex;flex-wrap:wrap;gap:6px}
-.setup-file{border:1px solid var(--border);border-radius:var(--pill);padding:4px 11px;
-  font-size:12px;color:var(--mid)}
-.setup-file.named{border-color:var(--ink);color:var(--ink)}
-.setup-file.gone{border-color:var(--red);color:var(--red)}
-.setup-peek{background:none;border:none;padding:0;font-family:inherit;font-size:12.5px;
-  color:var(--red);font-weight:600;text-decoration:underline;cursor:pointer}
-.setup-voice{white-space:pre-wrap;background:var(--paper);border-radius:var(--r-sm);
-  padding:14px;margin-top:10px;font-family:inherit;font-size:12.5px;line-height:1.6;
-  max-height:420px;overflow:auto}
-
-/* waiting is a state the room wears, not an error it throws */
-.setup-status.waiting{background:#fff;color:var(--mid)}
-#setup .step.locked{opacity:.4;cursor:default}
-.setup-more{display:inline-block}
-.setup-morebtn{background:#fff;color:var(--red);border-radius:var(--pill);padding:7px 16px;
-  font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;display:inline-block;
-  box-shadow:0 3px 10px rgba(0,0,0,.14)}
-.setup-morebtn:hover{background:var(--paper)}
-.setup-meta .setup-more{margin-left:auto}
-.setup-meta .setup-back{margin:0}

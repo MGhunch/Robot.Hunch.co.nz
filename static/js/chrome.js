@@ -420,7 +420,12 @@ function menuToggle(){
   $('burger').classList.toggle('x',on);
   $('burger').setAttribute('aria-expanded',on);
 }
-function menuOpen(id){ menuToggle(); $('menu-'+id).classList.add('on'); }
+/* a shade is the modal; menuOpen is the shade *plus* shutting the burger
+   behind you. Rooms that raise a shade from somewhere other than the menu
+   want shadeOpen — call menuOpen from a button and the burger toggles a
+   second time and reappears behind the card. */
+function shadeOpen(id){ $('menu-'+id).classList.add('on'); }
+function menuOpen(id){ menuToggle(); shadeOpen(id); }
 function menuClose(id){ $('menu-'+id).classList.remove('on'); }
 ready(()=>document.querySelectorAll('.menu-shade').forEach(s=>{
   s.addEventListener('click',e=>{ if(e.target===s) s.classList.remove('on'); });

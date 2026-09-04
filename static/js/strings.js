@@ -50,26 +50,39 @@ const STR = {
 
   /* SET UP CHECK — Hunch only. The read lines answer the upload door's
      codes; the rest is the robot reporting what the validator found. */
+  /* SET UP — Hunch only. Two jobs, one set of words. The read lines
+     answer the upload door's codes; the edit lines answer the writer's. */
   setup: {
     read: {
-      nozip:       "Nothing landed. Try that again?",
-      broken:      "That's not a zip I can open. Zip the two folders and drop it in.",
-      fat:         "Wowsers. That's a big one. Under 40MB, and no single file over 8.",
-      nofolders:   "Nothing in there looks like a brand or a container. I need a folder with brand.md, or one with config.md and spec.md.",
-      hunch:       "That door's ours, not yours.",
+      nozip:     "Nothing landed. Try that again?",
+      broken:    "That's not a zip I can open. Zip the folder and drop it in.",
+      fat:       "Wowsers. That's a big one. Under 40MB, and no single file over 8.",
+      nofolders: "Nothing in there looks like a brand or a container. I need a folder with brand.md, or one with config.md and spec.md.",
+      hunch:     "That door's ours, not yours.",
     },
-    clean:      "Reads clean — no problems. Have a look at the four of them.",
-    cleanBrand: "The brand reads clean. Have a proper look at what I got out of it — clean isn't the same as right.",
-    /* waiting is a state, not a failure: SET UP emits a brand once per
-       client and a container per format, so they arrive apart */
-    waiting: h => "Holding "+(h.brands.join(', ')||'nothing')+
-      (h.containers.length ? " and "+h.containers.join(', ') : "")+
-      ". Drop a container that points at it and I'll draw the other three.",
-    locked:  "Nothing to look at there yet — I need the container folder first.",
+    edit: {
+      failed:     "That didn't save. Nothing's changed.",
+      noline:     "Can't find that line any more — the file's moved on under me.",
+      nosection:  "Can't find that heading any more.",
+      norow:      "Can't find that clause any more.",
+      nothex:     "A hex, six digits, with the hash. Nothing else goes in there.",
+      nohexthere: "There's no colour on that line to change.",
+      empty:      "Can't save it empty. Delete it in the folder if it should go.",
+      badfile:    "Not a file I'll put in assets/. Fonts, images, a PDF or a text file.",
+      gone:       "That folder isn't in the room any more. Drop it again?",
+    },
+    clean:      "Reads clean — no problems. Have a look at the three of them.",
+    cleanBrand: "Reads clean. Have a proper look at what I got out of it — clean isn't the same as right.",
     bounced: n => n===1 ? "One problem with this folder. It's below, and it'll still draw."
                         : n+" problems with this folder. They're below, and it'll still draw.",
-    several: ids => "There's more than one container in there — showing the first. The rest: "+ids.slice(1).join(', ')+".",
-    notyet:  what => "Have a proper look at "+what+" first, then shut its padlock.",
+    rereadOk:  "Saved. Re-read clean — no problems.",
+    rereadBad: n => "Saved — but the folder now has "+n+(n===1?" problem.":" problems."),
+    added:  f => f+" is in assets/ now.",
+    pruned: f => f+" is gone. If a line still names it, that's a problem above.",
+    needbrand:      "No brand in the room yet. A container is drawn against its brand, so drop that first.",
+    nobrandyet:     "No brand in that zip. This door wants the brand folder — brand.md and the rest.",
+    nocontaineryet: "No container in that zip. This door wants config.md, spec.md and container.html.",
+    notyet: what => "Have a proper look at "+what+" first, then shut its padlock.",
   },
 
   /* FIX IT */

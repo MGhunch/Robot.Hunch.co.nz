@@ -704,6 +704,13 @@ def folders_at(brands_dir, containers_dir):
         BRANDS_DIR, CONTAINERS_DIR = was
 
 
+def sections_of(text):
+    """The ## sections of a document, as [(title, body)]. Public because the
+    check page reads a brand voice by section — the reader itself only ever
+    checks the headings exist, and eats the file whole."""
+    return _sections(text)
+
+
 def validate(folder, kind="container"):
     """The upload door's question: what's wrong with this folder? Returns
     the list of reasons, all of them, empty when clean. Never caches."""

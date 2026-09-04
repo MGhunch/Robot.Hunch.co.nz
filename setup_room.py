@@ -150,6 +150,83 @@ def take(stream, sid):
     return held(sid)
 
 
+FONT_EXT = (".woff2", ".woff", ".otf", ".ttf", ".eot")
+ASSET_OK = FONT_EXT + (".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp",
+                       ".pdf", ".txt", ".md")
+
+
+def brand_dir(sid, bid):
+    """A held brand's folder, or nothing. Everything that writes goes
+    through here, so a folder id from the wire can't point anywhere else."""
+    if not SAFE_NAME.match(bid or ""):
+        return ""
+    d = os.path.join(_root(sid), "brands", bid)
+    return d if os.path.isdir(d) else ""
+
+
+def add_asset(sid, bid, filename, stream):
+    """Put a file in a held brand's assets/. This is how a gap gets filled:
+    the check names a file brandlook.md wants and hasn't got, and you hand
+    it over. Same name replaces; the folder is scratch, so nothing that
+    landed can be hurt by it."""
+    d = brand_dir(sid, bid)
+    if not d:
+        raise DropError("gone")
+    name = os.path.basename(filename or "")
+    if not SAFE_NAME.match(name) or not name.lower().endswith(ASSET_OK):
+        raise DropError("badfile")
+    assets = os.path.join(d, "assets")
+    os.makedirs(assets, exist_ok=True)
+    stream.save(os.path.join(assets, name))
+    if os.path.getsize(os.path.join(assets, name)) > MAX_ONE:
+        os.remove(os.path.join(assets, name))
+        raise DropError("fat")
+    return name
+
+
+def drop_asset(sid, bid, name):
+    """Prune. Only from scratch, only a plain filename, and the folder is
+    re-read straight after — so a file something still names comes back as
+    a problem rather than as silence."""
+    d = brand_dir(sid, bid)
+    name = os.path.basename(name or "")
+    if not d or not SAFE_NAME.match(name):
+        raise DropError("gone")
+    p = os.path.join(d, "assets", name)
+    if not os.path.isfile(p):
+        raise DropError("gone")
+    os.remove(p)
+    return name
+
+
+def zip_out(sid, ids=None):
+    """The way out. Everything held, in the shape the reader accepts —
+    brands/<id>/ and containers/<id>/ — minus the compiled caches, which are
+    the engine's litter and never anybody's source. Returns a path in the
+    scratch; the route hands it over and it dies with the session."""
+    root, cids, bids = held(sid)
+    keep = set(ids or (cids + bids))
+    out = os.path.join(root, "_download.zip")
+    n = 0
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for kind, folders in (("brands", bids), ("containers", cids)):
+            for fid in folders:
+                if fid not in keep:
+                    continue
+                base = os.path.join(root, kind, fid)
+                for here, dirs, files in os.walk(base):
+                    dirs[:] = [x for x in dirs if not x.startswith((".", "_"))]
+                    for f in sorted(files):
+                        if f.endswith(".compiled.json") or f == ".DS_Store":
+                            continue
+                        full = os.path.join(here, f)
+                        z.write(full, f"{kind}/{fid}{full[len(base):]}")
+                        n += 1
+    if not n:
+        raise DropError("nofolders")
+    return out
+
+
 def clear(sid):
     """Start again. The only way anything leaves the scratch."""
     shutil.rmtree(_root(sid), ignore_errors=True)
