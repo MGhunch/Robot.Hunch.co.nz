@@ -763,6 +763,15 @@ a.search-src:hover{color:var(--red)}
   text-align:left}
 .feed-paste:placeholder-shown{text-align:center;font-size:12px}
 .feed-paste::placeholder{color:var(--mid)}
+/* no ring on the pad itself — the global textarea:focus-visible ring drew a
+   red validation box inside the plate. The plate is the landing pad, so the
+   plate wakes: its own border goes red (solid — dashed is a live drag) and
+   the scissors light up, the same tell the DOCS door gives a drag. */
+.feed-paste:focus-visible{outline:none}
+.dump-plate:focus-within{border-color:var(--red)}
+.dump-plate:focus-within .dump-baby{color:var(--red)}
+/* the search field wore the same ring over its own red pill — same rule */
+.search-field:focus-visible{outline:none}
 
 .feed-docs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
 .feed-docs:empty{margin-top:0}
