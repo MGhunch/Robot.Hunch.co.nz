@@ -13,8 +13,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=041">
-<script src="js/strings.js?v=040"></script>
+<link rel="stylesheet" href="robot.css?v=042">
+<script src="js/strings.js?v=042"></script>
 <script src="js/chrome.js?v=041"></script>
 
 </head>
@@ -375,9 +375,10 @@
 <div class="wrap setup-wrap">
 
   <div class="rail" id="setupRail">
-    <button class="step on" data-s="0" onclick="setupGo(0)"><i>1</i>Mock up</button>
-    <button class="step"    data-s="1" onclick="setupGo(1)"><i>2</i>Deets</button>
-    <button class="step"    data-s="2" onclick="setupGo(2)"><i>3</i>Output</button>
+    <button class="step on" data-s="0" onclick="setupGo(0)"><i>1</i>Brand</button>
+    <button class="step"    data-s="1" onclick="setupGo(1)"><i>2</i>Mock up</button>
+    <button class="step"    data-s="2" onclick="setupGo(2)"><i>3</i>Deets</button>
+    <button class="step"    data-s="3" onclick="setupGo(3)"><i>4</i>Output</button>
   </div>
 
   <!-- the drop pad: one job, one door -->
@@ -389,7 +390,7 @@
         <input type="file" id="setupZip" accept=".zip" hidden onchange="setupTake(this.files)">
         <span class="feed-go" id="setupDropBtn" onclick="document.getElementById('setupZip').click()">DROP THE ZIP</span>
       </label>
-      <div class="setup-padline">The brand folder and the container folder, zipped.</div>
+      <div class="setup-padline">The brand folder, the container folder, or both. Zipped.</div>
     </div>
     <div id="setupSay"></div>
     <button class="setup-back" onclick="setupLeave()">Back to the doorway</button>
@@ -402,7 +403,11 @@
     <div class="setup-meta">
       <div class="setup-tile" id="setupTile"></div>
       <div class="setup-status" id="setupStatus"></div>
-      <button class="setup-back" onclick="setupLeave()">Check another one</button>
+      <label class="setup-more">
+        <input type="file" id="setupZip2" accept=".zip" hidden onchange="setupTake(this.files)">
+        <span class="setup-morebtn" onclick="document.getElementById('setupZip2').click()">DROP ANOTHER FOLDER</span>
+      </label>
+      <button class="setup-back" onclick="setupClear()">Start again</button>
     </div>
 
     <div class="fix-grid setup-grid">
@@ -411,14 +416,18 @@
         <div class="fix-artwrap">
 
           <div class="setup-pane on" data-p="0">
-            <div class="ghost-hold setup-hold"><div class="ghost-art" id="setupGhost"></div></div>
+            <div class="setup-card" id="setupBrand"></div>
           </div>
 
           <div class="setup-pane" data-p="1">
-            <div class="setup-card"><div class="deets-cards" id="setupDeets"></div></div>
+            <div class="ghost-hold setup-hold"><div class="ghost-art" id="setupGhost"></div></div>
           </div>
 
           <div class="setup-pane" data-p="2">
+            <div class="setup-card"><div class="deets-cards" id="setupDeets"></div></div>
+          </div>
+
+          <div class="setup-pane" data-p="3">
             <iframe class="setup-art" id="setupArt" title="The artefact"></iframe>
           </div>
 
@@ -434,7 +443,7 @@
         <div class="fix-card">
           <div class="chat narrow" id="setupChat"></div>
           <div class="fix-compose">
-            <textarea rows="2" disabled placeholder="I can't change the files yet — v041."></textarea>
+            <textarea rows="2" disabled placeholder="I can't change the files yet — that's the next one."></textarea>
           </div>
         </div>
         <button class="fix-wrap" id="setupFlip" onclick="setupFlip()">
@@ -458,6 +467,6 @@
 <script src="js/feed.js?v=040"></script>
 <script src="js/fix.js?v=038"></script>
 <script src="js/file.js?v=038"></script>
-<script src="js/setup.js?v=041"></script>
+<script src="js/setup.js?v=042"></script>
 </body>
 </html>

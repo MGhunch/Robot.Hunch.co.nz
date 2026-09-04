@@ -55,10 +55,17 @@ const STR = {
       nozip:       "Nothing landed. Try that again?",
       broken:      "That's not a zip I can open. Zip the two folders and drop it in.",
       fat:         "Wowsers. That's a big one. Under 40MB, and no single file over 8.",
-      nocontainer: "Can't find a container in there. I need a folder with config.md and spec.md in it.",
+      nofolders:   "Nothing in there looks like a brand or a container. I need a folder with brand.md, or one with config.md and spec.md.",
       hunch:       "That door's ours, not yours.",
     },
-    clean:   "Reads clean — no problems. Have a look at the three of them.",
+    clean:      "Reads clean — no problems. Have a look at the four of them.",
+    cleanBrand: "The brand reads clean. Have a proper look at what I got out of it — clean isn't the same as right.",
+    /* waiting is a state, not a failure: SET UP emits a brand once per
+       client and a container per format, so they arrive apart */
+    waiting: h => "Holding "+(h.brands.join(', ')||'nothing')+
+      (h.containers.length ? " and "+h.containers.join(', ') : "")+
+      ". Drop a container that points at it and I'll draw the other three.",
+    locked:  "Nothing to look at there yet — I need the container folder first.",
     bounced: n => n===1 ? "One problem with this folder. It's below, and it'll still draw."
                         : n+" problems with this folder. They're below, and it'll still draw.",
     several: ids => "There's more than one container in there — showing the first. The rest: "+ids.slice(1).join(', ')+".",

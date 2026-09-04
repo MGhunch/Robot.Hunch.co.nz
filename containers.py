@@ -174,7 +174,25 @@ def _parse_brand(folder, bid, problems):
         m = re.search(r"#[0-9A-Fa-f]{6}", v)
         if m:
             tokens[k.lower().replace(" ", "_")] = m.group(0)
-    b["skin"] = {"font": kv.get("Font", ""), "logo": kv.get("Logo", ""), "tokens": tokens}
+    # THE FONT LINES. A one-font brand writes "**Font:**". A two-font brand
+    # names the job — "**Font — headlines:**", "**Font — body:**" — and Hunch
+    # is the first of those. The reader used to look up the exact key `Font`,
+    # so both of Hunch's lines missed and the compiled dict shipped
+    # font:"" — no bounce, a silent blank wherever the skin was read. Flagged
+    # in the SET UPs renames note (2 Sep, Hunch QA); this is that fix.
+    #
+    # `fonts` is the truth: one row per declaration, in the order declared,
+    # each with the job it does. `font` stays as the first one's words so
+    # nothing downstream has to learn a new shape on the same day.
+    fonts = []
+    for k, v in kv.items():
+        m = re.match(r"Font(?:\s*[\u2014\u2013-]\s*(.+))?$", k.strip())
+        if m:
+            fonts.append({"role": (m.group(1) or "").strip().lower(), "text": v})
+    if not fonts:
+        problems.append(f"brand {bid}: brandlook.md has no **Font:** line")
+    b["skin"] = {"font": fonts[0]["text"] if fonts else "", "fonts": fonts,
+                 "logo": kv.get("Logo", ""), "mark": kv.get("Mark", ""), "tokens": tokens}
     # brandlegals.md — the brand's clause library (optional; validated if named)
     b["legals"] = []
     lp = os.path.join(folder, "brandlegals.md")
@@ -571,12 +589,21 @@ def _cache_path(folder):
     return os.path.join(folder, os.path.basename(folder.rstrip("/")) + ".compiled.json")
 
 
+# The parser's own version, and it belongs in the cache stamp. Edit the
+# parser without touching a folder and every cached dict is stale but
+# looks fresh — v031 lost an afternoon to it, the renames note wrote
+# "touch a file in each folder anyway" as the workaround, and v042's font
+# fix would have done it again. Bump this whenever the shape of a
+# compiled dict changes and every cache rebuilds itself.
+PARSER = 42
+
+
 def _compile(folder, kind):
-    """Read the cache if it's fresher than every file in the folder;
-    otherwise parse and write it. Cache failures are silent — the parse
-    is the truth, the cache is a convenience."""
+    """Read the cache if it's fresher than every file in the folder — and
+    written by this parser; otherwise parse and write it. Cache failures are
+    silent: the parse is the truth, the cache is a convenience."""
     fid = os.path.basename(folder.rstrip("/"))
-    stamp = _mtime_of(folder)
+    stamp = f"{PARSER}:{_mtime_of(folder)}"
     cp = _cache_path(folder)
     try:
         with open(cp, encoding="utf-8") as f:

@@ -185,26 +185,74 @@ def _sid():
     return session["sid"]
 
 
+def _brand_payload(b):
+    """What the reader got out of a brand folder. Not a verdict — the parse
+    itself, so a blank that validated clean is visible instead of implied.
+    That is the whole reason this stop exists: Hunch's own folder read clean
+    and shipped an empty font for two days."""
+    skin = b.get("skin", {})
+    named = re.findall(r"assets/([\w.\-]+\.\w+)", skin.get("logo", "") + " " +
+                       skin.get("mark", "") + " " + " ".join(f["text"] for f in skin.get("fonts", [])))
+    have = b.get("assets", [])
+    return {
+        "id": b.get("id", ""), "name": b.get("name", ""), "version": b.get("version", ""),
+        "fonts": skin.get("fonts", []),
+        "logo": skin.get("logo", ""), "mark": skin.get("mark", ""),
+        "tokens": skin.get("tokens", {}),
+        "assets": [{"file": f, "named": f in named} for f in have],
+        "missing": sorted(set(f for f in named if f not in have)),
+        "legals": [{"id": c["id"], "label": c.get("label", ""), "fixed": c.get("fixed", False)}
+                   for c in (b.get("legals") or [])],
+        "voice": b.get("voice", ""),
+        "problems": b.get("problems", []),
+    }
+
+
 @app.route("/api/setup/check", methods=["POST"])
 @require_auth
 def setup_check():
+    """A drop lands, and the room says what it now holds. A brand on its own
+    is a fine thing to check — SET UP builds one per client and containers
+    per format, so they arrive apart. What it can't do without a container is
+    draw the three stops, and it says so rather than refusing the drop."""
     if not is_hunch():
         return jsonify({"error": "hunch"}), 403
     try:
         root, cids, bids = setup_room.take(request.files.get("zip"), _sid())
     except setup_room.DropError as e:
         return jsonify({"error": str(e)}), 400
+
     with CT.folders_at(os.path.join(root, "brands"), os.path.join(root, "containers")):
-        cs = CT.containers()
-        cid = request.form.get("container") or cids[0]
-        c = cs.get(cid) or cs.get(cids[0])
-        if not c:
-            return jsonify({"error": "nocontainer"}), 400
-        out = _container_payload(c, assets="/api/setup/asset/")
-    out["found"] = {"containers": sorted(cs.keys()), "brands": sorted(bids)}
-    out["showing"] = c["id"]
-    out["status"] = c.get("status", "")
+        bs = CT.brands()
+        cs = CT.containers() if cids else {}
+        cid = request.form.get("container") or (cids[0] if cids else "")
+        c = cs.get(cid) or (cs.get(cids[0]) if cids else None)
+        out = _container_payload(c, assets="/api/setup/asset/") if c else {}
+        # the brand on show is the container's, or the only one held
+        bid = (c or {}).get("brand", "") or (bids[0] if bids else "")
+        out["brandRead"] = _brand_payload(bs[bid]) if bid in bs else None
+        # the container asked for a brand that isn't here: name both, so the
+        # brand stop says what's wrong instead of standing empty
+        out["brandWanted"] = (c or {}).get("brand", "")
+
+    out["held"] = {"containers": sorted(cids), "brands": sorted(bids)}
+    out["showing"] = c["id"] if c else ""
+    out["status"] = (c or {}).get("status", "")
+    # what it's waiting for, in the room's words rather than an error
+    out["waiting"] = "" if c else ("container" if bids else "both")
+    if not c:
+        out["problems"] = (out.get("brandRead") or {}).get("problems", [])
     return jsonify(out)
+
+
+@app.route("/api/setup/clear", methods=["POST"])
+@require_auth
+def setup_clear():
+    """Start again. The only way anything leaves the scratch."""
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    setup_room.clear(_sid())
+    return jsonify({"success": True})
 
 
 @app.route("/api/setup/asset/<path:name>")

@@ -1204,3 +1204,38 @@ a.search-src:hover{color:var(--red)}
   border-radius:var(--pill);padding:12px 26px;font-family:var(--display);font-size:19px;
   letter-spacing:1.5px;line-height:1;text-decoration:none}
 .menu-cta:hover{background:var(--red-dark)}
+
+/* 1 THE BRAND — what the reader got, laid out flat. Label left, value
+   right, one row per thing, and a blank value wearing its blankness. */
+.setup-brow{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;
+  padding:12px 0;border-top:1px solid var(--border);font-size:13.5px;line-height:1.55}
+.setup-brow:first-child{border-top:none;padding-top:0}
+.setup-blab{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;
+  color:var(--mid);padding-top:3px}
+.setup-bval.empty{color:var(--red)}
+.setup-swatches{display:flex;flex-wrap:wrap;gap:8px}
+.setup-sw{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);
+  border-radius:var(--pill);padding:4px 11px 4px 4px;font-size:12px;color:var(--mid)}
+.setup-sw i{width:18px;height:18px;border-radius:50%;border:1px solid var(--border);display:block}
+.setup-sw b{color:var(--ink);font-weight:600}
+.setup-files{display:flex;flex-wrap:wrap;gap:6px}
+.setup-file{border:1px solid var(--border);border-radius:var(--pill);padding:4px 11px;
+  font-size:12px;color:var(--mid)}
+.setup-file.named{border-color:var(--ink);color:var(--ink)}
+.setup-file.gone{border-color:var(--red);color:var(--red)}
+.setup-peek{background:none;border:none;padding:0;font-family:inherit;font-size:12.5px;
+  color:var(--red);font-weight:600;text-decoration:underline;cursor:pointer}
+.setup-voice{white-space:pre-wrap;background:var(--paper);border-radius:var(--r-sm);
+  padding:14px;margin-top:10px;font-family:inherit;font-size:12.5px;line-height:1.6;
+  max-height:420px;overflow:auto}
+
+/* waiting is a state the room wears, not an error it throws */
+.setup-status.waiting{background:#fff;color:var(--mid)}
+#setup .step.locked{opacity:.4;cursor:default}
+.setup-more{display:inline-block}
+.setup-morebtn{background:#fff;color:var(--red);border-radius:var(--pill);padding:7px 16px;
+  font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;display:inline-block;
+  box-shadow:0 3px 10px rgba(0,0,0,.14)}
+.setup-morebtn:hover{background:var(--paper)}
+.setup-meta .setup-more{margin-left:auto}
+.setup-meta .setup-back{margin:0}

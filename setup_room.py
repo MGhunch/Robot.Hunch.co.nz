@@ -7,8 +7,8 @@ and lets the reader answer its usual question about them.
 
 Nothing here writes to brands/ or containers/. The live folders are the
 ones that have landed; a dropped folder is a thing being looked at, and it
-lives in scratch until the next one replaces it. That is the whole safety
-story: the worst a bad zip can do is fail to render.
+lives in scratch until it is dropped again or cleared. That is the whole
+safety story: the worst a bad zip can do is fail to render.
 
 Codes, not sentences. The words live in static/js/strings.js under
 STR.setup, the same way the reader's dead-doc lines do.
@@ -16,10 +16,16 @@ STR.setup, the same way the reader's dead-doc lines do.
     nozip       nothing arrived
     broken      not a zip, or it won't open
     fat         too many files, or one of them is silly big
-    nocontainer no folder in it holds config.md and spec.md
-    nobrand     the container names a brand the zip doesn't carry
+    nofolders   nothing in it looks like a brand or a container
+
+SET UP hands its two folders back separately — a brand once per client, a
+container per format — so a drop is not always both. The scratch holds what
+it has been given and the room says what it is still waiting for; dropping
+the same folder id again replaces it. Nothing here decides whether what it
+holds is enough; the reader does that, out loud.
 """
 
+import glob
 import os
 import re
 import shutil
@@ -79,16 +85,33 @@ def _dirs_holding(root, *names):
     return sorted(found)
 
 
+def _root(sid):
+    return os.path.join(SCRATCH, re.sub(r"[^A-Za-z0-9_-]", "", sid) or "anon")
+
+
+def held(sid):
+    """What this session has been given so far."""
+    root = _root(sid)
+    return (root,
+            [os.path.basename(p) for p in sorted(glob.glob(os.path.join(root, "containers", "*")))
+             if os.path.isdir(p)],
+            [os.path.basename(p) for p in sorted(glob.glob(os.path.join(root, "brands", "*")))
+             if os.path.isdir(p)])
+
+
 def take(stream, sid):
     """Unpack a dropped zip into this session's scratch and lay it out the
     way the reader expects: <scratch>/brands/<id> and
-    <scratch>/containers/<id>. Returns (root, container ids, brand ids).
-    Raises DropError with a code."""
+    <scratch>/containers/<id>. Adds to what's already there — a brand can
+    arrive on Monday and its container on Tuesday, and dropping a folder
+    again replaces that one and nothing else. Returns (root, container ids,
+    brand ids) for everything held, not just this drop. Raises DropError
+    with a code."""
     if stream is None:
         raise DropError("nozip")
-    root = os.path.join(SCRATCH, re.sub(r"[^A-Za-z0-9_-]", "", sid) or "anon")
-    shutil.rmtree(root, ignore_errors=True)                 # one drop at a time
+    root = _root(sid)
     raw = os.path.join(root, "_raw")
+    shutil.rmtree(raw, ignore_errors=True)                  # this drop's unpacking only
     os.makedirs(raw, exist_ok=True)
     try:
         with zipfile.ZipFile(stream) as zf:
@@ -100,9 +123,9 @@ def take(stream, sid):
         raise DropError("broken")
 
     cdirs = _dirs_holding(raw, "config.md", "spec.md")
-    if not cdirs:
-        raise DropError("nocontainer")
     bdirs = _dirs_holding(raw, "brand.md")
+    if not cdirs and not bdirs:
+        raise DropError("nofolders")
 
     bases = os.path.join(root, "brands")
     cases = os.path.join(root, "containers")
@@ -121,16 +144,12 @@ def take(stream, sid):
             continue
         shutil.copytree(d, os.path.join(bases, bid), dirs_exist_ok=True)
         bids.append(bid)
-    if not cids:
-        raise DropError("nocontainer")
-    return root, cids, bids
-
-
-def asset_url(root, path):
-    """A brand asset in the scratch, served back through the check door."""
-    return "/api/setup/asset/" + path.lstrip("/")
+    if not cids and not bids:
+        raise DropError("nofolders")
+    shutil.rmtree(raw, ignore_errors=True)                  # the unpacking was scaffolding
+    return held(sid)
 
 
 def clear(sid):
-    shutil.rmtree(os.path.join(SCRATCH, re.sub(r"[^A-Za-z0-9_-]", "", sid) or "anon"),
-                  ignore_errors=True)
+    """Start again. The only way anything leaves the scratch."""
+    shutil.rmtree(_root(sid), ignore_errors=True)
