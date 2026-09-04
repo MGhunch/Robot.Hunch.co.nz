@@ -28,9 +28,11 @@ const SETUP_STOPS = [
    hint:'container.html, as it leaves the building.'},
 ];
 
-/* the menu's fifth door. Hunch only — the chrome hides it until the door
-   says who signed in. */
-menuAdd('SET UP', ()=>enterSetup(), {hunch:true});
+/* the menu's fifth door, and it shows to everyone. Hunch walks through to
+   the room; a client gets the honest version of what's behind it, which is
+   a conversation with us — container design is the thing we sell, not a
+   thing the tool does. */
+menuAdd('SET UP', ()=>{ menuToggle(); enterSetup(); }, {hunch:true, otherwise:()=>menuOpen('setup-ask')});
 
 /* ---------------- the room ---------------- */
 

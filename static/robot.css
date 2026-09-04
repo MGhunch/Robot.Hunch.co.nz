@@ -1198,3 +1198,9 @@ a.search-src:hover{color:var(--red)}
   .setup-grid .fix-artwrap{width:auto}
   .setup-grid .fix-gutter{display:none}
 }
+
+/* the client's side of the SET UP door: one line and one way to answer it */
+.menu-cta{display:inline-block;margin-top:16px;background:var(--red);color:#fff;
+  border-radius:var(--pill);padding:12px 26px;font-family:var(--display);font-size:19px;
+  letter-spacing:1.5px;line-height:1;text-decoration:none}
+.menu-cta:hover{background:var(--red-dark)}

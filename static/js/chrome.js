@@ -353,17 +353,26 @@ const RAIL = {
    the menu rather than the doorway adds itself here — the chrome hangs the
    button and holds the key; it never learns what's behind the door. A
    hunch-only door stays hidden until the door says who signed in. */
-const MENU_EXTRA=[];
+const MENU_EXTRA=[]; let MENU_HUNCH=false;
 function menuAdd(label, go, opts){
   const o=opts||{};
   const b=document.createElement('button');
-  b.textContent=label; b.hidden=!!o.hunch; b.dataset.hunch=o.hunch?'1':'';
-  b.onclick=()=>{ menuToggle(); go(); };
+  b.textContent=label;
+  /* a door with two sides shows to everyone and routes on the way in; a
+     door with one side stays hidden until the person is allowed through */
+  b.hidden = !!o.hunch && !o.otherwise;
+  b._menu = o;
+  /* the handler closes the menu, the same way ABOUT and FAQS do — the
+     chrome only decides which handler */
+  b.onclick=()=>{ (o.hunch && !MENU_HUNCH && o.otherwise ? o.otherwise : go)(); };
   MENU_EXTRA.push(b);
   ready(()=>{ const box=$('menuBox'); if(box && !box.contains(b)) box.appendChild(b); });
 }
-/* the door, once it knows: hunch-only buttons come out of hiding */
-function menuHunch(on){ MENU_EXTRA.forEach(b=>{ if(b.dataset.hunch) b.hidden=!on; }); }
+/* the door, once it knows who signed in */
+function menuHunch(on){
+  MENU_HUNCH=!!on;
+  MENU_EXTRA.forEach(b=>{ const o=b._menu||{}; if(o.hunch && !o.otherwise) b.hidden=!MENU_HUNCH; });
+}
 
 
 /* ---------------- THE SHELL'S TERMS_MENU ----------------
