@@ -27,6 +27,7 @@ import os
 import re
 import json
 import glob
+import contextlib
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 BRANDS_DIR = os.environ.get("ROBOT_BRANDS", os.path.join(ROOT, "brands"))
@@ -656,6 +657,24 @@ def _resolve_brand_clauses(c):
 
 def container(cid):
     return containers().get(cid)
+
+
+@contextlib.contextmanager
+def folders_at(brands_dir, containers_dir):
+    """Read another pair of folders for the length of one call. The upload
+    door drops a folder in a scratch dir and asks the same reader the same
+    question; the live folders never move.
+
+    This swaps module state, so it assumes one process — which the Procfile
+    now pins (`--workers 1`). If that ever changes, this is the first thing
+    that breaks, and it breaks quietly."""
+    global BRANDS_DIR, CONTAINERS_DIR
+    was = (BRANDS_DIR, CONTAINERS_DIR)
+    BRANDS_DIR, CONTAINERS_DIR = brands_dir, containers_dir
+    try:
+        yield
+    finally:
+        BRANDS_DIR, CONTAINERS_DIR = was
 
 
 def validate(folder, kind="container"):

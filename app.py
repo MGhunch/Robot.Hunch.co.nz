@@ -34,6 +34,7 @@ import copy_stage
 from file_it import file_bp, parcel as _parcel
 import containers as CT
 import robots
+import setup_room
 from engine import (build_facts, assemble_terms, render_terms, render_copy,
                     clause_menu, type_options, TermsError)
 
@@ -137,13 +138,11 @@ def _modules(c):
             "limits": c["spec"].get("limits", "")}
 
 
-@app.route("/api/container/<cid>")
-@require_auth
-def container_get(cid):
-    c = CT.container(cid)
-    if not c or not _visible(c):
-        return jsonify({"error": "No such container."}), 404
-    return jsonify({
+def _container_payload(c, assets="/brands/"):
+    """Everything the front end needs to draw a container. One builder, two
+    doors: the live one below, and SET UP's, which asks the same question of
+    a folder that hasn't landed yet."""
+    return {
         "tile": CT.tile(c),
         "brand": {"id": c["brand"], "name": c["brand_data"].get("name", c["brand"]),
                   "skin": c["brand_data"].get("skin", {})},
@@ -151,11 +150,75 @@ def container_get(cid):
         "checklist": _checklist(c),
         "modules": _modules(c),
         "ghost": c["artefact"]["modules"],
-        "html": c["artefact"]["html"].replace("../../brands/", "/brands/"),
+        "html": c["artefact"]["html"].replace("../../brands/", assets),
         "outputs": c["spec"]["outputs"],
         "images": c["spec"]["images"],
         "problems": c["problems"],
-    })
+    }
+
+
+@app.route("/api/container/<cid>")
+@require_auth
+def container_get(cid):
+    c = CT.container(cid)
+    if not c or not _visible(c):
+        return jsonify({"error": "No such container."}), 404
+    return jsonify(_container_payload(c))
+
+
+# ---------------------------------------------------------------------------
+# SET UP CHECK — the upload door. Hunch only.
+#
+# A container is built somewhere else and arrives as a zip of two folders.
+# Before it lands you want to look at it: the bones, the deets and the
+# artefact, drawn by the same code the client will meet. So the drop goes
+# to scratch, the reader reads it there, and the answer comes back in the
+# same shape /api/container/<cid> returns. Nothing under brands/ or
+# containers/ moves. Checking is looking, not landing.
+# ---------------------------------------------------------------------------
+
+def _sid():
+    """A scratch key per browser session, so two people checking at once
+    don't stand in each other's folder."""
+    if not session.get("sid"):
+        session["sid"] = os.urandom(8).hex()
+    return session["sid"]
+
+
+@app.route("/api/setup/check", methods=["POST"])
+@require_auth
+def setup_check():
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    try:
+        root, cids, bids = setup_room.take(request.files.get("zip"), _sid())
+    except setup_room.DropError as e:
+        return jsonify({"error": str(e)}), 400
+    with CT.folders_at(os.path.join(root, "brands"), os.path.join(root, "containers")):
+        cs = CT.containers()
+        cid = request.form.get("container") or cids[0]
+        c = cs.get(cid) or cs.get(cids[0])
+        if not c:
+            return jsonify({"error": "nocontainer"}), 400
+        out = _container_payload(c, assets="/api/setup/asset/")
+    out["found"] = {"containers": sorted(cs.keys()), "brands": sorted(bids)}
+    out["showing"] = c["id"]
+    out["status"] = c.get("status", "")
+    return jsonify(out)
+
+
+@app.route("/api/setup/asset/<path:name>")
+@require_auth
+def setup_asset(name):
+    """Fonts and the logo out of the dropped brand folder, so the artefact
+    wears the client's face while you look at it."""
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    base = os.path.join(setup_room.SCRATCH, re.sub(r"[^A-Za-z0-9_-]", "", session.get("sid", "")), "brands")
+    full = os.path.normpath(os.path.join(base, name))
+    if not full.startswith(os.path.normpath(base) + os.sep) or not os.path.isfile(full):
+        return jsonify({"error": "gone"}), 404
+    return send_from_directory(os.path.dirname(full), os.path.basename(full))
 
 
 @app.route("/api/peek", methods=["POST"])

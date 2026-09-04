@@ -9,20 +9,25 @@ cd "$(dirname "$0")/static/js" || exit 2
 python3 - <<'PY'
 import re, sys
 ROOM_STATE = {
-  'feed':   r"\b(DEETS_[A-Z_]+|TERMS_(MENU|CHOSEN|BUSY|FAILED)|BOUNCE_[A-Z]+|QUIZ|FEED_[A-Z]+|SEARCH_[A-Z]+|STOP_OPEN|CRAFT(_KEY)?)\b|formData\(|storyData\(|val\('",
+  'feed':   r"\b(BOUNCE_[A-Z]+|QUIZ|FEED_[A-Z]+|SEARCH_[A-Z]+|STOP_OPEN|CRAFT(_KEY)?)\b|storyData\(|val\('",
   'fix':    r"\b(FIX_[A-Z_]+)\b",
   'file':   r"\b(FILE_[A-Z]+)\b",
   # the handovers: BRIEF (FEED IT's) and ASSET (FIX IT's) may be read by the rooms downstream, never by the chrome or the door
   'handover': r"\b(BRIEF|ASSET)\b",
   'door':   r"\b(DOOR_TILES|DOOR_MISSES|HUNCH)\b",
+  # the checklist is a renderer two rooms share, so its state is its own: a
+  # room asks through deetsChosen/deetsTerms/deetsFacts, never by reaching in
+  'deets':  r"\b(DEETS_[A-Z_]+|TERMS_(MENU|CHOSEN|BUSY|FAILED)|PEEKED|PEEKLOG)\b|formData\(",
 }
 def state_of(*rooms): return "|".join(ROOM_STATE[r] for r in rooms)
 rooms={
- 'chrome.js': dict(ids=r"\$\('(fix|feed|file|door|deets|search|story|blurb)", state=state_of('feed','fix','file','door','handover')+r"|\b(CONT|CID|RUN)\b"),
- 'door.js':   dict(ids=r"\$\('(fix|feed|file|deets|search|story|blurb)",      state=state_of('feed','fix','file','handover')),
- 'feed.js':   dict(ids=r"\$\('(fix|file|door[A-Z])",                           state=state_of('fix','file','door')),
- 'fix.js':    dict(ids=r"\$\('(feed|file|deets|search|door|story|blurb)",      state=state_of('feed','file','door')),
- 'file.js':   dict(ids=r"\$\('(feed|fix|deets|search|door|story|blurb)",       state=state_of('feed','fix','door')),
+ 'chrome.js': dict(ids=r"\$\('(fix|feed|file|door|deets|setup|search|story|blurb)", state=state_of('feed','fix','file','door','handover','deets')+r"|\b(CONT|CID|RUN)\b"),
+ 'deets.js':  dict(ids=r"\$\('(fix|feed|file|door|setup|search|story|blurb)",  state=state_of('feed','fix','file','door','handover')),
+ 'door.js':   dict(ids=r"\$\('(fix|feed|file|deets|setup|search|story|blurb)", state=state_of('feed','fix','file','handover','deets')),
+ 'feed.js':   dict(ids=r"\$\('(fix|file|setup|door[A-Z])",                      state=state_of('fix','file','door','deets')),
+ 'fix.js':    dict(ids=r"\$\('(feed|file|deets|setup|search|story|blurb)",     state=state_of('feed','file','door','deets')),
+ 'file.js':   dict(ids=r"\$\('(feed|fix|deets|setup|search|door|story|blurb)", state=state_of('feed','fix','door','deets')),
+ 'setup.js':  dict(ids=r"\$\('(feed|fix|file|door[A-Z]|deetsD|search|story|blurb)", state=state_of('feed','fix','file','door','handover','deets')),
 }
 ok=True
 for f,g in rooms.items():

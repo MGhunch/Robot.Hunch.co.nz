@@ -273,6 +273,69 @@ function thinkFace(){ let p;
   THINK_LAST=p;
   return `<span class="botdisc think ${p}">${BOT_FACE()}</span>`; }
 
+/* ---------------- THE GHOST ----------------
+   The engine's drawing of an artefact's shape. It walks the html's
+   data-module tags and draws its own grey shape for each: a labelled pill,
+   a strip, an image, some lines, a card. The vocabulary is the engine's;
+   the order is the container's. Never wears the client. A repeating module
+   draws once, count stated.
+
+   Chrome, not a room's: FEED IT draws it beside the concertina and SET UP
+   draws it to check the bones, and they have to be the same drawing or the
+   check is worth nothing. So it takes its data rather than reading CONT —
+   the chrome never knows which container is on the table. */
+const GH_IMG = h => `<div class="ghost-img" style="height:${h}px">
+  <svg class="x" preserveAspectRatio="none" viewBox="0 0 100 100">
+    <line x1="0" y1="0" x2="100" y2="100" vector-effect="non-scaling-stroke"/>
+    <line x1="100" y1="0" x2="0" y2="100" vector-effect="non-scaling-stroke"/></svg>
+  <svg class="ghost-mtn" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2.5" y="4.5" width="19" height="15" rx="2"/><circle cx="8.6" cy="9.4" r="1.5"/>
+    <path d="M4.5 17l4.8-4.6 3.4 3.2 3.5-3.4 5.3 4.8"/></svg></div>`;
+const GH_LINES = n => `<div class="ghost-lines">${['w85','','w60'].slice(0,n).map(w=>`<div class="ghost-l ${w}"></div>`).join('')}</div>`;
+const GH_PILL  = l => `<div class="ghost-hed"><span class="ghost-in">${esc(l)}</span></div>`;
+const GH_STRIP = l => `<div class="ghost-strip"><span class="ghost-in">${esc(l)}</span></div>`;
+const GH_BTN   = () => `<span class="ghost-cta"><span class="ghost-in">Button</span></span>`;
+const ghLabel = m => m.replace(/-/g,' ').replace(/\bcta\b/,'button');
+
+function GHOST(el, tags, mods, checklist){
+  tags=tags||[]; mods=mods||{all:[],writer:[],groups:[]};
+  const opt=m=>{ const w=mods.writer.find(x=>x.module===m); return w&&w.options?w.options:1; };
+  const group=mods.groups[0];              // one repeating module is plenty for now
+  const parts=group?new Set(mods.all.filter(m=>m.module.startsWith(group.module+'-')).map(m=>m.module)):new Set();
+  let bar='', body='', inCard=false;
+  const isImg = m => /image|hero|pic|photo/.test(m);
+  const isStrip = m => /^(header|wallet|salutation|readonline|banner|logo)$/.test(m);
+  const isWrap  = m => /^(precopy|cards|intro|signoff)$/.test(m);
+  tags.forEach(m=>{
+    if(group && parts.has(m)) return;      // drawn by the card
+    if(isWrap(m)) return;                  // a wrapper draws nothing
+    if(/^(subject|preheader|readonline)$/.test(m)) return;   // inbox furniture, not the email
+    if(group && m===group.module){
+      const cg=((checklist||{}).groups||[]).find(g=>g.repeat&&!g.repeat.where&&g.repeat.per.split(' ').pop()===group.module);
+      const rng=cg?[0,cg.repeat.min,cg.repeat.max]:/(\d+)\s*[–-]\s*(\d+)/.exec(group.repeat||'');
+      let card='';
+      group.parts.forEach(p=>{
+        const n=p.module.replace(group.module+'-','');
+        if(/title|head/.test(n)) card+=GH_PILL(ghLabel(p.module));
+        else if(/cta|button/.test(n)) card+=GH_BTN();
+        else card+=GH_LINES(3);
+      });
+      if(tags.includes(group.module+'-image')) card+=GH_IMG(56);
+      body+=`<div class="ghost-cards"><div class="ghost-card">${card}</div><div class="ghost-more">${rng?`${rng[1]}–${rng[2]} ${group.module}s`:`${group.module} × N`}</div></div>`;
+      return;
+    }
+    if(/^(terms|legals|base|footer)$/.test(m)){ if(!body.includes('ghost-tcs')) body+=`</div><div class="ghost-tcs"><div class="ghost-l"></div><div class="ghost-l w85"></div><div class="ghost-l w45"></div>`; return; }
+    if(isImg(m)){ body+=GH_IMG(84); return; }
+    if(m==='headline'){ body+=GH_PILL('Headline'); return; }
+    if(/button|cta/.test(m)){ body+=GH_BTN(); return; }
+    if(isStrip(m)){ body+=GH_STRIP(ghLabel(m)); return; }
+    body+=GH_LINES(3);                     // anything else is copy: three lines
+  });
+  if(!el) return;
+  el.innerHTML = (bar?`<div class="ghost-bar">${bar}</div>`:'') + '<div class="ghost-body">' + body + '</div>';
+}
+
+
 /* ---------------- THE RAIL'S ROWS ----------------
    One grammar for every chat rail: the robot's turn, the human's, the
    error turn, the thinking turn. A row is a string; the room decides where
@@ -284,6 +347,24 @@ const RAIL = {
   err:   text => `<div class="chat-row"><div class="chat-cav">${BOT_AV('err')}</div><div class="line err nodisc" role="alert"><span class="line-t">${esc(text)}</span></div></div>`,
   think: () => `<div class="chat-cav">${thinkFace()}</div>`,
 };
+
+/* ---------------- THE MENU'S EXTRA DOORS ----------------
+   The burger carries ABOUT and FAQS for everyone. A room that lives off
+   the menu rather than the doorway adds itself here — the chrome hangs the
+   button and holds the key; it never learns what's behind the door. A
+   hunch-only door stays hidden until the door says who signed in. */
+const MENU_EXTRA=[];
+function menuAdd(label, go, opts){
+  const o=opts||{};
+  const b=document.createElement('button');
+  b.textContent=label; b.hidden=!!o.hunch; b.dataset.hunch=o.hunch?'1':'';
+  b.onclick=()=>{ menuToggle(); go(); };
+  MENU_EXTRA.push(b);
+  ready(()=>{ const box=$('menuBox'); if(box && !box.contains(b)) box.appendChild(b); });
+}
+/* the door, once it knows: hunch-only buttons come out of hiding */
+function menuHunch(on){ MENU_EXTRA.forEach(b=>{ if(b.dataset.hunch) b.hidden=!on; }); }
+
 
 /* ---------------- THE SHELL'S TERMS_MENU ----------------
    The burger, ABOUT and the FAQs — on every room, so it's furniture. Waits

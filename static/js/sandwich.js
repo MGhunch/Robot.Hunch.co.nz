@@ -30,6 +30,18 @@ function briefMoved(v){
 const RUN = (crypto.randomUUID ? crypto.randomUUID()
              : Date.now()+'-'+Math.random().toString(36).slice(2)).replace(/[^a-z0-9-]/gi,'');
 
+/* SET UP is a room off the burger, not a stop in the sandwich. Opening it
+   ends whatever run was in progress on purpose: the container on the table
+   is about to be replaced by a dropped one, and a brief written against
+   the old one would be a lie waiting to happen. */
+function enterSetup(){
+  CONT=null; CID='';
+  deetsReset(); BRIEF=null; ASSET=null; CRAFT=null; CRAFT_KEY=''; FIX_DOC=null;
+  REACHED=0; unlock();
+  $('door').style.display='none'; $('sandwich').classList.remove('on');
+  setupInit();
+}
+
 /* into the room: fetch the container, deal the checklist, wake the quiz */
 async function enterRoom(cid, tile){
   CID=cid;
@@ -41,11 +53,11 @@ async function enterRoom(cid, tile){
     else robotLineAt($('doorTiles'), STR.doorway.open, {cls:'onred', stick:true});
     return;
   }
-  cardReset('plate'); cardReset('grid'); TERMS_FAILED=false;
+  cardReset('plate'); cardReset('grid'); deetsReset();
   $('door').style.display='none'; $('sandwich').classList.add('on');
-  TERMS_MENU=[]; TERMS_CHOSEN=null; REACHED=0; unlock(); go(0);
+  REACHED=0; unlock(); go(0);
   BRIEF=null; ASSET=null;
   CRAFT=null; CRAFT_KEY=''; FIX_DOC=null;
-  deetsInit(); deetsRender(); quizInit();
+  feedDeetsMount(); deetsInit(); deetsRender(); quizInit();
   fixTabs();
 }

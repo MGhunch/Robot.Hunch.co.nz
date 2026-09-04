@@ -21,7 +21,7 @@ const BASE='http://127.0.0.1:5055';
   console.log('echo:', d.getElementById('echo').textContent, '| tiles:', [...d.querySelectorAll('#doorTiles .door-tile')].map(r=>r.querySelector('.door-tile-t').textContent).join(' / '));
   // prize draw
   await w.enterRoom('prize_draw'); await sleep(300);
-  console.log('quiz stops:', d.getElementById('feedT0').textContent,'|', d.getElementById('feedT2').textContent, '| ghost tags:', d.getElementById('feedGhost').querySelectorAll('.feed-in').length);
+  console.log('quiz stops:', d.getElementById('feedT0').textContent,'|', d.getElementById('feedT2').textContent, '| ghost tags:', d.getElementById('feedGhost').querySelectorAll('.ghost-in').length);
   console.log('checklist cards:', d.querySelectorAll('#deetsCards .deets-card').length, 'rows:', d.querySelectorAll('#deetsCards .deets-row').length, 'first asks:', [...d.querySelectorAll('#deetsCards .deets-ask')].slice(0,3).map(e=>e.textContent).join(' | '));
   // fill via state, as the UI would
   const set=(id,v)=>{ E('DEETS_ROWS')[id].value=v; E('DEETS_ROWS')[id].ticked=true; };
@@ -61,7 +61,7 @@ const BASE='http://127.0.0.1:5055';
   w.fixWrapGo(); await sleep(100); console.log('wrap early → focus:', E('FIX_FOCUS'), '| wrap:', d.getElementById('fixWrapLbl').textContent);
   // one update — the lineup
   w.eval('ASSET=null'); await w.enterRoom('one_update'); await sleep(300);
-  console.log('OU tabs:', [...d.querySelectorAll('.fix-tabs .fix-loz')].map(x=>x.textContent).join('/'), '| ghost bar:', !!d.querySelector('#feedGhost .feed-gbar'), '| stories:', d.querySelectorAll('#deetsCards .deets-card.story').length, '| legals card:', !!d.querySelector('#deetsCards .deets-card.legals'));
+  console.log('OU tabs:', [...d.querySelectorAll('.fix-tabs .fix-loz')].map(x=>x.textContent).join('/'), '| ghost bar:', !!d.querySelector('#feedGhost .ghost-bar'), '| stories:', d.querySelectorAll('#deetsCards .deets-card.story').length, '| legals card:', !!d.querySelector('#deetsCards .deets-card.legals'));
   const st=E('DEETS_REPEATS').story; const fill=(o,kv)=>Object.entries(kv).forEach(([k,v])=>{ o[k].value=v; o[k].ticked=true; });
   fill(st[0],{story_type:'prize',story_subject:'Win 500 Phone Dollars'}); fill(st[1],{story_type:'news',story_subject:'Satellite calls'}); fill(st[2],{story_type:'news',story_subject:'2G switch-off'});
   st[1].story_legals.value=['satellite']; w.deetsRender();

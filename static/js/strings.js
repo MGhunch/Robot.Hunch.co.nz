@@ -48,6 +48,23 @@ const STR = {
     terms_fail: "Can't find the legals.",
   },
 
+  /* SET UP CHECK — Hunch only. The read lines answer the upload door's
+     codes; the rest is the robot reporting what the validator found. */
+  setup: {
+    read: {
+      nozip:       "Nothing landed. Try that again?",
+      broken:      "That's not a zip I can open. Zip the two folders and drop it in.",
+      fat:         "Wowsers. That's a big one. Under 40MB, and no single file over 8.",
+      nocontainer: "Can't find a container in there. I need a folder with config.md and spec.md in it.",
+      hunch:       "That door's ours, not yours.",
+    },
+    clean:   "Reads clean — no problems. Have a look at the three of them.",
+    bounced: n => n===1 ? "One problem with this folder. It's below, and it'll still draw."
+                        : n+" problems with this folder. They're below, and it'll still draw.",
+    several: ids => "There's more than one container in there — showing the first. The rest: "+ids.slice(1).join(', ')+".",
+    notyet:  what => "Have a proper look at "+what+" first, then shut its padlock.",
+  },
+
   /* FIX IT */
   fix: {
     tweak_fail:  "That wasn't seamless. Please try again.",

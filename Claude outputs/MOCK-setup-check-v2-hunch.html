@@ -1,3 +1,42 @@
+<!DOCTYPE html>
+<html lang="en-NZ">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SET UP CHECK — mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===========================================================================
+   HUNCH TOKENS
+   Lifted from Prompter so the family stays coherent. Copy this file into any
+   new Hunch tool rather than importing it — no shared dependency, no coupling,
+   and nobody eyedroppers a hex off a screenshot ever again.
+   =========================================================================== */
+:root{
+  /* Core */
+  --red:#ED1C24; --red-dark:#C8141B;
+  --ink:#1A1917; --white:#FFFFFF;
+  --paper:#F5F3EF; --border:#E8E5E0; --mid:#9A9590;
+
+  /* White-on-red overlays */
+  --white-hi:rgba(255,255,255,.75);
+  --white-mid:rgba(255,255,255,.45);
+  --white-lo:rgba(255,255,255,.20);
+
+  /* Flags and diffs */
+  --yellow:#FAF06E; --delta:rgba(237,28,36,.13);
+
+  /* Layout */
+  --g:32px;
+  --r-sm:8px; --r-md:12px; --r-lg:14px; --pill:100px;
+
+  /* Type */
+  --display:'Bebas Neue',Impact,sans-serif;
+  --body:'Inter',system-ui,-apple-system,sans-serif;
+}
+
 /* ROBOT SANDWICH — engine styles. tokens.css holds the variables. */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
@@ -468,32 +507,32 @@ mark.fix-ch{background:var(--yellow);color:inherit;border-radius:2px;padding:0 1
   box-shadow:inset 0 0 0 1.5px var(--border)}
 .feed-go.dormant:hover{background:none;color:var(--mid)}
 /* the ghost — renders from the shape block of quiz.json */
-.ghost-art{background:#fff;border-radius:var(--r-md);overflow:hidden;
+.feed-ghost{background:#fff;border-radius:var(--r-md);overflow:hidden;
   box-shadow:0 10px 32px rgba(0,0,0,.18)}
-.ghost-in{font-size:7.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+.feed-in{font-size:7.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
   color:#fff;line-height:1;pointer-events:none;white-space:nowrap}
-.ghost-bar{background:var(--paper);border-bottom:1px solid var(--border);padding:9px 13px}
-.ghost-body{padding:0 15px 5px;text-align:center}
-.ghost-img{position:relative;background:var(--border);height:84px;
+.feed-gbar{background:var(--paper);border-bottom:1px solid var(--border);padding:9px 13px}
+.feed-gbody{padding:0 15px 5px;text-align:center}
+.feed-gimg{position:relative;background:var(--border);height:84px;
   margin:0 -15px 13px;display:grid;place-items:center;overflow:hidden}
-.ghost-img .x{position:absolute;inset:0;width:100%;height:100%}
-.ghost-img .x line{stroke:#fff;stroke-width:1.6;opacity:.8;
+.feed-gimg .x{position:absolute;inset:0;width:100%;height:100%}
+.feed-gimg .x line{stroke:#fff;stroke-width:1.6;opacity:.8;
   stroke-linecap:round;stroke-dasharray:.1 5}
-.ghost-mtn{position:relative;width:24px;height:24px;background:var(--border);
+.feed-gmtn{position:relative;width:24px;height:24px;background:var(--border);
   padding:2px;border-radius:3px}
-.ghost-hed{height:15px;width:72%;border-radius:8px;background:#DBD7D1;margin:8px auto 0;
+.feed-ghed{height:15px;width:72%;border-radius:8px;background:#DBD7D1;margin:8px auto 0;
   display:flex;align-items:center;justify-content:center}
-.ghost-lines{padding-top:8px}
-.ghost-l{height:7px;border-radius:4px;background:var(--border);margin:0 auto 5px}
-.ghost-l.w85{width:85%}.ghost-l.w60{width:60%}.ghost-l.w45{width:45%}
-.ghost-cta{display:inline-flex;align-items:center;justify-content:center;
+.feed-glines{padding-top:8px}
+.feed-gl{height:7px;border-radius:4px;background:var(--border);margin:0 auto 5px}
+.feed-gl.w85{width:85%}.feed-gl.w60{width:60%}.feed-gl.w45{width:45%}
+.feed-gcta{display:inline-flex;align-items:center;justify-content:center;
   background:var(--border);border-radius:var(--pill);width:74px;height:24px;
   margin:8px 0 14px}
-.ghost-tcs{border-top:1px solid var(--border);padding:12px 15px;text-align:left}
-.ghost-tcs .ghost-l{height:4px;margin:0 0 4px;opacity:.7}
+.feed-gtcs{border-top:1px solid var(--border);padding:12px 15px;text-align:left}
+.feed-gtcs .feed-gl{height:4px;margin:0 0 4px;opacity:.7}
 @media(max-width:880px){
   .feed-grid{grid-template-columns:1fr;gap:30px}
-  .ghost-hold{max-width:280px}
+  .feed-ghosthold{max-width:280px}
   .feed-hed{font-size:42px}
 }
 
@@ -946,16 +985,16 @@ a.search-src:hover{color:var(--red)}
 .deets-add:hover{background:rgba(255,255,255,.1)}
 
 /* ghost: the two shapes One Update taught it */
-.ghost-strip{background:var(--paper);border-bottom:1px solid var(--border);height:18px;margin:0 -15px;
+.feed-gstrip{background:var(--paper);border-bottom:1px solid var(--border);height:18px;margin:0 -15px;
   display:flex;align-items:center;padding:0 13px}
-.ghost-strip .ghost-in{color:var(--mid)}
-.ghost-cards{background:var(--paper);margin:0 -15px;padding:14px 22px 2px}
-.ghost-card{background:#fff;border-radius:10px;padding:12px 12px 0;margin-bottom:12px;overflow:hidden;
+.feed-gstrip .feed-in{color:var(--mid)}
+.feed-gcards{background:var(--paper);margin:0 -15px;padding:14px 22px 2px}
+.feed-gcard{background:#fff;border-radius:10px;padding:12px 12px 0;margin-bottom:12px;overflow:hidden;
   box-shadow:0 4px 12px rgba(0,0,0,.06)}
-.ghost-card .ghost-hed{width:64%;margin:0 auto}
-.ghost-card .ghost-cta{margin:6px 0 10px}
-.ghost-card .ghost-img{height:56px;margin:0 -12px 0;border-top-right-radius:14px}
-.ghost-more{font-size:7.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid);padding:2px 0 10px}
+.feed-gcard .feed-ghed{width:64%;margin:0 auto}
+.feed-gcard .feed-gcta{margin:6px 0 10px}
+.feed-gcard .feed-gimg{height:56px;margin:0 -12px 0;border-top-right-radius:14px}
+.feed-gmore{font-size:7.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid);padding:2px 0 10px}
 
 /* ---------------- v015: one shape, the lineup ----------------
    The bounce box wears the pad's dashed box: a white box with a cursor
@@ -1131,70 +1170,233 @@ a.search-src:hover{color:var(--red)}
 }
 
 
-/* ================= SET UP CHECK =================
-   The fifth room, Hunch only. It borrows the site whole — the stepper, the
-   lozenges, FIX IT's grid and padlock, the deets card, the chat — because
-   a page that checks a container should look like the thing it's checking
-   for. The only rules here are the ones the borrowed furniture doesn't
-   already carry: the room's own ground, the drop pad, and the three panes
-   the stepper switches between. */
-#setup{display:none;background:var(--red);min-height:calc(100vh - 52px);padding-bottom:70px}
-#setup.on{display:block}
-.setup-wrap{max-width:1120px}
-#setup .rail{border-bottom-color:rgba(255,255,255,.25);margin-bottom:30px}
-#setup .step{color:rgba(255,255,255,.55)}
-#setup .step:hover{color:#fff}
-#setup .step.on{color:#fff;border-bottom-color:#fff}
-#setup .step.done{color:#fff}
-#setup .step i{color:#fff}
-#setup .feed-hed{color:#fff}
 
-.setup-tagline{color:rgba(255,255,255,.82);font-size:11px;letter-spacing:2px;
-  text-transform:uppercase;font-weight:600;margin:4px 0 26px}
+/* ---- SET UP CHECK — the only new rules. Everything else is robot.css. ---- */
+.su-stage{background:var(--red);padding:34px 0 60px}
+.su-stage .wrap{max-width:1120px}
+.su-valid{max-width:1000px}
+.su-hed{margin:0 0 4px}
+.su-tag{color:rgba(255,255,255,.82);font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;margin-bottom:16px}
+.su-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:34px}
+.su-tile{background:#fff;border-radius:10px;padding:7px 14px;font-size:13px;font-weight:600;box-shadow:0 3px 10px rgba(0,0,0,.18)}
+.su-tile span{color:var(--mid);font-weight:400}
+.su-status{background:var(--yellow,#FAF06E);border-radius:var(--pill);font-size:10px;font-weight:700;letter-spacing:2px;padding:6px 12px}
+.su-valid{background:#fff;border-radius:12px;padding:12px 18px;font-size:13px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 4px 16px rgba(0,0,0,.10);margin-bottom:26px}
+.su-valid b{font-weight:600}
+.su-valid .su-when{margin-left:auto;color:var(--mid);font-size:12px}
+.su-switch{display:flex;gap:8px;margin:0 0 18px 0}
+.su-asset{background:#fff;border-radius:14px;padding:22px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
+.su-asset.plain{background:transparent;box-shadow:none;padding:0}
+.su-asset iframe{width:100%;height:880px;border:0;border-radius:8px;display:block;background:#e9e6e0}
+.su-pane{display:none}
+.su-pane.on{display:block}
+.su-pad{top:14px}
+.su-hint{color:rgba(255,255,255,.75);font-size:11.5px;letter-spacing:.4px;margin-top:12px}
+.feed-ghosthold.su-hold{margin:0 auto;width:250px;zoom:2.2}
+.su-hint{max-width:600px}
+.su-stage .fix-grid{grid-template-columns:600px 380px;gap:90px;max-width:1120px}
+.su-stage .fix-artwrap{width:600px}
+.su-stage .fix-gutter{right:-70px}
 
-/* the drop pad — one door, and a way back */
-.setup-drop{max-width:560px}
-.setup-pad{background:#fff;border-radius:var(--r-lg);padding:34px 26px;text-align:center;
-  box-shadow:0 8px 28px rgba(0,0,0,.16)}
-.setup-padline{color:var(--mid);font-size:13px;margin-top:14px}
-.setup-back{background:none;border:none;color:rgba(255,255,255,.8);font-family:inherit;
-  font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0;margin-top:18px}
-.setup-back:hover{color:#fff}
+</style>
+</head>
+<body>
 
-/* the stage */
-.setup-meta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:30px}
-.setup-tile{background:#fff;border-radius:10px;padding:7px 14px;font-size:13px;font-weight:600;
-  box-shadow:0 3px 10px rgba(0,0,0,.18)}
-.setup-tile span{color:var(--mid);font-weight:400}
-.setup-status{background:var(--yellow);border-radius:var(--pill);font-size:10px;font-weight:700;
-  letter-spacing:2px;padding:6px 12px}
-.setup-status.live{background:var(--ink);color:#fff}
-.setup-meta .setup-back{margin:0 0 0 auto}
+<div class="topbar">
+  <img src="data:image/png;base64,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" alt="Hunch ai2" style="height:22px;display:block">
+  <div class="top-r">
+    <div class="who">Michael · Hunch</div>
+    <button class="burger" aria-label="Menu">
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <line class="bl1" x1="2" y1="5.5" x2="18" y2="5.5"/>
+        <line class="bl2" x1="2" y1="10" x2="18" y2="10"/>
+        <line class="bl3" x1="2" y1="14.5" x2="18" y2="14.5"/>
+      </svg>
+    </button>
+  </div>
+</div>
 
-.setup-grid{grid-template-columns:600px 380px;gap:90px;max-width:1120px}
-.setup-grid .fix-artwrap{width:600px}
-.setup-grid .fix-gutter{right:-70px}
-.setup-pane{display:none}
-.setup-pane.on{display:block}
-.setup-hint{color:rgba(255,255,255,.75);font-size:11.5px;margin-top:14px;max-width:600px}
+<div class="wrap">
+  <div class="rail">
+    <button class="step on" data-s="0" onclick="show(0)"><i>1</i>Mock up</button>
+    <button class="step" data-s="1" onclick="show(1)"><i>2</i>Deets</button>
+    <button class="step" data-s="2" onclick="show(2)"><i>3</i>Output</button>
+  </div>
+</div>
 
-/* 1 the bones — the ghost, at a size you can actually check */
-.setup-hold{width:250px;margin:0 auto;zoom:2.2}
-/* 2 the deets — the card on its own white, since it has no concertina here */
-.setup-card{background:#fff;border-radius:var(--r-lg);padding:22px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
-/* 3 the artefact — its own document, framed, so its css can't touch ours */
-.setup-art{width:100%;height:880px;border:0;border-radius:var(--r-sm);display:block;background:#e9e6e0}
+<div class="su-stage">
+<div class="wrap">
 
-.setup-lock{top:14px}
-.setup-probs{margin:4px 0 0 16px;padding:0}
-.setup-probs li{margin-bottom:5px}
-.setup-note{display:none;background:#fff;border-radius:var(--r-md);padding:15px 17px;font-size:13px;
-  line-height:1.55;box-shadow:0 8px 24px rgba(0,0,0,.18)}
-.setup-note.on{display:block}
-.setup-note code{background:var(--paper);border-radius:4px;padding:1px 6px;font-size:12px}
+  <h2 class="feed-hed beb su-hed">SET UP CHECK</h2>
+  <div class="su-tag" id="suTag">Does this look right?</div>
 
-@media(max-width:1060px){
-  .setup-grid{grid-template-columns:1fr;gap:34px}
-  .setup-grid .fix-artwrap{width:auto}
-  .setup-grid .fix-gutter{display:none}
+  <div class="su-meta">
+    <div class="su-tile">Rewards Tickets <span>· one_nz · prize_draw</span></div>
+    <div class="su-status">TESTING</div>
+  </div>
+
+  <div class="fix-grid">
+
+    <div>
+      <div class="fix-lozrow"><span class="fix-loz" id="suLoz">The bones</span></div>
+      <div class="fix-artwrap">
+
+        <div class="su-pane on" data-p="0">
+          <div class="su-asset plain">
+            <div class="feed-ghosthold su-hold"><div class="feed-ghost" id="feedGhost"><div class="feed-gbody"><div class="feed-gstrip"><span class="feed-in">header</span></div><div class="feed-gimg" style="height:84px">
+  <svg class="x" preserveAspectRatio="none" viewBox="0 0 100 100">
+    <line x1="0" y1="0" x2="100" y2="100" vector-effect="non-scaling-stroke"></line>
+    <line x1="100" y1="0" x2="0" y2="100" vector-effect="non-scaling-stroke"></line></svg>
+  <svg class="feed-gmtn" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2.5" y="4.5" width="19" height="15" rx="2"></rect><circle cx="8.6" cy="9.4" r="1.5"></circle>
+    <path d="M4.5 17l4.8-4.6 3.4 3.2 3.5-3.4 5.3 4.8"></path></svg></div><div class="feed-ghed"><span class="feed-in">Headline</span></div><div class="feed-glines"><div class="feed-gl w85"></div><div class="feed-gl "></div><div class="feed-gl w60"></div></div><span class="feed-gcta"><span class="feed-in">Button</span></span></div><div class="feed-gtcs"><div class="feed-gl"></div><div class="feed-gl w85"></div><div class="feed-gl w45"></div></div></div></div>
+          </div>
+        </div>
+
+        <div class="su-pane" data-p="1">
+          <div class="su-asset"><div class="deets-cards" id="deetsCards"><div class="deets-sec open"><div class="deets-title">THE <em>PRIZE</em></div><div class="deets-body"><div class="deets-factgrid inert"><div class="deets-row pillrow awake"><div class="deets-main"><div class="deets-value"><span class="deets-pilllabel">Prize</span> <span class="deets-pillval"><span class="deets-ask">TBC</span></span></div></div></div><div class="deets-row pillrow awake"><div class="deets-main"><div class="deets-value"><span class="deets-pilllabel">Show</span> <span class="deets-pillval"><span class="deets-ask">TBC</span></span></div></div></div><div class="deets-row pillrow awake"><div class="deets-main"><div class="deets-value"><span class="deets-pilllabel">Tickets</span> <span class="deets-pillval"><span class="deets-ask">TBC</span></span></div></div></div><div class="deets-row pillrow awake"><div class="deets-main"><div class="deets-value"><span class="deets-pilllabel">Prizes</span> <span class="deets-pillval"><span class="deets-ask">TBC</span></span></div></div></div></div></div><button class="deets-pad open" title="Open — tap to have a look" aria-label="Open — tap to have a look"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V6a5 5 0 0 1 9.6-1.9"></path></svg></button></div><div class="deets-sec open"><div class="deets-title">THE <em>DATES</em></div><div class="deets-body"><div class="deets-dates"><div class="deets-drow"><span class="deets-dlabel">Draw opens</span><span class="deets-dval tbc">TBC</span></div><div class="deets-drow"><span class="deets-dlabel">Draw closes</span><span class="deets-dval tbc">TBC</span></div><div class="deets-drow"><span class="deets-dlabel">Winners drawn</span><span class="deets-dval tbc">TBC</span></div></div></div><button class="deets-pad open" title="Open — tap to have a look" aria-label="Open — tap to have a look"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V6a5 5 0 0 1 9.6-1.9"></path></svg></button></div><div class="deets-sec open"><div class="deets-body"><div class="deets-title">Standard <em>terms</em></div><div class="deets-std">Eligibility, entry, winners &amp; prize, the draw, contacting winners, no cash, acceptance, Rewards T&amp;Cs and privacy &amp; unsubscribe. These are always included. <span class="deets-peek">Read terms</span></div><div class="deets-stdfull"><b>Eligibility</b>All One New Zealand customers are eligible to enter the promotion which runs from … at … to … at ….<b>Entry</b>To enter, click the 'Enter now' button above. There is one entry per person.<b>Winners &amp; prize</b>There [is/are] … (…) … for the competition. [The prize includes / Each prize includes]:<b>The draw</b>The prize draw will be conducted on … by representatives of One New Zealand by random electronic draw.<b>Contacting winners</b>[The winner/The winners] will be contacted on … using the details provided as part of your My One NZ registration. If the … cannot be reached within 48 hours, One New Zealand will have sole and absolute discretion to draw the prize again and award the prize to a new winner.<b>No cash</b>The prize is not redeemable for cash, cannot be substituted with an alternative prize or sold.<b>Acceptance</b>Entry into the Competition is deemed to be acceptance of these terms and conditions.<b>Rewards T&amp;Cs</b>One New Zealand Rewards Terms and Conditions also apply, see https://one.nz/legal/terms-conditions/rewards-general/<b>Privacy &amp; unsubscribe</b>We respect your privacy. Your details will not be given to anyone outside One New Zealand without your permission. View our Privacy Policy. Unsubscribe</div><div class="deets-title deets-t2">Specific <em>terms</em></div><div class="deets-legwait">Finish the facts above and the legals sort themselves.</div></div><button class="deets-pad open" title="Open — tap to have a look" aria-label="Open — tap to have a look"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V6a5 5 0 0 1 9.6-1.9"></path></svg></button></div></div></div>
+        </div>
+
+        <div class="su-pane" data-p="2">
+          <div class="su-asset plain">
+            <iframe title="prize_draw artefact" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
+&lt;title&gt;Rewards Tickets — One NZ&lt;/title&gt;
+&lt;!-- prize_draw — the artefact as FIX IT renders it today, modules tagged with data-module.
+     No client look (brandlook.md); this is the engine&#x27;s own furniture. Copy is a modelled
+     example (Practical Magic 2, plural), placeholders filled the way the engine fills them. --&gt;
+&lt;style&gt;
+  :root{
+    --font:Arial,sans-serif;       /* no client font named — brandlook.md */
+    --display:&#x27;Bebas Neue&#x27;,&#x27;Arial Narrow&#x27;,sans-serif;
+    --ink:#1a1a1a; --mid:#6b6b6b; --paper:#f6f3ee; --border:#e6e1d8;
+    --cta:#ed1c24;                 /* engine red today; becomes the client&#x27;s once a skin lands */
+    --canvas:#e9e6e0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--canvas);font-family:var(--font);color:var(--ink);padding:32px 0 64px;-webkit-font-smoothing:antialiased}
+  .email{width:600px;margin:0 auto;background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .bar{background:var(--paper);border-bottom:1px solid var(--border);padding:12px 18px}
+  .from{font-size:12px;color:var(--mid);margin-bottom:3px}
+  .subj{font-size:14.5px;font-weight:600}
+  .body{padding:26px 24px 30px;text-align:center}
+  .hero{background:var(--paper);border:1px dashed var(--border);border-radius:8px;height:220px;margin:0 0 22px;
+    display:flex;align-items:center;justify-content:center;color:var(--mid);font-size:12px}
+  h1{font-family:var(--display);font-weight:400;font-size:31px;letter-spacing:1.5px;line-height:1.05;margin-bottom:13px}
+  p{font-size:14.5px;line-height:1.65;color:#3a3835;margin:0 auto 22px;max-width:44ch}
+  .btn{display:inline-block;background:var(--cta);color:#fff;border-radius:999px;padding:11px 26px;font-size:12px;
+    font-weight:600;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none}
+  .terms{border-top:1px solid var(--border);padding:16px 24px;font-size:10.5px;color:var(--mid);line-height:1.6;text-align:left}
+  .terms ul{padding-left:14px}
+  .terms ul ul{padding-left:14px}
+  .terms .foot{margin-top:10px}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class=&quot;email&quot;&gt;
+  &lt;div class=&quot;bar&quot; data-module=&quot;header&quot;&gt;
+    &lt;div class=&quot;from&quot;&gt;One NZ Rewards &amp;lt;rewards@one.nz&amp;gt;&lt;/div&gt;
+    &lt;div class=&quot;subj&quot; data-module=&quot;subject&quot;&gt;Double, double, toil and a double pass&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;body&quot;&gt;
+    &lt;div class=&quot;hero&quot; data-module=&quot;hero&quot;&gt;Hero image goes here&lt;/div&gt;
+    &lt;h1 data-module=&quot;headline&quot;&gt;Win one of five double passes to Practical Magic 2&lt;/h1&gt;
+    &lt;p data-module=&quot;body&quot;&gt;The Owens sisters are back, and so is the cauldron. Grab someone who&#x27;ll hold your hand in the scary bits. Enter before Sunday and you could be watching it on us.&lt;/p&gt;
+    &lt;a class=&quot;btn&quot; href=&quot;#&quot; data-module=&quot;button&quot;&gt;Enter now&lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;terms&quot; data-module=&quot;terms&quot;&gt;
+    &lt;ul&gt;
+      &lt;li&gt;All One New Zealand customers are eligible to enter the promotion which runs from Monday 24 August 2026 at 12:00am to Sunday 6 September 2026 at 11:59pm.&lt;/li&gt;
+      &lt;li&gt;To enter, click the &#x27;Enter now&#x27; button above. There is one entry per person.&lt;/li&gt;
+      &lt;li&gt;There are five (5) winners for the competition. Each prize includes:
+        &lt;ul&gt;&lt;li&gt;One (1) double pass to see Practical Magic 2 at any participating cinema showing this film.&lt;/li&gt;&lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;This film has not been rated yet. Winners must comply with all age-related admission requirements.&lt;/li&gt;
+      &lt;li&gt;The prize draw will be conducted on Monday 7 September 2026 by representatives of One New Zealand by random electronic draw.&lt;/li&gt;
+      &lt;li&gt;Winners will be contacted on Monday 7 September 2026 using the details provided as part of your My One NZ registration. If the winners cannot be reached within 48 hours, One New Zealand will have sole and absolute discretion to draw the prize again and award the prize to a new winner.&lt;/li&gt;
+      &lt;li&gt;The prize is not redeemable for cash, cannot be substituted with an alternative prize or sold.&lt;/li&gt;
+      &lt;li&gt;The prize must be used while the movie is still showing in cinemas, it will not be replaced if it is not used in time.&lt;/li&gt;
+      &lt;li&gt;The prize will be organised by representatives of One New Zealand and will be emailed to the winners using the email provided as part of your My One NZ registration as soon as it becomes available.&lt;/li&gt;
+      &lt;li&gt;Entry into the Competition is deemed to be acceptance of these terms and conditions.&lt;/li&gt;
+      &lt;li&gt;One New Zealand Rewards Terms and Conditions also apply, see https://one.nz/legal/terms-conditions/rewards-general/&lt;/li&gt;
+    &lt;/ul&gt;
+    &lt;div class=&quot;foot&quot; data-module=&quot;footer&quot;&gt;For any queries or questions relating to Rewards, please contact us on 0800 102 902 or email us at rewards@one.nz — Monday to Friday between 9am and 6pm.&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+          </div>
+        </div>
+
+        <div class="fix-gutter">
+          <button class="fix-pad su-pad" id="suPad" onclick="padTap()" title="Looks right — shut it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V6a5 5 0 0 1 9.6-1.9"></path></svg></button>
+        </div>
+      </div>
+      <div class="su-hint" id="suHint">Drawn from container.html — the same file the engine reads.</div>
+    </div>
+
+    <div class="fix-rail">
+      <div class="fix-lozrow"><span class="fix-loz empty">Anything off?</span></div>
+      <div class="fix-card">
+        <div class="chat narrow">
+<div class="chat-row"><div class="chat-cav "><span class="botdisc"><svg viewBox="0 0 34 32" fill="none" aria-hidden="true"><line x1="17" y1="4" x2="17" y2="8.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle class="bulb" cx="17" cy="3.5" r="1.8" fill="#fff"/><rect x="6" y="8" width="22" height="16" rx="5" fill="#fff"/><circle class="eye" cx="13" cy="16" r="2.2" fill="#ED1C24"/><circle class="eye" cx="21" cy="16" r="2.2" fill="#ED1C24"/><rect x="11" y="26" width="12" height="3.4" rx="1.7" fill="#fff"/></svg></span></div><div class="chat-msg">Three things to look at. The bones, the deets and the finished thing — all drawn from the folder you just dropped in.</div></div>
+<div class="chat-row"><div class="chat-cav ghost"><span class="botdisc"><svg viewBox="0 0 34 32" fill="none" aria-hidden="true"><line x1="17" y1="4" x2="17" y2="8.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle class="bulb" cx="17" cy="3.5" r="1.8" fill="#fff"/><rect x="6" y="8" width="22" height="16" rx="5" fill="#fff"/><circle class="eye" cx="13" cy="16" r="2.2" fill="#ED1C24"/><circle class="eye" cx="21" cy="16" r="2.2" fill="#ED1C24"/><rect x="11" y="26" width="12" height="3.4" rx="1.7" fill="#fff"/></svg></span></div><div class="chat-msg">Tell me what's off and I'll change the file. Shut the padlock when a stop looks right.</div></div>
+</div>
+        <div class="fix-compose">
+          <div class="fix-quote"></div>
+          <textarea rows="2" placeholder="Tell me what's off —"></textarea>
+          <div class="fix-crow">
+            <button class="fix-q" aria-label="Stuck?">?</button>
+            <button class="fix-arrow" aria-label="Send" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <button class="fix-wrap" id="suFlip">
+        <span class="fix-wrapico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V6a5 5 0 0 1 9.6-1.9"></path></svg></span><span id="suFlipLbl">3 BITS TO CHECK</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+const SHUT={0:false,1:false,2:false};
+const LOZ=['The bones','The deets, empty','The artefact'];
+const TAG=['Does this look right?','Everything covered?','Pixel perfect?'];
+const HINT=['Drawn from container.html — the same file the engine reads.',
+            'Rendered from config.md — the card as the client first meets it, nothing filled.',
+            'container.html, as it leaves the building.'];
+let CUR=0;
+const shutSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>';
+const openSvg=document.getElementById('suPad').innerHTML;
+function show(i){
+  CUR=i;
+  document.querySelectorAll('.step').forEach(b=>b.classList.toggle('on',+b.dataset.s===i));
+  document.querySelectorAll('.su-pane').forEach(p=>p.classList.toggle('on',+p.dataset.p===i));
+  document.getElementById('suLoz').textContent=LOZ[i];
+  document.getElementById('suTag').textContent=TAG[i];
+  document.getElementById('suHint').textContent=HINT[i];
+  paint();
 }
+function padTap(){ SHUT[CUR]=!SHUT[CUR]; paint(); }
+function paint(){
+  const p=document.getElementById('suPad');
+  p.classList.toggle('locked',SHUT[CUR]);
+  p.innerHTML=SHUT[CUR]?shutSvg:openSvg;
+  const left=[0,1,2].filter(i=>!SHUT[i]).length;
+  const w=document.getElementById('suFlip'), l=document.getElementById('suFlipLbl');
+  l.textContent = left? (left+' BIT'+(left>1?'S':'')+' TO CHECK') : 'GOOD TO FLIP';
+  w.classList.toggle('ready',left===0);
+  document.querySelectorAll('.step').forEach(b=>b.classList.toggle('done',SHUT[+b.dataset.s]));
+}
+paint();
+</script>
+</body>
+</html>

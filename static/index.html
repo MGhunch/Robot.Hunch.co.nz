@@ -13,9 +13,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=039">
-<script src="js/strings.js?v=034"></script>
-<script src="js/chrome.js?v=038"></script>
+<link rel="stylesheet" href="robot.css?v=040">
+<script src="js/strings.js?v=040"></script>
+<script src="js/chrome.js?v=040"></script>
 
 </head>
 <body>
@@ -138,8 +138,8 @@
           <h2 class="feed-hed beb">FEED IT</h2>
           <div class="feed-tagline" id="feedTagline">Fill in the blanks. The robot does the rest.</div>
           <div class="feed-grid">
-            <div class="feed-ghosthold">
-              <div class="feed-ghost" id="feedGhost"></div>
+            <div class="ghost-hold">
+              <div class="ghost-art" id="feedGhost"></div>
             </div>
             <div class="feed-acc" id="feedAcc">
 
@@ -346,10 +346,100 @@
 </div>
 </section>
 
-<script src="js/sandwich.js?v=038"></script>
-<script src="js/door.js?v=038"></script>
-<script src="js/feed.js?v=038"></script>
+
+<!-- ===================== SET UP CHECK =====================
+     The fifth room, off the burger, Hunch only. Drop the zip SET UP hands
+     back and look at the container three ways before it lands. Everything
+     on this page is drawn by the code the client will meet — the ghost is
+     the chrome's, the deets card is deets.js's, the artefact is the
+     container's own html in a frame. Nothing here writes. -->
+<section id="setup">
+<div class="wrap setup-wrap">
+
+  <div class="rail" id="setupRail">
+    <button class="step on" data-s="0" onclick="setupGo(0)"><i>1</i>Mock up</button>
+    <button class="step"    data-s="1" onclick="setupGo(1)"><i>2</i>Deets</button>
+    <button class="step"    data-s="2" onclick="setupGo(2)"><i>3</i>Output</button>
+  </div>
+
+  <!-- the drop pad: one job, one door -->
+  <div class="setup-drop" id="setupDrop">
+    <h2 class="feed-hed beb">SET UP CHECK</h2>
+    <div class="setup-tagline">Drop the folder. Have a look before it lands.</div>
+    <div class="setup-pad">
+      <label class="setup-browse">
+        <input type="file" id="setupZip" accept=".zip" hidden onchange="setupTake(this.files)">
+        <span class="feed-go" id="setupDropBtn" onclick="document.getElementById('setupZip').click()">DROP THE ZIP</span>
+      </label>
+      <div class="setup-padline">The brand folder and the container folder, zipped.</div>
+    </div>
+    <div id="setupSay"></div>
+    <button class="setup-back" onclick="setupLeave()">Back to the doorway</button>
+  </div>
+
+  <!-- the check itself: the asset on the left, the robot on the right -->
+  <div class="setup-stage" id="setupStage" hidden>
+    <h2 class="feed-hed beb">SET UP CHECK</h2>
+    <div class="setup-tagline" id="setupTag">Does this look right?</div>
+    <div class="setup-meta">
+      <div class="setup-tile" id="setupTile"></div>
+      <div class="setup-status" id="setupStatus"></div>
+      <button class="setup-back" onclick="setupLeave()">Check another one</button>
+    </div>
+
+    <div class="fix-grid setup-grid">
+      <div>
+        <div class="fix-lozrow"><span class="fix-loz" id="setupLoz">The bones</span></div>
+        <div class="fix-artwrap">
+
+          <div class="setup-pane on" data-p="0">
+            <div class="ghost-hold setup-hold"><div class="ghost-art" id="setupGhost"></div></div>
+          </div>
+
+          <div class="setup-pane" data-p="1">
+            <div class="setup-card"><div class="deets-cards" id="setupDeets"></div></div>
+          </div>
+
+          <div class="setup-pane" data-p="2">
+            <iframe class="setup-art" id="setupArt" title="The artefact"></iframe>
+          </div>
+
+          <div class="fix-gutter">
+            <button class="fix-pad setup-lock" id="setupPad" onclick="setupPadTap()"></button>
+          </div>
+        </div>
+        <div class="setup-hint" id="setupHint"></div>
+      </div>
+
+      <div class="fix-rail">
+        <div class="fix-lozrow"><span class="fix-loz empty">Anything off?</span></div>
+        <div class="fix-card">
+          <div class="chat narrow" id="setupChat"></div>
+          <div class="fix-compose">
+            <textarea rows="2" disabled placeholder="I can't change the files yet — v041."></textarea>
+          </div>
+        </div>
+        <button class="fix-wrap" id="setupFlip" onclick="setupFlip()">
+          <span class="fix-wrapico" id="setupFlipIco"></span><span id="setupFlipLbl">3 BITS TO CHECK</span>
+        </button>
+        <div class="setup-note" id="setupNote">
+          All three checked. Flipping stays a human act: in <b>config.md</b>,
+          <code>status: testing</code> &rarr; <code>status: live</code>.
+          Change it in the folder, land it, done.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</section>
+
+<script src="js/sandwich.js?v=040"></script>
+<script src="js/deets.js?v=040"></script>
+<script src="js/door.js?v=040"></script>
+<script src="js/feed.js?v=040"></script>
 <script src="js/fix.js?v=038"></script>
 <script src="js/file.js?v=038"></script>
+<script src="js/setup.js?v=040"></script>
 </body>
 </html>

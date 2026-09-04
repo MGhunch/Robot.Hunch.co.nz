@@ -57,6 +57,7 @@ function signedIn(d){
   $('q').classList.add('on');
   $('who').textContent = d.tenant || '';
   HUNCH = !!d.hunch;
+  menuHunch(HUNCH);            // the menu's hunch-only doors
   doorway();
 }
 (async()=>{ try{ const d=await api('/api/auth/me'); if(d.authed) signedIn(d); }catch(e){} })();
