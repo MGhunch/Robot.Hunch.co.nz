@@ -52,7 +52,19 @@ def write(c, brand, problems, strays, opens):
 
     out += ["## What I want changed", ""]
     if opens:
-        out += [_bullets(opens), ""]
+        # grouped the way it was walked — "Mock up — the hero should bleed"
+        # arrives under Mock up, and anything unprefixed keeps its place.
+        groups, loose = {}, []
+        for o in opens:
+            head, sep, rest = o.partition(" — ")
+            if sep and len(head) < 24:
+                groups.setdefault(head, []).append(rest)
+            else:
+                loose.append(o)
+        for head, lines in groups.items():
+            out += [f"**{head}**", "", _bullets(lines), ""]
+        if loose:
+            out += [_bullets(loose), ""]
     else:
         out += ["*(nothing parked — the notes go here when you park them "
                 "in the room)*", ""]

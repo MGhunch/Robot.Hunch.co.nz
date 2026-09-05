@@ -698,6 +698,12 @@ def setup_park_route():
     fid, line = d.get("id", ""), (d.get("line") or "").strip()
     if not line:
         return jsonify({"error": "empty"}), 400
+    # which stop you were standing on when you said it. The note keeps it, so
+    # the hit list arrives grouped the way you walked it rather than as one
+    # undifferentiated pile.
+    where = " ".join((d.get("where") or "").split()).strip(" —-:")
+    if where:
+        line = f"{where} — {line}"
     folder = setup_room.draft_dir("containers", fid, make=True)
     if not folder:
         return jsonify({"error": "gone"}), 404

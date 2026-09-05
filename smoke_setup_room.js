@@ -136,15 +136,36 @@ const BASE='http://127.0.0.1:5055';
                say:'That would remove a module row, which needs matching markup.'}, 'lose the subject line');
   await sleep(200);
   let parkChat = d.getElementById("setupChat").textContent;
-  ok('a structural refusal points at the project', /go back to the project/i.test(parkChat), true);
+  ok('a structural refusal says it goes on the list', /add it to the hit list/i.test(parkChat), true);
   ok('and never shows the router its own notes', /not actionable|actionable/i.test(parkChat), false);
   ok('the park is waiting on an answer', !!w.eval('SETUP_PARK'), true);
 
   d.getElementById('setupNote2').value='Yes.';
   w.setupAsk(); await sleep(900);
   parkChat = d.getElementById("setupChat").textContent;
-  ok('"Yes." parks it instead of being re-routed', /Parked in Open/i.test(parkChat), true);
+  ok('"Yes." adds it instead of being re-routed', /Added it to the hit list/i.test(parkChat), true);
   ok('and nothing is left waiting', w.eval('SETUP_PARK'), null);
+
+  /* ---- THE WRAP BUTTON'S THIRD JOB ----
+     A lock says this one is right, so a stop you've left a note on can't be
+     locked — it gets caught instead, and catching the last one writes the
+     hit list. */
+  const label = () => d.getElementById('setupPushLbl').textContent;
+  w.setupGo('mock'); await sleep(300);
+  ok('a clean stop still offers the lock', /^LOCK THE/.test(label()), true);
+
+  w.eval("SETUP_FEED={mock:['the hero should be full bleed']}; SETUP_CAUGHT={};");
+  w.setupPaint(); await sleep(100);
+  ok('a stop with a note offers the catch', label(), 'CATCH THE FEEDBACK');
+  w.setupPadTap(); await sleep(200);
+  ok('and the padlock refuses to shut on it', w.eval("!!SETUP_SHUT.mock"), false);
+  ok('saying why', /not right yet/i.test(d.getElementById('setupChat').textContent), true);
+
+  w.setupCatch(); await sleep(900);
+  ok('catching moves you on', w.eval('SETUP_STOP'), 'deets');
+  ok('and the caught stop stops asking', w.eval("SETUP_CAUGHT.mock"), true);
+  w.eval("SETUP_FEED={}; SETUP_CAUGHT={}; SETUP_SHUT={mock:false,deets:false,output:false};");
+  w.setupGo('mock'); w.setupPaint();
 
   /* AND THE BRAND ROOM UNTOUCHED. v046's split is the thing this build was
      most able to break: brands are fields and shelves, containers are a

@@ -117,13 +117,13 @@ const STR = {
        to the engine, so the upload asks where it goes and writes it. */
     /* THE WAITING ROOM and THE STRAYS — two lines the container room says
        when it opens, and neither refuses anything. */
-    open:   n => n===1 ? "One thing parked in Open." : n+" things parked in Open.",
+    open:   n => n===1 ? "One thing on the hit list." : n+" things on the hit list.",
     /* THE ROBOT NOTICES, AND SAYS SO. Michael's line, and it does three
        things a heading with bullets under it never did: it says what is
        wrong, what it should be, and then asks him — which is the whole
        shape of this room in one sentence. */
     fonts: (worn, face) => "The fonts are funny — it's got "+worn+
-      (face ? ", and the brand says "+face+"." : ", and the brand doesn't declare it.")+
+      (face ? ", and the brand says "+face+"." : ", and the brand hasn't got it.")+
       " Is that right?",
     /* THE CHAT. Its words are short on purpose — this is a room where you
        are looking at a picture, and a paragraph in the margin is something
@@ -142,14 +142,15 @@ const STR = {
       dropped: "Put back.",
       superseded: "Put the last one back — you carried on.",
       already:    "Nothing waiting on a yes.",
-      briefed:    "Brief written. Everything parked, plus what the check found.",
-      parked:  "Parked in Open. It'll travel with the push.",
+      notperfect: "You've said this one's not right yet — catch the feedback instead.",
+      briefed:    "Hit list written.",
+      parked:  "Added it to the hit list.",
       undone:  "Put back.",
-      beyond:  "That's beyond what I can change in here.",
+      beyond:  "Can't do that one from here.",
       /* the structural refusal. Michael's own line: the folder's shape is
          the project's job, and this room's job is to notice and write it
          down — not to explain markup at somebody looking at a picture. */
-      project: "You'll need to go back to the project to fix this.",
+      project: "I'll add it to the hit list.",
       robot:   "The robot didn't answer. Nothing's changed — try that again?",
       empty:   "Say what's wrong with it first.",
       gone:    "That folder isn't here any more.",
@@ -157,6 +158,7 @@ const STR = {
     /* the beat after a lock. It says LOCKED, not SAVED: the edits saved
        themselves when you tabbed out. This is you saying you've looked. */
     lockedthe: n => "LOCKED THE "+n.toUpperCase(),
+    caughtthe: n => "CAUGHT IT",
     /* a new colour line. Name and hex, because the line is both. */
     colour: { name:"Name", hex:"#000000", add:"ADD" },
     naming: {

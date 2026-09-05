@@ -36,6 +36,12 @@ let SETUP_WAS=null;
 /* an ask waiting on a yes — so typing "Yes." answers the question on screen
    instead of being routed as a brand new one */
 let SETUP_PARK=null;
+/* THE FEEDBACK, BY STOP. A lock still means perfect — you don't shut a
+   padlock on something you've just said is wrong — so a stop you've left a
+   note on gets CATCH THE FEEDBACK instead, and catching the last one writes
+   the hit list. Per sitting: notes already in the folder from last time have
+   been caught, and shouldn't ask to be caught again. */
+let SETUP_FEED={}, SETUP_CAUGHT={};
 /* a file that has landed and hasn't been told what it is yet */
 let SETUP_NAMING='';
 
@@ -148,6 +154,7 @@ function setupOpen(kind, id){
 function setupShow(kind, id, d){
   SETUP_KIND=kind; SETUP_ID=id; SETUP_DATA=d; SETUP_SAID=[]; SETUP_SHUT={};
   SETUP_PROP=null; SETUP_UNDO=0; SETUP_BUSY=false; SETUP_WAS=null; SETUP_PARK=null;
+  SETUP_FEED={}; SETUP_CAUGHT={};
   $('setupUndo').hidden=true; $('setupNote2').value='';
   $('setupBrief').hidden = kind!=='containers';
   /* a container goes on the table exactly as a live one would, so every
@@ -807,9 +814,13 @@ function setupPark(d, ask){
 function setupParkGo(line){
   if(SETUP_BUSY) return;
   SETUP_PARK=null; setupSpend();
+  const stop=SETUP_STOP;
+  (SETUP_FEED[stop]=SETUP_FEED[stop]||[]).push(line);
+  SETUP_CAUGHT[stop]=false;
   setupThinking(true);
   fetch('/api/setup/park',{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify({id:SETUP_ID, line})})
+    body:JSON.stringify({id:SETUP_ID, line,
+      where:((SETUP_RAILS[SETUP_KIND]||[]).find(x=>x.key===SETUP_STOP)||{}).name||''})})
     .then(r=>r.json().then(d=>({ok:r.ok,d})))
     .then(({ok,d})=>{
       setupThinking(false);
@@ -884,6 +895,8 @@ function setupPadTap(){
   const wrap=$('setupPush');
   if(wrap.classList.contains('held')) return;          // mid-beat; ignore
   if(SETUP_SHUT[SETUP_STOP]){ SETUP_SHUT[SETUP_STOP]=false; setupPaint(); return; }
+  /* a lock says this one is right. You have just said it isn't. */
+  if(setupHasFeed(SETUP_STOP)){ setupSay(esc(STR.setup.chat.notperfect),'robot'); return; }
   const gaps=setupGapsHere();
   if(gaps.length){ setupFlash(gaps); setupChat(STR.setup.shelves.refuse(gaps.length)); return; }
   SETUP_SHUT[SETUP_STOP]=true;
@@ -912,8 +925,30 @@ function setupNext(){
    once every section is shut it becomes the push. */
 function setupWrapTap(){
   if($('setupPush').classList.contains('held')) return;
+  if(setupHasFeed(SETUP_STOP)) return setupCatch();
   if(!SETUP_SHUT[SETUP_STOP]) return setupPadTap();
   setupPush();
+}
+
+const setupHasFeed = k => !!((SETUP_FEED[k]||[]).length) && !SETUP_CAUGHT[k];
+
+/* CATCH THE FEEDBACK — the same beat as a lock, and the same walk. Catch a
+   stop and it takes you to the next one still wanting something; catch the
+   last and the hit list is written, because by then you have been round the
+   whole thing and said everything you were going to say. */
+function setupCatch(){
+  const wrap=$('setupPush');
+  SETUP_CAUGHT[SETUP_STOP]=true;
+  $('setupPushLbl').textContent=STR.setup.caughtthe(
+    ((SETUP_RAILS[SETUP_KIND]||[]).find(x=>x.key===SETUP_STOP)||{}).name||'');
+  wrap.classList.add('held');
+  setTimeout(()=>{
+    wrap.classList.remove('held');
+    const rail=SETUP_RAILS[SETUP_KIND]||[];
+    const nxt=rail.find(s=>s.key!==SETUP_STOP && (setupHasFeed(s.key) || !SETUP_SHUT[s.key]));
+    if(nxt){ setupGo(nxt.key); setupPaint(); return; }
+    setupPaint(); setupBriefGet();
+  }, 650);
 }
 
 function setupPaint(){
@@ -935,7 +970,8 @@ function setupPaint(){
      a folder with nothing to push — checking a live brand is free, and a
      dead button on the one thing you CAN do here reads as broken. */
   $('setupPushLbl').textContent =
-      !SETUP_SHUT[SETUP_STOP] && here ? 'LOCK THE '+here.name.toUpperCase()
+      setupHasFeed(SETUP_STOP) ? 'CATCH THE FEEDBACK'
+    : !SETUP_SHUT[SETUP_STOP] && here ? 'LOCK THE '+here.name.toUpperCase()
     : !draft ? 'NOTHING TO PUSH'
     : probs ? (probs===1 ? '1 PROBLEM' : probs+' PROBLEMS')
     : left ? (left+' BIT'+(left>1?'S':'')+' TO CHECK') : 'PUSH';

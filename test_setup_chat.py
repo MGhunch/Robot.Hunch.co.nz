@@ -141,6 +141,28 @@ ok("still reads clean", d["problems"], [])
 cl.post("/api/setup/park", json={"id": "prize_draw", "line": line})
 ok("and never twice", len(cl.get("/api/setup/open/containers/prize_draw").get_json()["open"]), 1)
 
+print("\nNO ROBOT SHIT IN THE UX")
+import re as _re
+BANNED = ("declare", "wearing", "container.html", "config.md", "spec.md", "markup",
+          "data-module", "selector", "declaration", "validator", "parse", "schema",
+          "surgical", "fallback", "in Open", "stray")
+said = []
+for _m in _re.finditer(r'"say":\s*(?:f?")([^"]{6,})', open("setup_chat.py").read()):
+    said.append(_m.group(1))
+for _m in _re.finditer(r'note = \(?f?"([^"]{6,})', open("setup_chat.py").read()):
+    said.append(_m.group(1))
+bad = [(t, w) for t in said for w in BANNED if w.lower() in t.lower()]
+ok("nothing the robot says is written in machine", bad, [])
+strings = open("static/js/strings.js").read()
+setup_block = strings[strings.index("  setup: {"):]
+# the drop door is the exception and keeps its filenames: "I need a folder
+# with brand.md, or one with config.md and spec.md" is telling you what to
+# put in the zip, which is the one place a filename IS the answer.
+setup_block = _re.sub(r'nofolders:.*', '', setup_block)
+bad2 = [w for w in ("declare", "wearing", "in Open", "container.html", "spec.md")
+        if w.lower() in setup_block.lower()]
+ok("and nor are the room's own words", bad2, [])
+
 print("\nTHE BRIEF")
 r = cl.get("/api/setup/brief/prize_draw")
 ok("it comes out as a file", r.status_code, 200)

@@ -237,7 +237,7 @@ def propose(file, ask, folder, brand):
     said, unvalidated — check() below is what decides."""
     text = _folder_file(folder, file)
     if not text:
-        return {"op": "park", "say": f"There is no {file} in this folder to change."}
+        return {"op": "park", "say": "There's nothing there to change."}
     extra = ""
     if file == "container.html":
         # the lines whole, not a parsed list — they say which face does which
@@ -254,7 +254,7 @@ def propose(file, ask, folder, brand):
     # change small enough to be safe" — which would be a lie about a
     # truncation. A ceiling is a seatbelt, not a budget.
     return _json_from(_call(WORKER[file], prompt(WORKER[file]), user, max_tokens=6000)) or \
-        {"op": "park", "say": "I couldn't work out a change small enough to be safe."}
+        {"op": "park", "say": "Can't do that one from here."}
 
 
 # ---------------------------------------------------------------------------
@@ -269,7 +269,7 @@ def check(file, said, folder, brand):
     op = (said.get("op") or "").strip().lower()
     say = (said.get("say") or "").strip()
     if op not in OPS.get(file, set()):
-        return {"park": True, "say": say or "That one's beyond what I can change in here."}
+        return {"park": True, "say": say or "Can't do that one from here."}
 
     path = os.path.join(folder, file)
 
@@ -289,15 +289,15 @@ def check(file, said, folder, brand):
             if pr and va:
                 clean.append({"prop": pr, "value": va})
         if not sel or not clean:
-            return {"park": True, "say": say or "I couldn't pin that to one rule."}
+            return {"park": True, "say": say or "Not sure which bit you mean."}
 
         befores = []
         for d in clean:
             was = setup_edit.read_css(path, sel, d["prop"])
             if not was:
                 return {"park": True,
-                        "say": f"There's no `{d['prop']}` on `{sel}` to change. Adding one is a "
-                               f"bigger call than a tickle."}
+                        "say": "That's not set here yet, so I'd be adding it rather than "
+                               "changing it."}
             befores.append(was)
 
         # THE FONT GATE — the brand owns the faces; the container rearranges
@@ -308,11 +308,8 @@ def check(file, said, folder, brand):
                 if strays:
                     names = ", ".join(strays)
                     return {"park": True, "gate": "font",
-                            "say": f"{names} isn't a face {brand.get('name', 'the brand')} declares. "
-                                   f"The chat can move the brand's own faces around; it can't "
-                                   f"import one. Either it belongs in the brand — which is a "
-                                   f"brand edit — or this container departs on purpose, and "
-                                   f"there's nowhere yet to say so."}
+                            "say": f"{names} isn't one of {brand.get('name', 'the brand')}'s "
+                                   f"fonts. I can only use the ones the brand's got."}
 
         # ...AND WHAT YOU WILL ACTUALLY SEE. A face this artefact never loads
         # does not render, so the change is real in the file and invisible on
@@ -326,12 +323,10 @@ def check(file, said, folder, brand):
             wanted = _families(d["value"])
             lands = lands_on(d["value"], html)
             if wanted and lands and lands.lower() != wanted[0].lower():
-                note = (f"You won't see this: nothing in container.html loads "
-                        f"{wanted[0]}, so it falls back to {lands}. Real in the file, "
-                        f"same on screen.")
+                note = (f"You won't see this one — {wanted[0]} isn't loaded here, "
+                        f"so it'll still look like {lands}.")
             elif wanted and not lands:
-                note = (f"You won't see this: nothing in container.html loads "
-                        f"{wanted[0]}, and there's no fallback it can reach.")
+                note = f"You won't see this one — {wanted[0]} isn't loaded here."
 
         label = f"{sel} · {clean[0]['prop']}" if len(clean) == 1 else \
                 f"{sel} · {len(clean)} declarations"
@@ -348,7 +343,7 @@ def check(file, said, folder, brand):
             return {"park": True, "say": say or "Nothing to write."}
         before = CT._section(_folder_file(folder, file), heading)
         if before is None:
-            return {"park": True, "say": f"There's no `## {heading}` in {file}."}
+            return {"park": True, "say": "Can't find that bit."}
         return {"park": False, "op": "section", "file": file,
                 "args": {"heading": heading, "value": body},
                 "before": before.strip(), "after": body.strip(),
@@ -362,7 +357,7 @@ def check(file, said, folder, brand):
             return {"park": True, "say": say or "I couldn't pin that to one cell."}
         before = _cell_now(_folder_file(folder, file), row, col)
         if before is None:
-            return {"park": True, "say": f"No row `{row}` with a `{col}` column in {file}."}
+            return {"park": True, "say": "Can't find that bit."}
         return {"park": False, "op": "cell", "file": file,
                 "args": {"row": row, "column": col, "value": val},
                 "before": before, "after": val,
@@ -374,7 +369,7 @@ def check(file, said, folder, brand):
         m = re.search(r"^\*\*" + re.escape(key) + r":\*\*[ \t]*(.*)$",
                       _folder_file(folder, file), re.M)
         if not key or not val or not m:
-            return {"park": True, "say": say or f"There's no **{key}:** line in {file}."}
+            return {"park": True, "say": say or "Can't find that bit."}
         return {"park": False, "op": "line", "file": file,
                 "args": {"key": key, "value": val},
                 "before": m.group(1).strip(), "after": val,
