@@ -1206,6 +1206,7 @@ a.search-src:hover{color:var(--red)}
 .setup-pane{display:none}
 .setup-pane.on{display:block}
 .setup-hint{color:rgba(255,255,255,.75);font-size:11.5px;margin-top:14px;max-width:600px}
+.setup-hint:empty{margin:0}
 .setup-lock{top:14px}
 .setup-hold{width:250px;margin:0 auto;zoom:2.2}
 .setup-card{background:#fff;border-radius:var(--r-lg);padding:22px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
@@ -1276,9 +1277,15 @@ a.search-src:hover{color:var(--red)}
 /* an Open line is prose, so it leans italic and never sets the row's width */
 .setup-pill.long{font-style:italic;max-width:100%}
 
-/* one line of robot voice under the shelves, where a transcript used to be */
-.setup-note{margin:0 0 14px;min-height:0}
+/* Not a box. A line that isn't there until there's something to say — a
+   refused lock, a name already taken — and takes no room when there isn't.
+   The record of what changed lives in the folder's own changelog. */
+.setup-note{margin:0 0 14px}
+.setup-note:empty{margin:0}
 .setup-note .line{margin:0;text-align:left;font-size:13px}
+
+/* the beat after a lock: the button holds its own word and refuses taps */
+.fix-wrap.held{pointer-events:none}
 
 /* a new colour: name, hex, go */
 .setup-newcol{display:flex;gap:6px;align-items:center;margin-top:10px}

@@ -36,16 +36,16 @@ const SETUP_RAILS = {
     /* no hints on the brand rails: the shelves say where you stand, and a
        line explaining the lesson underneath a card that demonstrates it is
        the narration this room was cluttered with. */
-    {key:'look',   name:'Look',    loz:'The look',    tag:'Right faces, right files?', hint:''},
-    {key:'prompt', name:'Prompt',  loz:'The prompt',  tag:'Sound like them?',          hint:''},
-    {key:'legals', name:'Legals',  loz:'The clauses', tag:'Right words?',              hint:''},
+    {key:'look',   name:'Look',   loz:'The look',    hint:''},
+    {key:'prompt', name:'Prompt', loz:'The prompt',  hint:''},
+    {key:'legals', name:'Legals', loz:'The clauses', hint:''},
   ],
   containers: [
-    {key:'mock',   name:'Mock up', loz:'The bones',  tag:'Does this look right?',
+    {key:'mock',   name:'Mock up', loz:'The bones',
      hint:'The ghost, off the html’s tags — the same drawing FEED IT shows.'},
-    {key:'deets',  name:'Deets',   loz:'The deets, empty', tag:'Everything covered?',
+    {key:'deets',  name:'Deets',   loz:'The deets, empty',
      hint:'The checklist as the client first meets it. Nothing filled: the shape is the check.'},
-    {key:'output', name:'Output',  loz:'The artefact', tag:'Pixel perfect?',
+    {key:'output', name:'Output',  loz:'The artefact',
      hint:'container.html, as it leaves the building.'},
   ],
 };
@@ -290,7 +290,6 @@ function setupLook(b){
     h+=setupRowEl(key, setupEdit('look','line',{key}, f.text) +
       (f.names.length ? `<div class="setup-files">${f.names.map(n=>setupNamed(L,n)).join('')}</div>`
                       : `<div class="setup-sub">${esc(STR.setup.stacknotface)}</div>`), !f.text);
-
   });
   h+=setupRowEl('Logo', setupEdit('look','line',{key:'Logo'}, L.logo), !L.logo);
   if(L.mark) h+=setupRowEl('Mark', setupEdit('look','line',{key:'Mark'}, L.mark));
@@ -529,12 +528,23 @@ function setupGo(key){
    called checked, so the lock refuses and the gaps flash. Reopening is
    always free; only shutting is a claim. */
 function setupPadTap(){
+  const wrap=$('setupPush');
+  if(wrap.classList.contains('held')) return;          // mid-beat; ignore
   if(SETUP_SHUT[SETUP_STOP]){ SETUP_SHUT[SETUP_STOP]=false; setupPaint(); return; }
   const gaps=setupGapsHere();
   if(gaps.length){ setupFlash(gaps); setupChat(STR.setup.shelves.refuse(gaps.length)); return; }
   SETUP_SHUT[SETUP_STOP]=true;
+  setupChat('');
   setupPaint();
-  setupNext();
+  /* a beat before it moves you on. Shutting a section and being somewhere
+     else in the same instant reads as a glitch; the pause is what makes it
+     read as something you did. */
+  const here=(SETUP_RAILS[SETUP_KIND]||[]).find(x=>x.key===SETUP_STOP);
+  if(here){
+    $('setupPushLbl').textContent=STR.setup.lockedthe(here.name);
+    wrap.classList.add('held');
+  }
+  setTimeout(()=>{ wrap.classList.remove('held'); setupNext(); setupPaint(); }, 650);
 }
 
 /* locking IS the navigation: shut one and it walks you to the next one
@@ -548,6 +558,7 @@ function setupNext(){
    while the section you're in is open it locks that section by name, and
    once every section is shut it becomes the push. */
 function setupWrapTap(){
+  if($('setupPush').classList.contains('held')) return;
   if(!SETUP_SHUT[SETUP_STOP]) return setupPadTap();
   setupPush();
 }

@@ -109,6 +109,9 @@ const STR = {
     },
     /* NAMING AN UPLOAD. A file in assets/ that no line names is invisible
        to the engine, so the upload asks where it goes and writes it. */
+    /* the beat after a lock. It says LOCKED, not SAVED: the edits saved
+       themselves when you tabbed out. This is you saying you've looked. */
+    lockedthe: n => "LOCKED THE "+n.toUpperCase(),
     /* a new colour line. Name and hex, because the line is both. */
     colour: { name:"Name", hex:"#000000", add:"ADD" },
     naming: {
