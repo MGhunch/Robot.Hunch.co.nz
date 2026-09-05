@@ -46,6 +46,11 @@ const STR = {
   /* LOCK THE DEETS */
   deets: {
     terms_wait: "We'll pull in the terms in a bit.",
+    /* the extras are a pick-list, and the container has always known what is
+       on it. Waiting on the facts to show a list that never depended on them
+       is what "finish the facts above and the legals sort themselves" was
+       apologising for. */
+    terms_pick: "Choose which specific terms you want.",
     terms_fail: "Can't find the legals.",
   },
 

@@ -53,6 +53,7 @@ const BASE='http://127.0.0.1:5055';
   w.setupGo('deets'); await sleep(400);
   const deets=d.getElementById('setupDeets').textContent;
   ok('the deets card has answers in it', deets.replace(/TBC/g,'').trim().length>60, true);
+  ok('and no apology where the terms go', /finish the facts/i.test(deets), false);
 
   /* THE POUR. jsdom doesn't render an iframe's srcdoc, so the real
      function is handed a real document built from the same html — which

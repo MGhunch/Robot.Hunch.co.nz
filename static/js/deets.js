@@ -322,14 +322,30 @@ function deetsLegalsBody(box, sec, st){
   const t2=document.createElement('div'); t2.className='deets-title deets-t2';
   t2.innerHTML=deetsTitle(DEETS_CONFIG.legals.title||'Specific terms');
   box.appendChild(t2);
-  const opt = TERMS_MENU.length ? TERMS_MENU.filter(c=>!c.fixed) : [];
+  /* THE EXTRAS ARE A PICK-LIST, and the container has known what is on it
+     since it was read. Only the assembled WORDING needs the facts, so the
+     menu takes over the moment it lands — but until then the plain extras
+     show anyway, because making somebody finish a form to see a list that
+     never depended on the form is not the legals sorting themselves.
+
+     A clause with a `when` is the exception and stays out: `draw` only
+     applies once a story is a prize, and the menu is the thing that knows. */
+  const opt = TERMS_MENU.length ? TERMS_MENU.filter(c=>!c.fixed)
+                                : (DEETS_CONFIG.legals.topics||DEETS_CONFIG.topics||[]).filter(c=>!c.when);
   if(!opt.length && TERMS_FAILED){
     box.appendChild(robotLine(STR.deets.terms_fail,{stick:true}));
   } else if(!opt.length){
-    const w=document.createElement('div'); w.className='deets-legwait';
-    w.textContent=TERMS_BUSY ? STR.deets.terms_wait : 'Finish the facts above and the legals sort themselves.';
-    box.appendChild(w);
+    /* nothing to pick and nothing coming: no heading with a shrug under it */
+    if(TERMS_BUSY){ const w=document.createElement('div'); w.className='deets-legwait';
+                    w.textContent=STR.deets.terms_wait; box.appendChild(w); }
+    else { t2.remove(); }
   } else {
+    /* toggling before the menu arrives has to be safe, and has to survive it:
+       seed from the container's own defaults, and the menu's own seeding at
+       line "if(TERMS_CHOSEN===null)" then leaves the choice alone. */
+    if(TERMS_CHOSEN===null) TERMS_CHOSEN = opt.filter(c=>c.default).map(c=>c.id);
+    const w=document.createElement('div'); w.className='deets-legwait';
+    w.textContent=STR.deets.terms_pick; box.appendChild(w);
     const row=document.createElement('div'); row.className='deets-pills'+(st==='edit'?'':' inert');
     opt.forEach(c=>{ const on=!!(TERMS_CHOSEN&&TERMS_CHOSEN.includes(c.id));
       row.appendChild(deetsPill(c,on,false,()=>toggleClause(c.id))); });
