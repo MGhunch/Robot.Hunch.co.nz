@@ -102,6 +102,29 @@ const STR = {
       outside:  "Something in there wanted to write outside its own folder. Not happening.",
       github:   "GitHub said no and didn't say why. Nothing's changed.",
     },
+    /* NAMING AN UPLOAD. A file in assets/ that no line names is invisible
+       to the engine, so the upload asks where it goes and writes it. */
+    naming: {
+      ask:   f => "Where does "+f+" go?",
+      leave: "Leave it unnamed",
+      none:  "No line in brandlook.md names this kind of file — it'll sit in assets/ for humans.",
+      done:  f => f+" is named now, so the engine can reach it.",
+      left:  f => f+" is in assets/, named by nothing. The engine won't see it.",
+    },
+    /* THE SHELVES. Every shelf gets one question: does this have to be
+       filled? Yes and it isn't, that's a gap. No and it isn't, that's the
+       waiting room. Never will be, and the folder says so, that's N/A —
+       which earns its place because sometimes it IS needed, and that is
+       the thing you are checking. */
+    shelves: {
+      have:'LOCKED AND LOADED', gaps:'GAPS TO FILL', waiting:'WAITING ROOM',
+      nohave:    "Nothing read yet.",
+      nogaps:    "Nothing missing. Every shelf that has to be filled is filled.",
+      nowaiting: "Nothing on order.",
+      na:        "Not needed — brand.md says so.",
+      refuse: n => n===1 ? "Can't lock it — there's a gap to fill on this one."
+                         : "Can't lock it — there are "+n+" gaps to fill on this one.",
+    },
     nothingtopush: "Nothing to push — this one's already what's in git.",
     brandfirst: b => "Push the "+b+" brand first — a container can't go live pointing at a brand no client can see.",
     pushed: d => "Pushed. "+d.wrote+(d.wrote===1?" file":" files")+

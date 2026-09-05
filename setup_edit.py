@@ -85,6 +85,51 @@ def set_line(path, key, value):
     return fixed
 
 
+def name_file(path, key, filename):
+    """Name a file on a line — the whole point of an upload.
+
+    A file in assets/ that no line names is invisible to the engine, which
+    is how a brand ends up promising PNGs it can't reach. So the upload
+    names it, here, the moment it lands.
+
+    SURGICAL, like everything else in this file. An existing line is prose
+    you wrote — two logos, a note about email clients, where it was traced
+    from — so the filename is APPENDED to it and every word you wrote
+    survives. Only a line that doesn't exist yet gets written whole, and it
+    goes in beside the other bold lines rather than at the end of the file.
+    Naming a file that's already named is a no-op, not a duplicate."""
+    filename = filename.strip().lstrip("/")
+    if not filename:
+        raise EditError("empty")
+    ref = "assets/" + filename
+    text = _read(path)
+    try:
+        m = _bold_line(text, key)
+    except EditError:
+        m = None
+    if m is not None:
+        if ref in m.group(2):
+            return m.group(0)                      # already named; nothing to do
+        value = (m.group(2).strip() + " " + ref).strip()
+        fixed = f"**{key}:** {value}"
+        _write(path, text[:m.start()] + fixed + text[m.end():])
+        return fixed
+    # No such line yet, so write it whole — beside its own kind. The bold
+    # lines fall into two families: the ones that name things (Font, Logo,
+    # Mark) and the colours, which are the ones carrying a hex. A new Mark
+    # belongs under Logo, not at the bottom of the palette, so the anchor is
+    # the last NON-colour line; if a folder is all colours, the first line
+    # of the block is a better home than the end of the file.
+    lines = list(re.finditer(r"^\*\*([^*]+?):\*\*[ \t]*(.*)$", text, re.M))
+    if not lines:
+        raise EditError("noline")
+    named = [h for h in lines if not re.search(r"#[0-9A-Fa-f]{6}", h.group(2))]
+    anchor = named[-1] if named else lines[0]
+    fixed = f"**{key}:** {ref}"
+    _write(path, text[:anchor.end()] + "\n" + fixed + text[anchor.end():])
+    return fixed
+
+
 def set_section(path, heading, body):
     """The body under one `## Heading`, up to the next one. The heading line
     itself never moves — the reader keys off it, and a renamed heading is a

@@ -27,6 +27,8 @@
    ===================================================================== */
 
 let SETUP_KIND='', SETUP_ID='', SETUP_STOP='', SETUP_SHUT={}, SETUP_SAID=[], SETUP_DATA=null;
+/* a file that has landed and hasn't been told what it is yet */
+let SETUP_NAMING='';
 
 /* the stops each kind walks */
 const SETUP_RAILS = {
@@ -152,6 +154,7 @@ function setupShow(kind, id, d){
     `<button class="step" data-s="${s.key}" onclick="setupGo('${s.key}')"><i>${i+1}</i>${esc(s.name)}</button>`).join('');
   rail.forEach(s=>SETUP_SHUT[s.key]=false);
 
+  setupShelvesDraw();
   if(kind==='containers') setupContainerDraw(d);
   setupChat(null, d);
   setupGo(rail[0].key);
@@ -195,6 +198,67 @@ const setupRowEl = (label, html, empty) =>
   `<div class="setup-brow"><div class="setup-blab">${esc(label)}</div>`+
   `<div class="setup-bval${empty?' empty':''}">${html}</div></div>`;
 
+/* ---------------- THE SHELVES ----------------
+   Three blocks, one question each shelf has already been asked by the
+   server: does this have to be filled?
+
+     LOCKED AND LOADED  it's there
+     GAPS TO FILL       it has to be there and it isn't. Refuses the lock.
+     WAITING ROOM       it doesn't have to be, and it isn't. Refuses nothing.
+
+   N/A sits quietly in the first block, because "not needed" is a thing you
+   checked, not a thing that vanished.
+
+   A pill is a door, not a verdict: tap it and you land on the section it
+   lives in. The colours are the room's own — ink for settled, red for the
+   hole, outline for the queue. No green anywhere in this app. */
+function setupShelfPill(sh){
+  const cls = sh.state==='na' ? 'na' : sh.state;
+  /* a shelf pill is a label; an Open line is a sentence you wrote. Clip the
+     sentence to pill length and hang the whole of it on the hover, so the
+     row stays a row. */
+  const long = sh.kind==='open';
+  const face = long && sh.label.length>44 ? sh.label.slice(0,43).replace(/[\s,;:.]+$/,'')+'…' : sh.label;
+  const tip = sh.state==='na' ? STR.setup.shelves.na : (long ? sh.label : (sh.note||''));
+  return `<button class="setup-pill ${cls}${long?' long':''}" data-k="${esc(sh.key)}"`+
+    ` data-rail="${esc(sh.rail)}" title="${esc(tip)}"`+
+    ` onclick="setupGo('${esc(sh.rail)}')">${esc(face)}</button>`;
+}
+
+function setupShelvesDraw(){
+  const box=$('setupShelves'); if(!box) return;
+  const all=((SETUP_DATA||{}).brandRead||{}).shelves;
+  if(!all || SETUP_KIND!=='brands'){ box.hidden=true; box.innerHTML=''; return; }
+  box.hidden=false;
+  const pick = f => all.filter(f);
+  const rows=[
+    ['have',    STR.setup.shelves.have,    pick(s=>s.state==='have'||s.state==='na'), STR.setup.shelves.nohave],
+    ['gaps',    STR.setup.shelves.gaps,    pick(s=>s.state==='gap'),                  STR.setup.shelves.nogaps],
+    ['waiting', STR.setup.shelves.waiting, pick(s=>s.state==='waiting'),              STR.setup.shelves.nowaiting],
+  ];
+  box.innerHTML = rows.map(([k,label,list,empty])=>
+    `<div class="setup-shelf ${k}">`+
+      `<div class="setup-shlab">${esc(label)}<i>${list.length}</i></div>`+
+      (list.length ? `<div class="setup-pills">${list.map(setupShelfPill).join('')}</div>`
+                   : `<div class="setup-shnone">${esc(empty)}</div>`)+
+    `</div>`).join('');
+}
+
+/* the gaps that belong to the section you're standing in */
+function setupGapsHere(){
+  const all=((SETUP_DATA||{}).brandRead||{}).shelves||[];
+  return all.filter(s=>s.state==='gap' && s.rail===SETUP_STOP);
+}
+
+/* the refusal: the hole says so, rather than a message describing it */
+function setupFlash(gaps){
+  const keys=gaps.map(g=>g.key);
+  document.querySelectorAll('#setupShelves .setup-pill').forEach(p=>{
+    if(keys.indexOf(p.dataset.k)<0) return;
+    p.classList.remove('flash'); void p.offsetWidth; p.classList.add('flash');
+  });
+}
+
 function setupBrandDraw(){
   const b=(SETUP_DATA||{}).brandRead, box=$('setupBrand');
   if(!b){ box.innerHTML=setupRowEl('No brand', esc(STR.setup.nobrandhere), true); return; }
@@ -233,6 +297,7 @@ function setupLook(b){
   if(L.spare.length) h+=setupRowEl('Never named',
     '<div class="setup-files">'+L.spare.map(f=>`<span class="setup-file">${esc(f)}</span>`).join('')+'</div>'+
     `<div class="setup-sub">${esc(STR.setup.sparefiles)}</div>`);
+  if(SETUP_NAMING) h+=setupRowEl('Name it', setupNameRow(L, SETUP_NAMING), true);
   h+=setupRowEl('Add', `<label class="setup-morebtn">ADD A FILE`+
     `<input type="file" hidden onchange="setupAdd(this)"></label>`+
     `<div class="setup-sub">${esc(STR.setup.addfile)}</div>`);
@@ -290,8 +355,45 @@ function setupWrote(d){
   if(d.brandRead) SETUP_DATA.brandRead=d.brandRead;
   SETUP_DATA.problems=d.problems;
   setupState(d.state);
-  setupBrandDraw(); setupPaint();
+  setupShelvesDraw(); setupBrandDraw(); setupPaint();
   setupChat((d.problems||[]).length ? STR.setup.rereadBad(d.problems.length) : STR.setup.rereadOk);
+}
+
+/* ---------------- naming what just landed ----------------
+   The server knows what the file is CALLED. Only you know what it IS —
+   that svg is the logo or the mark, that otf is the headline face or the
+   body one — so the room asks once, in one tap, and the write goes
+   through the same surgical lane as everything else: the filename is
+   appended to the line, and the sentence you wrote around it survives. */
+function setupNameOpts(L, file){
+  if(/\.(otf|ttf|woff2?)$/i.test(file)){
+    const keys=(L.fonts||[]).map(f=>'Font'+(f.role?' — '+f.role:''));
+    return keys.length ? keys : ['Font'];
+  }
+  if(/\.(svg|png|jpe?g|gif|webp)$/i.test(file)) return ['Logo','Mark'];
+  return [];
+}
+
+function setupNameRow(L, file){
+  const opts=setupNameOpts(L, file);
+  if(!opts.length) return `<div class="setup-sub">${esc(STR.setup.naming.none)}</div>`;
+  return `<div class="setup-name">${esc(STR.setup.naming.ask(file))}</div>`+
+    `<div class="setup-namebtns">`+
+      opts.map(k=>`<button class="setup-namego" onclick="setupName(${attr(k)})">${esc(k)}</button>`).join('')+
+      `<button class="setup-nameskip" onclick="setupNameSkip()">${esc(STR.setup.naming.leave)}</button>`+
+    `</div>`;
+}
+
+function setupName(key){
+  const file=SETUP_NAMING; if(!file) return;
+  SETUP_NAMING='';
+  setupSave('look','name',{key}, file, null);
+  setupChat(STR.setup.naming.done(file));
+}
+
+function setupNameSkip(){
+  const file=SETUP_NAMING; SETUP_NAMING='';
+  setupBrandDraw(); setupChat(STR.setup.naming.left(file));
 }
 
 /* ---------------- assets: add and prune ---------------- */
@@ -302,6 +404,7 @@ function setupAdd(input){
   fetch('/api/setup/asset/add',{method:'POST',body:fd})
     .then(r=>r.json().then(d=>({ok:r.ok,d})))
     .then(({ok,d})=>{ if(!ok){ setupChat(STR.setup.edit[d.error]||STR.setup.edit.failed); return; }
+                      SETUP_NAMING=f.name;
                       setupWrote(d); setupChat(STR.setup.added(f.name)); });
 }
 
@@ -378,8 +481,18 @@ function setupGo(key){
   setupPaint();
 }
 
-/* the padlock means what it means everywhere else: shut is settled. */
-function setupPadTap(){ SETUP_SHUT[SETUP_STOP]=!SETUP_SHUT[SETUP_STOP]; setupPaint(); }
+/* the padlock means what it means everywhere else: shut is settled. And
+   settled has a floor — a section with a MUST-HAVE gap in it can't be
+   called checked, so the lock refuses and the gaps flash. Reopening is
+   always free; only shutting is a claim. */
+function setupPadTap(){
+  if(!SETUP_SHUT[SETUP_STOP]){
+    const gaps=setupGapsHere();
+    if(gaps.length){ setupFlash(gaps); setupChat(STR.setup.shelves.refuse(gaps.length)); return; }
+  }
+  SETUP_SHUT[SETUP_STOP]=!SETUP_SHUT[SETUP_STOP];
+  setupPaint();
+}
 
 function setupPaint(){
   const rail=SETUP_RAILS[SETUP_KIND]||[], shut=!!SETUP_SHUT[SETUP_STOP], pad=$('setupLock');

@@ -1237,6 +1237,56 @@ a.search-src:hover{color:var(--red)}
   font-family:inherit;font-size:12px;font-weight:600;color:var(--ink);outline:none;padding:1px 0}
 .setup-hex:focus{border-bottom-color:var(--red)}
 
+/* ---------------- THE SHELVES (v046) ----------------
+   One white card on the red, above everything, because it answers the
+   question you walked in with: can this ship? Three rows, and the order is
+   descending agency — done, yours to do, someone else's to send.
+
+   The colours are the app's own and there are only two of them. Ink is
+   settled. Red is the hole, and red is the ONLY red on the card — same
+   rule as LOCK THE DEETS, where the TBC carries it. The waiting room sits
+   in outline: it isn't wrong, it just isn't here yet. N/A goes faint but
+   stays visible, because "not needed" is a thing you checked. */
+.setup-shelves{background:#fff;border-radius:var(--r-lg);padding:6px 22px;
+  margin:0 0 26px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
+.setup-shelf{display:grid;grid-template-columns:190px minmax(0,1fr);gap:16px;
+  align-items:start;padding:15px 0;border-top:1px solid var(--border)}
+.setup-shelf:first-child{border-top:none}
+.setup-shlab{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;
+  color:var(--mid);padding-top:5px;display:flex;align-items:center;gap:7px}
+.setup-shlab i{font-style:normal;font-weight:600;font-size:10px;color:var(--mid);
+  border:1px solid var(--border);border-radius:var(--pill);padding:1px 7px}
+.setup-shelf.gaps .setup-shlab{color:var(--red)}
+.setup-shelf.gaps .setup-shlab i{color:var(--red);border-color:var(--red)}
+.setup-shnone{font-size:12.5px;color:var(--mid);padding-top:5px;line-height:1.5}
+.setup-pills{display:flex;flex-wrap:wrap;gap:6px}
+.setup-pill{display:inline-flex;align-items:center;border:1px solid var(--border);
+  border-radius:var(--pill);background:none;font-family:inherit;font-size:12px;
+  color:var(--mid);padding:4px 11px;cursor:pointer;text-align:left;
+  transition:border-color .15s,color .15s,transform .12s}
+.setup-pill:hover{transform:translateY(-1px);border-color:var(--ink);color:var(--ink)}
+.setup-pill.have{border-color:var(--ink);color:var(--ink)}
+.setup-pill.gap{border-color:var(--red);color:var(--red);font-weight:500}
+.setup-pill.gap:hover{border-color:var(--red);color:var(--red)}
+.setup-pill.na{opacity:.42}
+/* an Open line is prose, so it leans italic and never sets the row's width */
+.setup-pill.long{font-style:italic;max-width:340px}
+/* the refusal borrows LOCK THE DEETS' flash: the hole says so */
+.setup-pill.flash{animation:deets-flash .85s ease 2}
+@media(max-width:880px){.setup-shelf{grid-template-columns:1fr;gap:8px}
+  .setup-shlab{padding-top:0}}
+
+/* NAMING AN UPLOAD — one question, one tap, no form */
+.setup-name{font-size:13.5px;margin-bottom:9px}
+.setup-namebtns{display:flex;flex-wrap:wrap;gap:7px}
+.setup-namego{font-family:inherit;font-size:12px;font-weight:600;letter-spacing:.4px;
+  border:1px solid var(--red);border-radius:var(--pill);background:none;color:var(--red);
+  padding:5px 14px;cursor:pointer;transition:background .15s,color .15s}
+.setup-namego:hover{background:var(--red);color:#fff}
+.setup-nameskip{font-family:inherit;font-size:12px;border:none;background:none;
+  color:var(--mid);padding:5px 6px;cursor:pointer;text-decoration:underline}
+.setup-nameskip:hover{color:var(--ink)}
+
 .setup-files{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
 .setup-file{display:inline-flex;align-items:center;border:1px solid var(--border);
   border-radius:var(--pill);font-size:12px;color:var(--mid);overflow:hidden}

@@ -198,6 +198,18 @@ def _parse_brand(folder, bid, problems):
             fonts.append({"role": (m.group(1) or "").strip().lower(), "text": v})
     if not fonts:
         problems.append(f"brand {bid}: brandlook.md has no **Font:** line")
+    # A LOGO AND A COLOUR (v046). Both were read and never checked, so a
+    # folder with three files and one font line validated clean while a
+    # container that draws a header had nothing to put in it. Promoted to
+    # must-have alongside the SET UP shelves, and gated on brand.md's
+    # `not_needed:` so a brand that genuinely has neither can say so once
+    # rather than being nagged forever. Only these two honour that escape;
+    # the voice sections and the font line are not opt-out-able.
+    na_here = {x.strip().lower() for x in re.split(r"[,;]", man.get("not_needed", "")) if x.strip()}
+    if "logo" not in na_here and not kv.get("Logo", "").strip():
+        problems.append(f"brand {bid}: brandlook.md has no **Logo:** line")
+    if "colours" not in na_here and not tokens:
+        problems.append(f"brand {bid}: brandlook.md has no colour lines")
     b["skin"] = {"font": fonts[0]["text"] if fonts else "", "fonts": fonts,
                  "logo": kv.get("Logo", ""), "mark": kv.get("Mark", ""), "tokens": tokens}
     # brandlegals.md — the brand's clause library (optional; validated if named)
@@ -602,7 +614,7 @@ def _cache_path(folder):
 # "touch a file in each folder anyway" as the workaround, and v042's font
 # fix would have done it again. Bump this whenever the shape of a
 # compiled dict changes and every cache rebuilds itself.
-PARSER = 42
+PARSER = 43
 
 
 def _compile(folder, kind):

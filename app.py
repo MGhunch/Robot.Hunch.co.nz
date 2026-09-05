@@ -173,6 +173,121 @@ def _named_files(*texts):
     return re.findall(r"assets/([\w.\-]+\.\w+)", " ".join(texts))
 
 
+# ---------------------------------------------------------------------------
+# THE SHELVES (v046)
+#
+# Every shelf gets one question: does this have to be filled?
+#
+#   MUST     it does, and it isn't      -> A GAP TO FILL. Refuses the lock.
+#   SHOULD   it doesn't, and it isn't   -> THE WAITING ROOM. Refuses nothing.
+#   N/A      it never will be, declared -> quiet, and still checked, because
+#                                          sometimes it IS needed and that is
+#                                          the thing you are checking.
+#
+# MUST is not a second opinion. A shelf is essential only where the
+# validator already raises a problem for it, so the lock and the push refuse
+# exactly the same things. Promote a shelf to must here and you must promote
+# the check in containers.py with it, or the room will refuse what push
+# allows and nobody will be able to say which one is lying.
+#
+# N/A is declared in brand.md — "not_needed: legals, mark" — so it travels
+# in the folder rather than in somebody's browser, and a push carries it.
+# ---------------------------------------------------------------------------
+
+FORGIVEN = re.compile(r"pending|still to come|to come", re.I)
+
+
+def _read_text(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def _open_items(text, where):
+    """The waiting room as you have been writing it all along: a '## Open'
+    section, one bullet per thing we are waiting on. Parsed, not invented."""
+    out = []
+    for title, body in CT.sections_of(text):
+        if title.strip().lower() != "open":
+            continue
+        for line in body.split("\n"):
+            m = re.match(r"^\s*[-*]\s+(.*)$", line)
+            if m and m.group(1).strip():
+                out.append({"key": "open", "label": m.group(1).strip(), "rail": where,
+                            "must": False, "state": "waiting", "kind": "open", "note": ""})
+    return out
+
+
+def _brand_shelves(b, look, colours, missing):
+    """One row per shelf, each already sorted into its block. The front end
+    renders; it does not decide."""
+    folder = b.get("folder", "")
+    skin = b.get("skin", {})
+    voice = b.get("voice", "")
+    have = set(b.get("assets", []))
+
+    man = CT._kv(_read_text(os.path.join(folder, "brand.md")))
+    na = {x.strip().lower() for x in re.split(r"[,;]", man.get("not_needed", "")) if x.strip()}
+
+    # a named file that isn't there is a gap — unless the line says so itself
+    pending, gone = [], []
+    for fn in missing:
+        line = next((l for l in look.split("\n") if fn in l), "")
+        (pending if FORGIVEN.search(line) else gone).append(fn)
+
+    fonts = skin.get("fonts", [])
+    named_fonts = [n for f in fonts for n in _named_files(f.get("text", ""))]
+    voice_titles = [t.lower() for t, _ in CT.sections_of(voice)]
+
+    def has_section(name):
+        return any(name.lower() in t for t in voice_titles)
+
+    rows = []
+
+    def shelf(key, label, rail, must, filled, note):
+        state = "na" if key in na else ("have" if filled else ("gap" if must else "waiting"))
+        rows.append({"key": key, "label": label, "rail": rail, "must": must,
+                     "state": state, "kind": "shelf", "note": note})
+
+    n = len(fonts)
+    shelf("font", "Font", "look", True, bool(fonts),
+          (f"{n} declaration" + ("" if n == 1 else "s")) if n else "No **Font:** line.")
+    shelf("fontfiles", "Font files", "look", False, bool(named_fonts),
+          f"{len(named_fonts)} named" if named_fonts else "A stack, not a face — nothing named.")
+    shelf("logo", "Logo", "look", True, bool(skin.get("logo")),
+          "Named" if skin.get("logo") else "No **Logo:** line.")
+    shelf("mark", "Mark", "look", False, bool(skin.get("mark")),
+          "Named" if skin.get("mark") else "No **Mark:** line.")
+    shelf("colours", "Colours", "look", True, bool(colours),
+          f"{len(colours)} tokens" if colours else "No hex lines.")
+    shelf("assets", "assets/", "look", True, os.path.isdir(os.path.join(folder, "assets")),
+          f"{len(have)} files" if have else "Empty.")
+    shelf("named", "Named files", "look", True, not gone,
+          "All there" if not gone else ", ".join(gone) + " named, not there")
+
+    shelf("pillars", "Pillars", "prompt", True, has_section("pillars"), "")
+    shelf("proof", "More / Less", "prompt", True,
+          "- More:" in voice and "- Less:" in voice, "")
+    shelf("hardrules", "Hard rules", "prompt", True, has_section("hard rules"), "")
+    shelf("guardrail", "Guardrail", "prompt", True, has_section("guardrail"), "")
+
+    legals = b.get("legals") or []
+    shelf("legals", "Clauses", "legals", False, bool(legals),
+          f"{len(legals)} clauses" if legals else "No brandlegals.md.")
+
+    # the pending files are the waiting room speaking for itself
+    for fn in pending:
+        rows.append({"key": "open", "label": fn + " — still to come", "rail": "look",
+                     "must": False, "state": "waiting", "kind": "open", "note": ""})
+
+    rows += _open_items(look, "look")
+    rows += _open_items(voice, "prompt")
+    rows += _open_items(_read_text(os.path.join(folder, "brandlegals.md")), "legals")
+    return rows
+
+
 def _brand_payload(b):
     """What the reader got out of a brand folder, in the three sections you
     would edit it in — LOOK, PROMPT, LEGALS — because that is what the three
@@ -225,6 +340,7 @@ def _brand_payload(b):
                    "chars": len(voice)},
         "legals": [{"id": c["id"], "label": c.get("label", ""), "fixed": c.get("fixed", False),
                     "text": c.get("text", "")} for c in (b.get("legals") or [])],
+        "shelves": _brand_shelves(b, look, colours, sorted(named - set(have))),
         "problems": b.get("problems", []),
     }
 
@@ -452,6 +568,9 @@ def setup_edit_route():
         elif op == "section":
             setup_edit.set_section(path, d.get("heading", ""), val)
             what = f"{d.get('heading','')} rewritten."
+        elif op == "name":
+            setup_edit.name_file(path, d.get("key", ""), val)
+            what = f"{val} named on the {d.get('key','')} line."
         elif op == "cell":
             setup_edit.set_cell(path, d.get("row", ""), d.get("column", "text"), val)
             what = f"The {d.get('row','')} clause rewritten."
