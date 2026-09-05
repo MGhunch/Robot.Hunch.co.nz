@@ -619,8 +619,12 @@ def setup_chat_route():
     try:
         r = setup_chat.route(ask, d.get("said") or [])
         if not r["file"]:
-            return jsonify({"park": True, "ask": r["ask"],
-                            "say": r["why"] or "That's not one of the three files."})
+            # `why` is the router's own note — three or four words, for the log.
+            # It leaked to the screen once and said "confirmation, not
+            # actionable" at a human who had typed "Yes." Nothing the machine
+            # says to itself goes in the chat.
+            return jsonify({"park": True, "ask": r["ask"], "scope": "project",
+                            "say": "", "why": r["why"]})
         said = setup_chat.propose(r["file"], r["ask"], folder, bd)
         out = setup_chat.check(r["file"], said, folder, bd)
     except Exception as e:                                   # a model call fell over
@@ -630,6 +634,10 @@ def setup_chat_route():
     out.setdefault("file", r["file"])
     if not out.get("park"):
         out["preview"] = _preview(fid, out, folder)
+    elif out.get("gate") != "font":
+        # a park that isn't the font gate is a thing the folder can't do —
+        # which is the project's job, not this room's
+        out.setdefault("scope", "project")
     return jsonify(out)
 
 

@@ -124,6 +124,24 @@ const BASE='http://127.0.0.1:5055';
   ok('carrying on puts it back rather than binning it', face(), wore);
   ok('and says so', /carried on/.test(d.getElementById('setupChat').textContent), true);
 
+  /* ---- A PARKED ASK, AND ANSWERING IT IN WORDS ----
+     There are two buttons under it, and a person types "Yes." at it anyway.
+     That used to be routed as a brand new ask and came back as the router's
+     own note read out loud: "confirmation, not actionable". */
+  w.setupPark({park:true, scope:'project', ask:'lose the subject line',
+               say:'That would remove a module row, which needs matching markup.'}, 'lose the subject line');
+  await sleep(200);
+  let parkChat = d.getElementById("setupChat").textContent;
+  ok('a structural refusal points at the project', /go back to the project/i.test(parkChat), true);
+  ok('and never shows the router its own notes', /not actionable|actionable/i.test(parkChat), false);
+  ok('the park is waiting on an answer', !!w.eval('SETUP_PARK'), true);
+
+  d.getElementById('setupNote2').value='Yes.';
+  w.setupAsk(); await sleep(900);
+  parkChat = d.getElementById("setupChat").textContent;
+  ok('"Yes." parks it instead of being re-routed', /Parked in Open/i.test(parkChat), true);
+  ok('and nothing is left waiting', w.eval('SETUP_PARK'), null);
+
   /* AND THE BRAND ROOM UNTOUCHED. v046's split is the thing this build was
      most able to break: brands are fields and shelves, containers are a
      picture and a chat, and one column can only have one occupant. */

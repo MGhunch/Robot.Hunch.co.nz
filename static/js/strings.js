@@ -130,9 +130,14 @@ const STR = {
       done:    "Kept.",
       dropped: "Put back.",
       superseded: "Put the last one back — you carried on.",
+      already:    "Nothing waiting on a yes.",
       parked:  "Parked in Open. It'll travel with the push.",
       undone:  "Put back.",
       beyond:  "That's beyond what I can change in here.",
+      /* the structural refusal. Michael's own line: the folder's shape is
+         the project's job, and this room's job is to notice and write it
+         down — not to explain markup at somebody looking at a picture. */
+      project: "You'll need to go back to the project to fix this.",
       robot:   "The robot didn't answer. Nothing's changed — try that again?",
       empty:   "Say what's wrong with it first.",
       gone:    "That folder isn't here any more.",

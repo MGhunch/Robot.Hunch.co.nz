@@ -33,6 +33,9 @@ let SETUP_PROP=null, SETUP_UNDO=0, SETUP_BUSY=false;
 /* what the container looked like before the preview, so PUT IT BACK is a
    restore and not another round trip */
 let SETUP_WAS=null;
+/* an ask waiting on a yes — so typing "Yes." answers the question on screen
+   instead of being routed as a brand new one */
+let SETUP_PARK=null;
 /* a file that has landed and hasn't been told what it is yet */
 let SETUP_NAMING='';
 
@@ -144,7 +147,7 @@ function setupOpen(kind, id){
 
 function setupShow(kind, id, d){
   SETUP_KIND=kind; SETUP_ID=id; SETUP_DATA=d; SETUP_SAID=[]; SETUP_SHUT={};
-  SETUP_PROP=null; SETUP_UNDO=0; SETUP_BUSY=false; SETUP_WAS=null;
+  SETUP_PROP=null; SETUP_UNDO=0; SETUP_BUSY=false; SETUP_WAS=null; SETUP_PARK=null;
   $('setupUndo').hidden=true; $('setupNote2').value='';
   /* a container goes on the table exactly as a live one would, so every
      renderer below reads what it always reads. CID stays empty: a peek
@@ -629,10 +632,20 @@ function setupThinking(on){
    robot that owns the file it picked. Nothing is written by asking — the
    draft is made by the CONFIRM, so a question you think better of leaves
    the folder exactly as it was. */
+const SETUP_YES=/^(yes|yep|yeah|yup|ok|okay|sure|do it|go on|please|park it|park|write it down)[.!\s]*$/i;
+const SETUP_NO =/^(no|nope|nah|leave it|forget it|don'?t|drop it|skip it)[.!\s]*$/i;
+
 function setupAsk(){
   const box=$('setupNote2'), ask=(box.value||'').trim();
   if(!ask || SETUP_BUSY) return;
   box.value='';
+  /* THE QUESTION ON SCREEN GETS ANSWERED FIRST. There are two buttons under
+     a parked ask, and a person types "Yes." at it anyway — which is not
+     unreasonable, it is a conversation. Routing that as a fresh ask sent
+     "Yes." to a robot that had no idea what it was about, and the reply was
+     the router's own note read out loud. */
+  if(SETUP_PARK && SETUP_YES.test(ask)){ setupSay(esc(ask),'me'); setupParkGo(SETUP_PARK); return; }
+  if(SETUP_PARK && SETUP_NO.test(ask)){ setupSay(esc(ask),'me'); setupReject(); return; }
   /* carrying on the conversation used to bin an unanswered proposal in
      silence — you could talk all day and land nothing, which is exactly
      what it did. Now it puts itself back and says so. */
@@ -694,7 +707,7 @@ function setupPreviewOff(){
 }
 
 function setupProposal(d){
-  SETUP_PROP=d;
+  SETUP_PROP=d; SETUP_PARK=null;
   const live=setupPreviewOn(d.preview);
   /* a change you can see gets "keep it?". One that renders to nothing — a
      length in spec.md, a folder that wouldn't parse — is still a real
@@ -757,7 +770,7 @@ function setupSpend(){
 }
 
 function setupReject(){
-  SETUP_PROP=null; setupPreviewOff(); setupSpend();
+  SETUP_PROP=null; SETUP_PARK=null; setupPreviewOff(); setupSpend();
   setupSay(esc(STR.setup.chat.dropped),'robot');
 }
 
@@ -768,7 +781,13 @@ function setupReject(){
    push. */
 function setupPark(d, ask){
   const line=(d.ask||ask||'').trim();
-  SETUP_SAID.push(RAIL.robot(esc(d.say||STR.setup.chat.beyond)+
+  SETUP_PARK=line;
+  /* the robot's own reason first if it has one, then the standing line —
+     the folder's shape is the project's job, and saying so beats explaining
+     markup to somebody who is looking at a picture. */
+  const C=STR.setup.chat;
+  const said=[d.say, d.scope==='project' ? C.project : ''].filter(Boolean).join(' ') || C.beyond;
+  SETUP_SAID.push(RAIL.robot(esc(said)+
     `<div class="setup-propgo park">`+
       `<button class="setup-yes" onclick="setupParkGo(${attr(line)})">${esc(STR.setup.chat.park)}</button>`+
       `<button class="setup-no" onclick="setupReject()">${esc(STR.setup.chat.leave)}</button>`+
@@ -778,6 +797,7 @@ function setupPark(d, ask){
 
 function setupParkGo(line){
   if(SETUP_BUSY) return;
+  SETUP_PARK=null; setupSpend();
   setupThinking(true);
   fetch('/api/setup/park',{method:'POST',headers:{'content-type':'application/json'},
     body:JSON.stringify({id:SETUP_ID, line})})

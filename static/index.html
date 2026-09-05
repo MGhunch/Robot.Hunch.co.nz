@@ -14,7 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="robot.css?v=051">
-<script src="js/strings.js?v=049"></script>
+<script src="js/strings.js?v=052"></script>
 <script src="js/chrome.js?v=041"></script>
 
 </head>
@@ -447,12 +447,12 @@
         <!-- BRANDS get the shelves here; CONTAINERS get the chat. A brand is
              all fields, so there's nothing to say to it; a container is a
              picture, and a picture needs words. -->
-        <div class="fix-lozrow" id="setupRailLoz"><span class="fix-loz empty">Anything off?</span></div>
+        <div class="fix-lozrow" id="setupRailLoz"><span class="fix-loz empty">Any tweaks?</span></div>
         <div class="setup-shelves" id="setupShelves" hidden></div>
         <div class="fix-card" id="setupChatCard">
           <div class="chat narrow" id="setupChat"></div>
           <div class="fix-compose">
-            <textarea rows="2" id="setupNote2" placeholder="Say what's wrong with it."
+            <textarea rows="2" id="setupNote2" placeholder="What do you reckon?"
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();setupAsk();}"></textarea>
             <button class="setup-send" id="setupSend" onclick="setupAsk()">SAY IT</button>
           </div>
@@ -489,6 +489,6 @@
 <script src="js/feed.js?v=048"></script>
 <script src="js/fix.js?v=038"></script>
 <script src="js/file.js?v=038"></script>
-<script src="js/setup.js?v=051"></script>
+<script src="js/setup.js?v=052"></script>
 </body>
 </html>
