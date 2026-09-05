@@ -85,7 +85,28 @@ size = setup_chat.check("container.html",
                         {"op": "css", "selector": "h1", "prop": "font-size",
                          "value": "27px", "say": "Down to 27."}, folder, b)
 ok("the container's own proportions are fair game", size["park"], False)
-ok("before is read off the disk", size["before"], "31px")
+ok("before is read off the disk", size["before"], "font-size: 31px")
+multi = setup_chat.check("container.html",
+                         {"op": "css", "selector": ".hero", "decls": [
+                             {"prop": "margin", "value": "0 -24px 22px"},
+                             {"prop": "border", "value": "none"},
+                             {"prop": "border-radius", "value": "0"}], "say": "Full bleed."}, folder, b)
+ok("one idea can carry a few declarations", multi["park"], False)
+ok("and the diff shows all of them", multi["after"].count("\n"), 2)
+ok("labelled as a set", multi["label"], ".hero · 3 declarations")
+
+# THE THING IT MUST NEVER DO: report a change you cannot see as a change made
+unseen = setup_chat.check("container.html",
+                          {"op": "css", "selector": ":root", "prop": "--font",
+                           "value": "'Euclid Circular A',Arial,sans-serif", "say": "Swapped."}, folder, b)
+ok("a font the artefact never loads still edits", unseen["park"], False)
+ok("...but says you won't see it", "won't see this" in unseen["note"], True)
+ok("...and names what it falls back to", "Arial" in unseen["note"], True)
+seen = setup_chat.check("container.html",
+                        {"op": "css", "selector": "h1", "prop": "font-size",
+                         "value": "27px", "say": "x"}, folder, b)
+ok("a change you CAN see says nothing", seen["note"], "")
+
 missing = setup_chat.check("container.html",
                            {"op": "css", "selector": "h1", "prop": "border-top",
                             "value": "1px solid red", "say": "x"}, folder, b)

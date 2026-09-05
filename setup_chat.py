@@ -70,6 +70,20 @@ OPS = {
 GENERIC = {"sans-serif", "serif", "monospace", "cursive", "fantasy", "system-ui",
            "ui-sans-serif", "ui-serif", "inherit", "initial", "unset", "revert"}
 
+# Faces that are on the machine already. Everything else has to be loaded by
+# the artefact itself with an @font-face, or it does not render — and on an
+# email that is the normal case, not a fault.
+WEB_SAFE = {"arial", "arial narrow", "arial black", "helvetica", "helvetica neue",
+            "times", "times new roman", "georgia", "courier", "courier new",
+            "verdana", "tahoma", "trebuchet ms", "impact", "palatino", "garamond",
+            "comic sans ms", "segoe ui", "roboto", "-apple-system"}
+
+# how many declarations one proposal may carry. More than one, because "full
+# bleed" is a negative margin AND a border AND a radius and asking for it
+# three times is not a conversation. Not many more, because a proposal you
+# can't read in one glance is not a proposal you can answer.
+MAX_DECLS = 4
+
 
 # ---------------------------------------------------------------------------
 # THE FONT GATE
@@ -81,19 +95,28 @@ GENERIC = {"sans-serif", "serif", "monospace", "cursive", "fantasy", "system-ui"
 # brand declares.
 # ---------------------------------------------------------------------------
 
-def declared_faces(brand):
-    """Every face the brand's **Font:** lines name, fallbacks included — a
-    fallback is a declaration too, and Arial on a One NZ email is there on
-    purpose."""
-    out = set()
+def font_lines(brand):
+    """The brand's **Font:** lines, whole and verbatim. Whole, because a font
+    line is PROSE and the family is not reliably the first thing on it:
+
+        **Font — headlines:** Bebas Neue, ALL CAPS. Headlines, subs and sub
+        subs. `assets/BebasNeue-Regular.woff2` (400). ... Fallback: Impact,
+        Haettenschweiler, sans-serif.
+        **Font — body:** the web-safe stack, no file. Avenir Next, then Segoe
+        UI, Helvetica, Arial. 400 Regular and 600 Semibold, never 700.
+
+    Parsing a family out of that gets you "the web-safe stack, no file",
+    which then declares nothing and flags Hunch's own body font on Hunch's
+    own newsletter. So don't parse it — ask it a question instead."""
+    out = []
     for f in (brand.get("skin", {}) or {}).get("fonts", []):
-        text = f.get("text", "") or ""
-        head = re.split(r"[.`(]", text, 1)[0].strip()
-        if head:
-            out.add(head)
-        for m in re.finditer(r"[Ff]allbacks?:\s*([^.(`,;\n]+)", text):
-            out.add(m.group(1).strip())
-    return {x for x in out if x}
+        role = (f.get("role") or "").strip()
+        out.append((f"Font — {role}: " if role else "Font: ") + (f.get("text") or ""))
+    return out
+
+
+def declares(brand):
+    return "\n".join(font_lines(brand)).lower()
 
 
 def _families(value):
@@ -118,10 +141,44 @@ def looks_like_faces(prop, *values):
     return False
 
 
-def undeclared(value, faces):
-    """The families in this value that the brand has never named."""
-    low = {f.lower() for f in faces} | GENERIC
-    return [f for f in _families(value) if f.lower() not in low]
+def undeclared(value, brand):
+    """The families in this value the brand's font lines never mention.
+
+    A substring test on the lines themselves, not a comparison against
+    families parsed out of them — "does the brand name this face anywhere"
+    is the actual question, and it is the one prose can answer."""
+    text = declares(brand)
+    return [f for f in _families(value)
+            if f.lower() not in GENERIC and f.lower() not in text]
+
+
+def _loadable(html):
+    """Every face the artefact itself loads with an @font-face. A file in the
+    brand's assets/ is not enough: if nothing in the html reaches for it, the
+    browser has never heard of it."""
+    out = set()
+    for m in re.finditer(r"@font-face\s*\{[^}]*?font-family\s*:\s*([^;}]+)", html, re.S | re.I):
+        out.add(m.group(1).strip().strip("'\"").lower())
+    return out
+
+
+def lands_on(value, html):
+    """WHAT YOU WILL ACTUALLY SEE.
+
+    A font-family is a wish list; the browser takes the first name it can
+    resolve. Swapping `Arial` for `'Euclid Circular A', Arial` on a container
+    that loads no font files changes the file and changes nothing on screen —
+    and a room whose whole promise is "say it and it changes" must never
+    report that as a change made.
+
+    On an email this is usually correct rather than broken: mail clients
+    don't load webfonts, so the fallback IS what the recipient gets. The room
+    says so instead of pretending."""
+    have = _loadable(html) | WEB_SAFE | GENERIC
+    for f in _families(value):
+        if f.lower() in have:
+            return f
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -161,9 +218,12 @@ def propose(file, ask, folder, brand):
         return {"op": "park", "say": f"There is no {file} in this folder to change."}
     extra = ""
     if file == "container.html":
-        faces = sorted(declared_faces(brand))
-        extra = ("\n\nTHE FACES THE BRAND DECLARES, and the only ones this container "
-                 "may wear:\n" + ("\n".join(f"- {f}" for f in faces) or "- none declared"))
+        # the lines whole, not a parsed list — they say which face does which
+        # job and what the fallbacks are, and that is what the robot needs
+        lines = font_lines(brand)
+        extra = ("\n\nWHAT THE BRAND DECLARES ABOUT TYPE. These lines are the only "
+                 "faces this container may wear:\n" + ("\n".join(f"- {l}" for l in lines)
+                                                        or "- nothing declared"))
     user = f"THE FILE — {file}:\n\n{text}{extra}\n\nTHE ASK:\n{ask}"
     # THE CEILING, and v048's lesson applied here before it bites. A section
     # rewrite of config.md's FEED IT is thousands of characters; at a low
@@ -193,30 +253,71 @@ def check(file, said, folder, brand):
 
     if op == "css":
         sel = (said.get("selector") or "").strip()
-        prop = (said.get("prop") or "").strip()
-        val = (said.get("value") or "").strip()
-        if not sel or not prop or not val:
-            return {"park": True, "say": say or "I couldn't pin that to one declaration."}
-        before = setup_edit.read_css(path, sel, prop)
-        if not before:
-            return {"park": True,
-                    "say": f"There's no `{prop}` on `{sel}` to change. Adding one is a "
-                           f"bigger call than a tickle."}
-        if looks_like_faces(prop, before, val):
-            faces = declared_faces(brand)
-            strays = undeclared(val, faces)
-            if strays:
-                names = ", ".join(strays)
-                return {"park": True, "gate": "font",
-                        "say": f"{names} isn't a face {brand.get('name', 'the brand')} declares. "
-                               f"The chat can move the brand's own faces around; it can't "
-                               f"import one. Either it belongs in the brand — which is a "
-                               f"brand edit — or this container departs on purpose, and "
-                               f"there's nowhere yet to say so."}
+        # one declaration or a few, and a few is the normal case: "full bleed"
+        # is a negative margin AND a border AND a radius, and asking for the
+        # same idea three times is not a conversation. They must sit on ONE
+        # rule and be ONE intent — this is not a licence to restyle.
+        decls = said.get("decls")
+        if not isinstance(decls, list) or not decls:
+            decls = [{"prop": said.get("prop", ""), "value": said.get("value", "")}]
+        clean = []
+        for d in decls[:MAX_DECLS]:
+            pr = (d.get("prop") or "").strip()
+            va = (d.get("value") or "").strip()
+            if pr and va:
+                clean.append({"prop": pr, "value": va})
+        if not sel or not clean:
+            return {"park": True, "say": say or "I couldn't pin that to one rule."}
+
+        befores = []
+        for d in clean:
+            was = setup_edit.read_css(path, sel, d["prop"])
+            if not was:
+                return {"park": True,
+                        "say": f"There's no `{d['prop']}` on `{sel}` to change. Adding one is a "
+                               f"bigger call than a tickle."}
+            befores.append(was)
+
+        # THE FONT GATE — the brand owns the faces; the container rearranges
+        # inside what it declares and never imports into it.
+        for d, was in zip(clean, befores):
+            if looks_like_faces(d["prop"], was, d["value"]):
+                strays = undeclared(d["value"], brand)
+                if strays:
+                    names = ", ".join(strays)
+                    return {"park": True, "gate": "font",
+                            "say": f"{names} isn't a face {brand.get('name', 'the brand')} declares. "
+                                   f"The chat can move the brand's own faces around; it can't "
+                                   f"import one. Either it belongs in the brand — which is a "
+                                   f"brand edit — or this container departs on purpose, and "
+                                   f"there's nowhere yet to say so."}
+
+        # ...AND WHAT YOU WILL ACTUALLY SEE. A face this artefact never loads
+        # does not render, so the change is real in the file and invisible on
+        # screen. Say that here rather than let the room claim a change you
+        # cannot see — that is the one thing it must never do.
+        note = ""
+        html = _folder_file(folder, "container.html")
+        for d in clean:
+            if not looks_like_faces(d["prop"], "", d["value"]):
+                continue
+            wanted = _families(d["value"])
+            lands = lands_on(d["value"], html)
+            if wanted and lands and lands.lower() != wanted[0].lower():
+                note = (f"You won't see this: nothing in container.html loads "
+                        f"{wanted[0]}, so it falls back to {lands}. Real in the file, "
+                        f"same on screen.")
+            elif wanted and not lands:
+                note = (f"You won't see this: nothing in container.html loads "
+                        f"{wanted[0]}, and there's no fallback it can reach.")
+
+        label = f"{sel} · {clean[0]['prop']}" if len(clean) == 1 else \
+                f"{sel} · {len(clean)} declarations"
         return {"park": False, "op": "css", "file": file,
-                "args": {"selector": sel, "prop": prop, "value": val},
-                "before": before, "after": val,
-                "label": f"{sel} · {prop}", "say": say}
+                "args": {"selector": sel, "decls": clean},
+                "before": "\n".join(f"{d['prop']}: {w}" for d, w in zip(clean, befores)),
+                "after": "\n".join(f"{d['prop']}: {d['value']}" for d in clean),
+                "label": label, "note": note, "say": say}
 
     if op == "section":
         heading = (said.get("heading") or "").strip()
@@ -290,8 +391,10 @@ def apply(proposal, folder):
     a = proposal["args"]
     op = proposal["op"]
     if op == "css":
-        setup_edit.set_css(path, a["selector"], a["prop"], a["value"])
-        return f"{a['prop']} on {a['selector']} set to {a['value']} in {file}."
+        for d in a["decls"]:
+            setup_edit.set_css(path, a["selector"], d["prop"], d["value"])
+        bits = ", ".join(f"{d['prop']} to {d['value']}" for d in a["decls"])
+        return f"{a['selector']}: {bits}, in {file}."
     if op == "section":
         setup_edit.set_section(path, a["heading"], a["value"])
         return f"{a['heading']} rewritten in {file}."
@@ -323,7 +426,6 @@ def apply(proposal, folder):
 def strays_in_html(html, brand):
     """Every type declaration in the stylesheet naming a face the brand
     doesn't declare, as (selector, prop, the strays)."""
-    faces = declared_faces(brand)
     style = "\n".join(re.findall(r"<style[^>]*>(.*?)</style>", html or "", re.S))
     out = []
     for m in setup_edit._RULE.finditer(style):
@@ -333,7 +435,7 @@ def strays_in_html(html, brand):
             prop, val = d.group(2), d.group(3).strip()
             if not looks_like_faces(prop, val):
                 continue
-            strays = undeclared(val, faces)
+            strays = undeclared(val, brand)
             if strays:
                 out.append({"selector": sel, "prop": prop, "value": val, "strays": strays})
     return out

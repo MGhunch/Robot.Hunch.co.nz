@@ -50,8 +50,11 @@ NUMBER_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
 
 # A module that holds a picture. Its name usually says so; failing that the
 # length column does ("image, see IMAGES below").
-IMAGEY_NAME = re.compile(r"(^|[-_])(image|img|hero|logo|photo|picture)([-_]|$)", re.I)
-IMAGEY_LEN = re.compile(r"\bimages?\b", re.I)
+IMAGEY_NAME = re.compile(r"(^|[-_])(image|img|icon|hero|logo|photo|picture|banner)([-_]|$)", re.I)
+# "LinkedIn and website icons" is a description of a picture, not the words
+# that go in the slot — a fixed module can still be furniture rather than
+# copy, and pouring its description in reads as text nobody wrote.
+IMAGEY_LEN = re.compile(r"\bimages?\b|\bicons?\b", re.I)
 
 # A "fixed" row whose length column points at another file rather than
 # carrying the words itself.

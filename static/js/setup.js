@@ -71,6 +71,7 @@ function setupInit(){ $('setup').classList.add('on');
 
 function setupHome(){
   SETUP_KIND=''; SETUP_ID=''; SETUP_DATA=null; SETUP_SAID=[];
+  document.documentElement.style.removeProperty('--su-w');
   $('setupHome').hidden=false; $('setupStage').hidden=true;
   deetsUnmount(); setupLine(''); setupList();
 }
@@ -198,8 +199,7 @@ function setupContainerDraw(d){
   /* the artefact in its own document, so its css can't touch ours — and
      grown to its full height, because a scrollbar is not a check. */
   const fr=$('setupArt');
-  fr.onload=()=>{ setupPour(fr);
-    try{ fr.style.height=Math.max(400, fr.contentDocument.body.scrollHeight+24)+'px'; }catch(e){} };
+  fr.onload=()=>{ setupPour(fr); setupSize(fr); };
   fr.srcdoc = d.html||'';
 }
 
@@ -219,6 +219,24 @@ const SETUP_INNER_CSS=`[data-standin="image"]{background:#E4E7EC;position:relati
   display:flex;align-items:center;justify-content:center;font:600 10px/1 system-ui,sans-serif;
   letter-spacing:.16em;color:#98A0AE}`;
 
+/* THE ARTEFACT SETS THE WIDTH, not the other way round.
+
+   Both containers in the repo were 600px emails and the column was 600px,
+   flat — so Hunchmail, which is 660 because the template is 660, came out
+   clipped. An exact artefact rendered in a frame that's too small looks
+   wrong, and you go hunting for a fault that isn't there.
+
+   So the room measures what it is showing and grows to it, the way FIX IT
+   always has. Height too: a scrollbar is not a check. */
+function setupSize(fr){
+  let D; try{ D=fr.contentDocument; }catch(e){ return; }
+  if(!D || !D.body) return;
+  const art=D.querySelector('.email,.precopy,[data-artefact]');
+  const w = art ? Math.round(art.getBoundingClientRect().width) : 0;
+  document.documentElement.style.setProperty('--su-w', (w>320 ? w : 600)+'px');
+  try{ fr.style.height=Math.max(400, D.body.scrollHeight+24)+'px'; }catch(e){}
+}
+
 function setupPour(fr){
   let D; try{ D=fr.contentDocument; }catch(e){ return; }
   if(!D || !D.body) return;
@@ -228,7 +246,16 @@ function setupPour(fr){
   Object.keys(S).forEach(mod=>{
     const bits=S[mod]||{};
     [...D.querySelectorAll('[data-module="'+CSS.escape(mod)+'"]')].forEach((el,i)=>{
-      const dressed = el.textContent.trim() || el.querySelector('img,svg,picture');
+      /* A DRESSED SLOT IS LEFT ALONE, and the tag itself counts. When the
+         container is the real artefact, the hero IS an <img data-module=
+         "hero"> with a live URL on it — no text, no child elements — and
+         checking only descendants read that as empty and painted a grey box
+         over a picture that was already there. */
+      const dressed = el.textContent.trim() ||
+                      el.matches('img,svg,picture,video,iframe') ||
+                      el.querySelector('img,svg,picture,video,iframe') ||
+                      (el.getAttribute('style')||'').includes('background-image') ||
+                      el.hasAttribute('src');
       if(dressed) return;
       if(bits.kind==='image'){ el.dataset.standin='image'; return; }
       const texts=bits.texts||[]; if(!texts.length) return;
@@ -692,9 +719,13 @@ function setupDiff(d, live){
     if(y!==null) out+=row(y,'in');
   }
   const C=STR.setup.chat;
-  return `<div class="setup-prop${live?' live':''}">`+
+  /* a change that is real in the file and invisible on screen has to say so
+     here. A room that promises "say it and it changes" must never report a
+     change you cannot see as one. */
+  const note = d.note ? `<div class="setup-propnote">${esc(d.note)}</div>` : '';
+  return `<div class="setup-prop${live?' live':''}${d.note?' quiet':''}">`+
     `<div class="setup-propfile">${esc(d.file||'')} <span>${esc(d.label||'')}</span></div>`+
-    `<div class="setup-diff">${out}</div>`+
+    `<div class="setup-diff">${out}</div>`+note+
     `<div class="setup-propgo">`+
       `<button class="setup-yes" onclick="setupConfirm()">${esc(live?C.keep:C.yes)}</button>`+
       `<button class="setup-no" onclick="setupReject()">${esc(live?C.back:C.no)}</button>`+

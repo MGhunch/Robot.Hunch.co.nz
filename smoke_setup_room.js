@@ -81,6 +81,15 @@ const BASE='http://127.0.0.1:5055';
   const subj = doc.querySelector('[data-module="subject"]');
   ok('cut to the length the spec allows', subj.textContent.length<=45, true);
 
+  /* the real-artefact case: the tag IS the image, with a live URL on it.
+     Nothing may be painted over that. */
+  const withImg = bare.replace(/<div class="hero" data-module="hero">[^<]*<\/div>/,
+    '<img class="hero" data-module="hero" src="https://mcusercontent.com/x/issue113-hero.png">');
+  doc = pourInto(withImg);
+  const img = doc.querySelector('[data-module="hero"]');
+  ok('a real image is left alone', img.getAttribute('src'), 'https://mcusercontent.com/x/issue113-hero.png');
+  ok('and gets no grey box over it', img.dataset.standin===undefined, true);
+
   /* ---- THE PREVIEW LOOP (v049) ----
      "say the thing -> IT CHANGES -> I confirm." The proposal is applied to
      the artefact before you answer, so KEEP IT means you looked at it. This
@@ -91,7 +100,7 @@ const BASE='http://127.0.0.1:5055';
   ok('starts on the undeclared face', /Bebas/.test(wore), true);
 
   const prop = {park:false, op:'css', file:'container.html',
-    args:{selector:':root', prop:'--display', value:"'Euclid Circular A',Arial,sans-serif"},
+    args:{selector:':root', decls:[{prop:'--display', value:"'Euclid Circular A',Arial,sans-serif"}]},
     before:"'Bebas Neue','Arial Narrow',sans-serif", after:"'Euclid Circular A',Arial,sans-serif",
     label:':root · --display', say:'Swapped it.'};
   /* the preview the server would have computed, fetched the same way */

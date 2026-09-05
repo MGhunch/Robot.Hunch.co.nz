@@ -1212,17 +1212,28 @@ a.search-src:hover{color:var(--red)}
    bottom margin as well — so the right-hand card started 13px lower than
    the left-hand one. The margin goes, the gap matches the left column's,
    and the two tops agree. */
-.setup-grid{grid-template-columns:600px 380px;gap:80px;max-width:1060px;--mockzoom:2.2}
+/* THE COLUMN IS THE ARTEFACT'S OWN WIDTH.
+
+   It used to be 600px, flat, because both containers in the repo were 600
+   emails. Hunchmail is 660 — correctly; that is the template — and a 660
+   artefact in a 600 frame is clipped, which makes an exact artefact look
+   wrong and sends you hunting for a fault that isn't there.
+
+   FIX IT has never had this problem: it measures the thing it is showing
+   and sizes its column to it. This is that, with its own variable — a room
+   may use the chrome, it may not reach into another room's. */
+.setup-grid{grid-template-columns:var(--su-w,600px) 380px;gap:80px;
+  max-width:calc(var(--su-w,600px) + 460px);--mockzoom:2.2}
 .setup-grid .fix-rail{gap:14px}
 .setup-grid .fix-rail .fix-lozrow{margin-bottom:0}
-.setup-grid .fix-artwrap{width:600px}
+.setup-grid .fix-artwrap{width:var(--su-w,600px)}
 .setup-grid .fix-gutter{right:-64px}
 .setup-pane{display:none}
 .setup-pane.on{display:block}
 .setup-hint{color:rgba(255,255,255,.75);font-size:11.5px;margin-top:14px;max-width:600px}
 .setup-hint:empty{margin:0}
 .setup-lock{top:14px}
-.setup-hold{width:calc(600px / var(--mockzoom));margin:0;zoom:var(--mockzoom)}
+.setup-hold{width:calc(var(--su-w,600px) / var(--mockzoom));margin:0;zoom:var(--mockzoom)}
 .setup-card{background:#fff;border-radius:var(--r-lg);padding:22px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
 .setup-art{width:100%;height:880px;border:0;border-radius:var(--r-sm);display:block;background:#e9e6e0}
 
@@ -1386,6 +1397,11 @@ a.search-src:hover{color:var(--red)}
 .setup-dl.out{background:var(--delta);color:var(--red);text-decoration:line-through;
   text-decoration-color:rgba(237,28,36,.45)}
 .setup-dl.in{background:rgba(26,25,23,.05);color:var(--ink);font-weight:500}
+/* the honest line: real in the file, same on screen */
+.setup-propnote{padding:9px 12px;border-top:1px solid var(--border);font-size:12px;
+  line-height:1.45;color:var(--red)}
+.setup-prop.quiet.live{border-color:var(--border)}
+.setup-prop.quiet.live .setup-propfile{color:var(--mid);border-bottom-color:var(--border)}
 .setup-propgo{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border)}
 .setup-propgo.park{padding:10px 0 0;border-top:none}
 .setup-yes,.setup-no{font-family:inherit;font-size:11px;font-weight:600;letter-spacing:1.4px;
