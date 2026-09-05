@@ -46,6 +46,26 @@ function deetsInit(){
     g.rows.forEach(r=>{ DEETS_ROWS[r.id]=newState(r); });
   });
 }
+/* SEEDED — stand-in answers, for a room that is checking the SHAPE of the
+   card rather than filling it in. The client meets a FILLED checklist, so
+   checking an empty one checks nothing. Only SET UP ever calls this; the
+   client-facing rooms leave the card empty, which is what an empty card is
+   for. The values are derived server-side and never stored. */
+function deetsSeed(seed){
+  if(!seed) return;
+  Object.entries(seed.rows||{}).forEach(([id,v])=>{ if(DEETS_ROWS[id]) DEETS_ROWS[id].value=v; });
+  Object.entries(seed.repeats||{}).forEach(([k,items])=>{
+    if(!(k in DEETS_REPEATS)) return;
+    DEETS_REPEATS[k]=items.map(it=>{
+      const st={};
+      Object.entries(it).forEach(([id,v])=>{
+        st[id]=Object.assign(newState(deetsRow(id)||{}), {value:v});
+      });
+      return st;
+    });
+  });
+}
+
 const repKey = g => g.repeat.per.split(' ').pop();          // "prize card" -> card
 const flatRows = () => DEETS_CONFIG.groups.filter(g=>!g.repeat).flatMap(g=>g.rows);
 const deetsRow  = id => flatRows().find(r=>r.id===id) || DEETS_CONFIG.groups.flatMap(g=>g.rows).find(r=>r.id===id);

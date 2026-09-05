@@ -109,6 +109,27 @@ const STR = {
     },
     /* NAMING AN UPLOAD. A file in assets/ that no line names is invisible
        to the engine, so the upload asks where it goes and writes it. */
+    /* THE WAITING ROOM and THE STRAYS — two lines the container room says
+       when it opens, and neither refuses anything. */
+    open:   n => n===1 ? "One thing parked in Open." : n+" things parked in Open.",
+    strays: "Wearing a face the brand doesn't declare:",
+    /* THE CHAT. Its words are short on purpose — this is a room where you
+       are looking at a picture, and a paragraph in the margin is something
+       else to read instead of the thing. */
+    chat: {
+      yes:     "THAT'S IT",
+      no:      "NOT THAT",
+      park:    "PARK IT",
+      leave:   "LEAVE IT",
+      done:    "Done. Have a look.",
+      dropped: "Left it alone.",
+      parked:  "Parked in Open. It'll travel with the push.",
+      undone:  "Put back.",
+      beyond:  "That's beyond what I can change in here.",
+      robot:   "The robot didn't answer. Nothing's changed — try that again?",
+      empty:   "Say what's wrong with it first.",
+      gone:    "That folder isn't here any more.",
+    },
     /* the beat after a lock. It says LOCKED, not SAVED: the edits saved
        themselves when you tabbed out. This is you saying you've looked. */
     lockedthe: n => "LOCKED THE "+n.toUpperCase(),

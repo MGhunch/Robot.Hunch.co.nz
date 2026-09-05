@@ -13,8 +13,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=045">
-<script src="js/strings.js?v=045"></script>
+<link rel="stylesheet" href="robot.css?v=047">
+<script src="js/strings.js?v=047"></script>
 <script src="js/chrome.js?v=041"></script>
 
 </head>
@@ -452,8 +452,11 @@
         <div class="fix-card" id="setupChatCard">
           <div class="chat narrow" id="setupChat"></div>
           <div class="fix-compose">
-            <textarea rows="2" disabled placeholder="Edit it on the left — I can't do it for you yet."></textarea>
+            <textarea rows="2" id="setupNote2" placeholder="Say what's wrong with it."
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();setupAsk();}"></textarea>
+            <button class="setup-send" id="setupSend" onclick="setupAsk()">SAY IT</button>
           </div>
+          <button class="setup-undo" id="setupUndo" hidden onclick="setupUndo()">Undo the last one</button>
         </div>
         <div class="setup-note" id="setupNote"></div>
         <button class="fix-wrap" id="setupPush" onclick="setupWrapTap()">
@@ -481,11 +484,11 @@
 </section>
 
 <script src="js/sandwich.js?v=040"></script>
-<script src="js/deets.js?v=040"></script>
+<script src="js/deets.js?v=047"></script>
 <script src="js/door.js?v=040"></script>
 <script src="js/feed.js?v=040"></script>
 <script src="js/fix.js?v=038"></script>
 <script src="js/file.js?v=038"></script>
-<script src="js/setup.js?v=045"></script>
+<script src="js/setup.js?v=047"></script>
 </body>
 </html>

@@ -41,6 +41,13 @@ LANES = {
                       "                      reads the dump for the checklist on the same call"),
     "search":  (FAST, "a tool, not a worker"),
     "reader":  (FAST, "turning a picture into words; nobody waits well"),
+    # SET UP's chat (v047). Hunch-only, and Michael is sitting there watching
+    # it think, which is the same reason the FIXER is fast. The router never
+    # sees a file, so it is the smallest call in the app.
+    "setup_router": (FAST, "sorting one sentence into one file; no file contents"),
+    "setup_look":   (FAST, "one CSS declaration in container.html"),
+    "setup_config": (FAST, "one line, cell or section of config.md"),
+    "setup_spec":   (FAST, "one cell or section of spec.md"),
 }
 
 # §6 says the FIXER is "promoted to Opus if the log says so". Not built.

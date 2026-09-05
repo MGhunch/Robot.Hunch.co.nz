@@ -1333,6 +1333,47 @@ a.search-src:hover{color:var(--red)}
 
 .setup-probs{margin:4px 0 0 16px;padding:0}
 .setup-probs li{margin-bottom:5px}
+/* the waiting room and the strays: things to know, not things to fix, so
+   they sit back from the problems above them rather than competing */
+.setup-probs.open li{color:var(--mid)}
+.setup-probs.open b{color:var(--ink);font-weight:600}
+
+/* ---------------- THE CHAT (v047) ----------------
+   The container room's half of SET UP. A brand is fields; a container is a
+   picture, and you talk to a picture. */
+.setup-send{position:absolute;right:0;bottom:0;font-family:inherit;font-size:11px;font-weight:600;
+  letter-spacing:1.4px;border:1px solid var(--ink);background:none;color:var(--ink);
+  border-radius:var(--pill);padding:5px 14px;cursor:pointer}
+.setup-send:hover{background:var(--ink);color:var(--white)}
+.setup-send:disabled{opacity:.35;cursor:default}
+.setup-undo{display:block;margin:12px 0 0;font-family:inherit;font-size:12px;color:var(--mid);
+  background:none;border:none;padding:0;cursor:pointer;text-decoration:underline}
+.setup-undo:hover{color:var(--ink)}
+
+/* THE PROPOSAL. Before and after, both read off the disk. Nothing is
+   written until the yes, so this card is the whole of the confirm step. */
+.setup-prop{border:1px solid var(--border);border-radius:var(--r-md);margin:2px 0 4px;overflow:hidden}
+.setup-prop.spent{opacity:.4}
+.setup-prop.spent .setup-propgo{display:none}
+.setup-propfile{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;font-weight:600;
+  color:var(--mid);padding:9px 12px;border-bottom:1px solid var(--border);background:var(--paper)}
+.setup-propfile span{letter-spacing:.4px;text-transform:none;font-weight:400;opacity:.85}
+.setup-diff{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
+  line-height:1.55;padding:8px 0;max-height:280px;overflow:auto}
+.setup-dl{padding:1px 12px;white-space:pre-wrap;word-break:break-word}
+.setup-dl.same{color:var(--mid)}
+/* red for what goes, ink for what lands. No green anywhere in this app. */
+.setup-dl.out{background:var(--delta);color:var(--red);text-decoration:line-through;
+  text-decoration-color:rgba(237,28,36,.45)}
+.setup-dl.in{background:rgba(26,25,23,.05);color:var(--ink);font-weight:500}
+.setup-propgo{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border)}
+.setup-propgo.park{padding:10px 0 0;border-top:none}
+.setup-yes,.setup-no{font-family:inherit;font-size:11px;font-weight:600;letter-spacing:1.4px;
+  border-radius:var(--pill);padding:6px 15px;cursor:pointer;border:1px solid var(--ink)}
+.setup-yes{background:var(--ink);color:var(--white)}
+.setup-yes:hover{background:var(--red);border-color:var(--red)}
+.setup-no{background:none;color:var(--mid);border-color:var(--border)}
+.setup-no:hover{color:var(--ink);border-color:var(--ink)}
 
 /* what a pill points at, full size */
 .menu-card.wide{max-width:640px}

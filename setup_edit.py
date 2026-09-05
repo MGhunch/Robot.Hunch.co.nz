@@ -206,6 +206,126 @@ def set_cell(path, row_id, column, value):
 
 
 # ---------------------------------------------------------------------------
+# THE SEVENTH EDIT — one CSS declaration, in container.html
+#
+# A container's look is not the brand's palette. The brand declares the
+# faces, the logo and the colours; what a container decides for itself is
+# size, spacing, weight, tracking, alignment — prize_draw's h1 is 31px with
+# 1.5px of tracking and one_nz's brandlook says nothing about either. That
+# is the container's own look and this is how the chat tickles it.
+#
+# Surgical like everything else here: the VALUE of one declaration inside
+# one rule, and not a character more. The comments, the ordering, the media
+# queries and the rest of the stylesheet come out the far side untouched.
+#
+# It changes what is there. It does not add declarations and it does not add
+# rules — an ask that needs a new one is beyond the six edits and belongs in
+# the waiting room below, where a human can see it and decide.
+# ---------------------------------------------------------------------------
+
+# a rule is a selector list and a body with no braces in it. Nested blocks
+# (@media) fall out naturally: the inner rules match, the wrapper doesn't.
+_RULE = re.compile(r"([^{}]+)\{([^{}]*)\}")
+_PROP = re.compile(r"^(--)?[A-Za-z][\w-]*$")
+
+
+def set_css(path, selector, prop, value):
+    """The value of `prop` inside the rule for `selector`. The LAST rule and
+    the LAST declaration win, because that is what the cascade does and the
+    browser is the authority here, not us."""
+    selector = " ".join(selector.split()).strip()
+    prop = prop.strip()
+    value = " ".join(value.split()).strip().rstrip(";")
+    if not selector or not _PROP.match(prop):
+        raise EditError("nodecl")
+    if not value or re.search(r"[{}<>;]", value):
+        raise EditError("nothex")
+    text = _read(path)
+    hit = None
+    for m in _RULE.finditer(text):
+        sels = [s.strip() for s in m.group(1).split(",")]
+        # the selector list can trail a previous rule's closing brace or a
+        # comment; only the last line of it is the selector we mean
+        sels = [s.split("\n")[-1].strip() for s in sels]
+        if selector in sels:
+            hit = m
+    if hit is None:
+        raise EditError("norule")
+    body = hit.group(2)
+    decl = None
+    for d in re.finditer(r"(^|[;\s])(" + re.escape(prop) + r")\s*:\s*([^;]*)", body):
+        decl = d
+    if decl is None:
+        raise EditError("nodecl")
+    start = hit.start(2) + decl.start(3)
+    end = hit.start(2) + decl.end(3)
+    old = text[start:end]
+    # keep whatever trailing whitespace the author had; replace the words
+    tail = old[len(old.rstrip()):]
+    _write(path, text[:start] + value + tail + text[end:])
+    return f"{selector} {{ {prop}: {value} }}"
+
+
+def read_css(path, selector, prop):
+    """What that declaration says right now — the 'before' half of a diff,
+    read from the file rather than remembered."""
+    text = _read(path)
+    hit = None
+    for m in _RULE.finditer(text):
+        sels = [s.split("\n")[-1].strip() for s in m.group(1).split(",")]
+        if " ".join(selector.split()).strip() in sels:
+            hit = m
+    if hit is None:
+        return ""
+    decl = None
+    for d in re.finditer(r"(^|[;\s])(" + re.escape(prop.strip()) + r")\s*:\s*([^;]*)", hit.group(2)):
+        decl = d
+    return decl.group(3).strip() if decl else ""
+
+
+# ---------------------------------------------------------------------------
+# HANG ON A SEC — the waiting room, written down
+#
+# An ask the six edits can't do isn't a failure and it isn't a no. It is a
+# thing to decide, and the worst place to leave it is a chat window that
+# closes. So it goes in the folder, as a bullet under `## Open`, and it
+# travels with the push — which means the next person to open this container
+# reads it whether or not they were in the room when it was said.
+#
+# The convention already existed: `_parse_legals` has read an Open list for
+# as long as there have been containers. Nothing has ever put anything in it.
+# ---------------------------------------------------------------------------
+
+def add_open(path, line):
+    """Append a bullet to `## Open`, writing the section if it isn't there.
+    The section goes in near the top, above FEED IT — a waiting room at the
+    bottom of a long file is a waiting room nobody visits."""
+    line = " ".join(line.split()).strip().lstrip("-* ")
+    if not line:
+        raise EditError("empty")
+    text = _read(path)
+    m = re.search(r"^##[ \t]+Open[ \t]*$", text, re.M)
+    if m:
+        nxt = re.search(r"^##[ \t]+(?!#)", text[m.end():], re.M)
+        end = m.end() + (nxt.start() if nxt else len(text) - m.end())
+        block = text[m.end():end].rstrip()
+        if line.lower() in block.lower():
+            return line                                # already parked; no duplicate
+        joiner = "\n" if block else "\n\n"
+        return _keep(path, text[:m.end()] + block + joiner + f"- {line}\n\n" + text[end:], line)
+    anchor = re.search(r"^##[ \t]+FEED IT[ \t]*$", text, re.M)
+    at = anchor.start() if anchor else len(text.rstrip()) + 1
+    block = f"## Open\n*Asks parked in SET UP. Decisions, not gaps.*\n\n- {line}\n\n"
+    head = text[:at].rstrip() + "\n\n"
+    return _keep(path, head + block + text[at:].lstrip("\n"), line)
+
+
+def _keep(path, text, ret):
+    _write(path, text)
+    return ret
+
+
+# ---------------------------------------------------------------------------
 # THE CHANGELOG — a folder that's been fiddled with says so
 # ---------------------------------------------------------------------------
 

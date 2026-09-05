@@ -444,6 +444,12 @@ def _parse_config(text, cid, problems):
         legals = ""
     c["legals"] = _parse_legals(legals, problems, cid)
 
+    # THE WAITING ROOM. Optional by design and never a problem — a parked ask
+    # is a decision somebody owes, not a fault in the folder. It is read here
+    # so it travels with a push and the next person to open the container
+    # sees it whether or not they were in the room when it was said.
+    c["open"] = _bullets(_section(text, "Open") or "")
+
     # ids: unique, and every {placeholder} in a clause resolves
     ids = [r["id"] for g in c["needs"]["groups"] for r in g["rows"]]
     for i in set(ids):
@@ -614,7 +620,7 @@ def _cache_path(folder):
 # "touch a file in each folder anyway" as the workaround, and v042's font
 # fix would have done it again. Bump this whenever the shape of a
 # compiled dict changes and every cache rebuilds itself.
-PARSER = 43
+PARSER = 44
 
 
 def _compile(folder, kind):

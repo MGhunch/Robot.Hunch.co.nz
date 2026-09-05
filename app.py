@@ -37,6 +37,8 @@ import robots
 import setup_room
 import setup_edit
 import setup_push
+import setup_chat
+import setup_dummy
 from engine import (build_facts, assemble_terms, render_terms, render_copy,
                     clause_menu, type_options, TermsError)
 
@@ -432,10 +434,11 @@ def setup_open(kind, fid):
         if not c:
             return jsonify({"error": "gone"}), 404
         out = _container_payload(c, assets="/api/setup/asset/")
+        bd = CT.brands(drafts=True).get(c.get("brand", ""))
         out.update({"kind": "containers", "id": fid, "state": _state(c),
-                    "brandRead": _brand_payload(CT.brands(drafts=True)[c["brand"]])
-                    if c.get("brand") in CT.brands(drafts=True) else None,
+                    "brandRead": _brand_payload(bd) if bd else None,
                     "brandWanted": c.get("brand", "")})
+        out.update(_setup_extras(c, bd))
         return jsonify(out)
     return jsonify({"error": "gone"}), 404
 
@@ -497,6 +500,156 @@ def setup_push_route():
     return jsonify(out)
 
 
+def _setup_extras(c, bd):
+    """What SET UP sees that a client never does.
+
+    STAND-IN COPY, because the person setting a container up is checking how
+    a CLIENT'S finished render will look and an empty slot checks nothing. It
+    is derived here, never stored, and the front end pours it only into slots
+    the html leaves blank — a container built from a real artefact already
+    carries real copy and latin poured over it would make the check worse.
+
+    THE WAITING ROOM, `## Open`, which the parser has read since containers
+    existed and nothing has ever displayed.
+
+    THE STRAYS: what this container wears that its brand has never declared.
+    A line, not a problem — see setup_chat for why that distinction is the
+    one rule this room isn't allowed to break."""
+    return {
+        "standIn": setup_dummy.stand_in(c),
+        "standInDeets": setup_dummy.stand_in_deets(_checklist(c)),
+        "open": c.get("open", []),
+        "strays": setup_chat.strays_in_html(c.get("artefact", {}).get("html", ""),
+                                            bd or {}) if bd else [],
+    }
+
+
+# ---------------------------------------------------------------------------
+# THE CHAT — you look at the artefact, you say what's wrong, it proposes the
+# smallest change, you confirm. Three gates in front of every write: the
+# router never sees a file, the scoped robot sees only its own, and check()
+# reads the 'before' off the disk rather than believing the model.
+#
+# UNDO is per sitting, in memory, wiped when the process restarts — the same
+# deal as the locks, and Michael knows: "as long as I'm aware the locks is
+# probably fine." Each entry carries the edited file AND config.md, because
+# the changelog line and the version bump live in the manifest and an undo
+# that left those behind would be a lie in the folder.
+# ---------------------------------------------------------------------------
+
+UNDO = {}
+UNDO_DEEP = 20
+
+
+def _snap(folder, fid, file, what):
+    files = {}
+    for name in {file, "config.md"}:
+        path = os.path.join(folder, name)
+        if os.path.isfile(path):
+            files[name] = _read_text(path)
+    stack = UNDO.setdefault(fid, [])
+    stack.append({"files": files, "what": what})
+    del stack[:-UNDO_DEEP]
+
+
+@app.route("/api/setup/chat", methods=["POST"])
+@require_auth
+def setup_chat_route():
+    """A sentence in, a proposal out. Writes nothing."""
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    d = request.get_json(silent=True) or {}
+    fid, ask = d.get("id", ""), (d.get("ask") or "").strip()
+    if not ask:
+        return jsonify({"error": "empty"}), 400
+    c = CT.container(fid, drafts=True)
+    if not c:
+        return jsonify({"error": "gone"}), 404
+    # the draft is made by the first EDIT, not by the asking — looking stays
+    # free, and a question you don't act on leaves the folder as it was
+    folder = setup_room.draft_dir("containers", fid) or c.get("folder", "")
+    bd = CT.brands(drafts=True).get(c.get("brand", ""), {})
+    try:
+        r = setup_chat.route(ask, d.get("said") or [])
+        if not r["file"]:
+            return jsonify({"park": True, "ask": r["ask"],
+                            "say": r["why"] or "That's not one of the three files."})
+        said = setup_chat.propose(r["file"], r["ask"], folder, bd)
+        out = setup_chat.check(r["file"], said, folder, bd)
+    except Exception as e:                                   # a model call fell over
+        app.logger.warning("setup chat: %s", e)
+        return jsonify({"error": "robot"}), 502
+    out["ask"] = r["ask"]
+    out.setdefault("file", r["file"])
+    return jsonify(out)
+
+
+@app.route("/api/setup/apply", methods=["POST"])
+@require_auth
+def setup_apply_route():
+    """Confirming one. The first one copies the folder to the volume — the
+    ask didn't, the confirm does."""
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    d = request.get_json(silent=True) or {}
+    fid, prop = d.get("id", ""), d.get("proposal") or {}
+    if prop.get("file") not in setup_chat.OPS or prop.get("op") not in setup_chat.OPS.get(prop.get("file"), set()):
+        return jsonify({"error": "noop"}), 400
+    folder = setup_room.draft_dir("containers", fid, make=True)
+    if not folder:
+        return jsonify({"error": "gone"}), 404
+    _snap(folder, fid, prop["file"], prop.get("label", prop["op"]))
+    try:
+        what = setup_chat.apply(prop, folder)
+    except setup_edit.EditError as e:
+        UNDO.get(fid, []).pop()                              # nothing was written
+        return jsonify({"error": str(e)}), 400
+    setup_edit.log(folder, "config.md", what)
+    return _after_write("containers", fid, what=what)
+
+
+@app.route("/api/setup/undo", methods=["POST"])
+@require_auth
+def setup_undo_route():
+    """Put the last one back, changelog and version included."""
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    fid = (request.get_json(silent=True) or {}).get("id", "")
+    stack = UNDO.get(fid) or []
+    if not stack:
+        return jsonify({"error": "nothing"}), 400
+    entry = stack.pop()
+    folder = setup_room.draft_dir("containers", fid, make=True)
+    for name, text in entry["files"].items():
+        with open(os.path.join(folder, name), "w", encoding="utf-8") as f:
+            f.write(text)
+    return _after_write("containers", fid, what=entry["what"])
+
+
+@app.route("/api/setup/park", methods=["POST"])
+@require_auth
+def setup_park_route():
+    """HANG ON A SEC. The ask goes in the folder under `## Open` and travels
+    with the push, rather than dying in a chat window somebody closed."""
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    d = request.get_json(silent=True) or {}
+    fid, line = d.get("id", ""), (d.get("line") or "").strip()
+    if not line:
+        return jsonify({"error": "empty"}), 400
+    folder = setup_room.draft_dir("containers", fid, make=True)
+    if not folder:
+        return jsonify({"error": "gone"}), 404
+    _snap(folder, fid, "config.md", "parked")
+    try:
+        setup_edit.add_open(os.path.join(folder, "config.md"), line)
+    except setup_edit.EditError as e:
+        UNDO.get(fid, []).pop()
+        return jsonify({"error": str(e)}), 400
+    setup_edit.log(folder, "config.md", f"Parked in Open: {line}")
+    return _after_write("containers", fid, what="parked")
+
+
 @app.route("/api/setup/asset/<path:name>")
 @require_auth
 def setup_asset(name):
@@ -528,17 +681,27 @@ def setup_asset(name):
 EDIT_FILES = {"look": "brandlook.md", "voice": "brandvoice.md", "legals": "brandlegals.md"}
 
 
-def _after_write(kind, fid):
+def _after_write(kind, fid, what=""):
     """After every write: parse it again and answer with the parse. The page
-    never keeps its own idea of what the folder says."""
+    never keeps its own idea of what the folder says.
+
+    A container gets the whole payload back, because the chat changes what
+    the artefact LOOKS like and a redraw off remembered state would show you
+    the change you asked for rather than the change that landed."""
     if kind == "brands":
         b = CT.brands(drafts=True).get(fid) or {}
         return jsonify({"brandRead": _brand_payload(b) if b else None,
                         "problems": b.get("problems", []), "state": _state(b),
                         "list": _setup_list()})
     c = CT.container(fid, drafts=True) or {}
-    return jsonify({"problems": c.get("problems", []), "state": _state(c),
-                    "list": _setup_list()})
+    out = _container_payload(c, assets="/api/setup/asset/") if c else {}
+    bd = CT.brands(drafts=True).get(c.get("brand", "")) if c else None
+    if c:
+        out.update(_setup_extras(c, bd))
+    out.update({"problems": c.get("problems", []), "state": _state(c),
+                "list": _setup_list(), "what": what,
+                "undo": len(UNDO.get(fid) or [])})
+    return jsonify(out)
 
 
 @app.route("/api/setup/edit", methods=["POST"])

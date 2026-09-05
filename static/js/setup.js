@@ -27,6 +27,9 @@
    ===================================================================== */
 
 let SETUP_KIND='', SETUP_ID='', SETUP_STOP='', SETUP_SHUT={}, SETUP_SAID=[], SETUP_DATA=null;
+/* the chat's own two: the proposal waiting on a yes, and how many edits
+   deep the undo stack is. Both per sitting, like the locks. */
+let SETUP_PROP=null, SETUP_UNDO=0, SETUP_BUSY=false;
 /* a file that has landed and hasn't been told what it is yet */
 let SETUP_NAMING='';
 
@@ -137,6 +140,8 @@ function setupOpen(kind, id){
 
 function setupShow(kind, id, d){
   SETUP_KIND=kind; SETUP_ID=id; SETUP_DATA=d; SETUP_SAID=[]; SETUP_SHUT={};
+  SETUP_PROP=null; SETUP_UNDO=0; SETUP_BUSY=false;
+  $('setupUndo').hidden=true; $('setupNote2').value='';
   /* a container goes on the table exactly as a live one would, so every
      renderer below reads what it always reads. CID stays empty: a peek
      during a check is not a peek by a client. */
@@ -184,12 +189,50 @@ function setupContainerDraw(d){
     refused: line=>setupChat(line),
     dig:     ()=>setupChat(STR.setup.nodig),
   });
-  deetsReset(); deetsInit(); deetsRender();
+  /* filled, not empty. You are checking how a CLIENT'S card will look, and
+     an empty card checks nothing. */
+  deetsReset(); deetsInit(); deetsSeed(d.standInDeets); deetsRender();
   /* the artefact in its own document, so its css can't touch ours — and
      grown to its full height, because a scrollbar is not a check. */
   const fr=$('setupArt');
-  fr.onload=()=>{ try{ fr.style.height=Math.max(400, fr.contentDocument.body.scrollHeight+24)+'px'; }catch(e){} };
+  fr.onload=()=>{ setupPour(fr);
+    try{ fr.style.height=Math.max(400, fr.contentDocument.body.scrollHeight+24)+'px'; }catch(e){} };
   fr.srcdoc = d.html||'';
+}
+
+/* ---------------- THE STAND-IN COPY ----------------
+   Same reason as the deets: the point of this room is seeing how a client's
+   finished render will look, and an empty slot shows you nothing.
+
+   ONLY INTO EMPTY SLOTS. A container built from a real artefact already
+   carries real copy — "Win one of five double passes to Practical Magic 2"
+   — and pouring latin over that would make the check worse, not better. So
+   a full slot is stepped over and a blank one is dressed.
+
+   An image slot gets a grey box rather than words, because latin in a
+   picture frame is a lie about what will be there. */
+const SETUP_INNER_CSS=`[data-standin="image"]{background:#E4E7EC;position:relative;min-height:88px}
+[data-standin="image"]::after{content:'IMAGE';position:absolute;left:0;top:0;right:0;bottom:0;
+  display:flex;align-items:center;justify-content:center;font:600 10px/1 system-ui,sans-serif;
+  letter-spacing:.16em;color:#98A0AE}`;
+
+function setupPour(fr){
+  let D; try{ D=fr.contentDocument; }catch(e){ return; }
+  if(!D || !D.body) return;
+  const S=(SETUP_DATA||{}).standIn||{};
+  const st=D.createElement('style'); st.textContent=SETUP_INNER_CSS;
+  D.head && D.head.appendChild(st);
+  Object.keys(S).forEach(mod=>{
+    const bits=S[mod]||{};
+    [...D.querySelectorAll('[data-module="'+CSS.escape(mod)+'"]')].forEach((el,i)=>{
+      const dressed = el.textContent.trim() || el.querySelector('img,svg,picture');
+      if(dressed) return;
+      if(bits.kind==='image'){ el.dataset.standin='image'; return; }
+      const texts=bits.texts||[]; if(!texts.length) return;
+      el.dataset.standin=bits.kind;
+      el.textContent=texts[i % texts.length];
+    });
+  });
 }
 
 /* ---------------- the brand's three sections ----------------
@@ -486,7 +529,17 @@ function setupPeek(name, url, isFont){
 }
 
 /* ---------------- the chat ----------------
-   Every word here is the validator's, in the robot's mouth. No model. */
+   The opening lines are the validator's, in the robot's mouth — no model
+   decides whether a folder is clean. Everything after them is a
+   conversation, and that is this room's whole job:
+
+     you look at the artefact -> you say what is wrong -> it proposes the
+     smallest change -> you see before and after -> you confirm, or you don't.
+
+   BRANDS DON'T GET THIS. A brand is entirely fields; every shelf maps to a
+   line and every line is a box you type in, so there is nothing to say to
+   it. A container has no fields — "the header's too tight" is a sentence,
+   not a form — which is why the chat lives here and only here. */
 function setupChat(line, d){
   /* A brand's problems are the red pills; saying them again in a log is
      the same sentence twice. So the brand room keeps one line — what just
@@ -504,10 +557,191 @@ function setupChat(line, d){
                                             : esc(STR.setup.clean), true));
     if(probs.length) SETUP_SAID.push(RAIL.robot('<ul class="setup-probs">'+
       probs.map(p=>`<li>${esc(p)}</li>`).join('')+'</ul>'));
+    /* THE WAITING ROOM. `## Open` has been in the schema since containers
+       existed and nothing has ever shown it. Asks parked here travel with
+       the folder, so the next person reads them whether or not they were
+       in the room when they were said. */
+    const open=d.open||[];
+    if(open.length) SETUP_SAID.push(RAIL.robot(esc(STR.setup.open(open.length))+
+      '<ul class="setup-probs open">'+open.map(o=>`<li>${esc(o)}</li>`).join('')+'</ul>'));
+    /* WHAT IT WEARS THAT THE BRAND NEVER DECLARED. Not a problem and it
+       refuses nothing — the MUST list belongs to the validator and this
+       room does not get a second opinion. A line, because sometimes it is
+       a mistake and sometimes it is deliberate, and only you know which. */
+    const stray=d.strays||[];
+    if(stray.length) SETUP_SAID.push(RAIL.robot(esc(STR.setup.strays)+
+      '<ul class="setup-probs open">'+stray.map(x=>
+        `<li>${esc(x.strays.join(', '))} — <b>${esc(x.selector)}</b> ${esc(x.prop)}</li>`).join('')+'</ul>'));
   }
   if(line) SETUP_SAID.push(RAIL.robot(esc(line)));
   box.innerHTML=SETUP_SAID.join('');
   box.scrollTop = line ? box.scrollHeight : 0;
+}
+
+/* one turn of the conversation, kept so a redraw doesn't wipe the thread */
+function setupSay(html, who){
+  SETUP_SAID.push(who==='me' ? RAIL.me(html) : RAIL.robot(html, who==='robot'));
+  const box=$('setupChat'); box.innerHTML=SETUP_SAID.join('');
+  box.scrollTop=box.scrollHeight;
+}
+
+function setupThinking(on){
+  SETUP_BUSY=on;
+  $('setupSend').disabled=on; $('setupNote2').disabled=on;
+  const box=$('setupChat'); let t=box.querySelector('.chat-think');
+  if(on && !t){ t=document.createElement('div'); t.className='chat-row chat-think';
+                t.innerHTML=RAIL.think(); box.appendChild(t); box.scrollTop=box.scrollHeight; }
+  if(!on && t) t.remove();
+}
+
+/* ---------------- asking ----------------
+   The sentence goes to a router that never sees a file, then to the one
+   robot that owns the file it picked. Nothing is written by asking — the
+   draft is made by the CONFIRM, so a question you think better of leaves
+   the folder exactly as it was. */
+function setupAsk(){
+  const box=$('setupNote2'), ask=(box.value||'').trim();
+  if(!ask || SETUP_BUSY) return;
+  box.value=''; SETUP_PROP=null;
+  setupSay(esc(ask),'me');
+  setupThinking(true);
+  fetch('/api/setup/chat',{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({id:SETUP_ID, ask, said:setupHeard()})})
+    .then(r=>r.json().then(d=>({ok:r.ok,d})))
+    .then(({ok,d})=>{
+      setupThinking(false);
+      if(!ok){ setupSay(esc(STR.setup.chat[d.error]||STR.setup.chat.robot),'robot'); return; }
+      if(d.park){ setupPark(d, ask); return; }
+      setupProposal(d);
+    })
+    .catch(()=>{ setupThinking(false); setupSay(esc(STR.setup.chat.robot),'robot'); });
+}
+
+/* what has been said, so a follow-up ("no, smaller") routes with the thread
+   behind it rather than as a sentence out of nowhere */
+function setupHeard(){
+  return SETUP_SAID.slice(-8).map(h=>h.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim())
+    .filter(Boolean).map(t=>t.length>180 ? t.slice(0,179)+'\u2026' : t);
+}
+
+/* ---------------- the proposal ----------------
+   Before and after, off the disk. The 'before' is read from the file by the
+   server, never taken from the robot — a model has no way of knowing what
+   is actually there and every incentive to sound sure. */
+function setupProposal(d){
+  SETUP_PROP=d;
+  const say=d.say ? RAIL.robot(esc(d.say), true) : '';
+  SETUP_SAID.push(say+setupDiff(d));
+  const box=$('setupChat'); box.innerHTML=SETUP_SAID.join(''); box.scrollTop=box.scrollHeight;
+}
+
+/* line by line, marked where it differs. A one-line change reads as one
+   line; a rewritten section reads as the lines that moved. */
+function setupDiff(d){
+  const a=String(d.before||'').split('\n'), b=String(d.after||'').split('\n');
+  const row=(t,cls)=>`<div class="setup-dl ${cls}">${esc(t)||'&nbsp;'}</div>`;
+  let out='';
+  const n=Math.max(a.length,b.length);
+  for(let i=0;i<n;i++){
+    const x=a[i]===undefined?null:a[i], y=b[i]===undefined?null:b[i];
+    if(x===y){ out+=row(x,'same'); continue; }
+    if(x!==null) out+=row(x,'out');
+    if(y!==null) out+=row(y,'in');
+  }
+  return `<div class="setup-prop">`+
+    `<div class="setup-propfile">${esc(d.file||'')} <span>${esc(d.label||'')}</span></div>`+
+    `<div class="setup-diff">${out}</div>`+
+    `<div class="setup-propgo">`+
+      `<button class="setup-yes" onclick="setupConfirm()">${esc(STR.setup.chat.yes)}</button>`+
+      `<button class="setup-no" onclick="setupReject()">${esc(STR.setup.chat.no)}</button>`+
+    `</div></div>`;
+}
+
+function setupConfirm(){
+  const prop=SETUP_PROP; if(!prop || SETUP_BUSY) return;
+  SETUP_PROP=null; setupThinking(true);
+  fetch('/api/setup/apply',{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({id:SETUP_ID, proposal:prop})})
+    .then(r=>r.json().then(d=>({ok:r.ok,d})))
+    .then(({ok,d})=>{
+      setupThinking(false);
+      if(!ok){ setupSay(esc(STR.setup.edit[d.error]||STR.setup.edit.failed),'robot'); return; }
+      setupSpend(); setupLanded(d); setupSay(esc(STR.setup.chat.done),'robot');
+    })
+    .catch(()=>{ setupThinking(false); setupSay(esc(STR.setup.edit.failed),'robot'); });
+}
+
+/* a card that has been answered stops offering the answer — but stays in
+   the thread. A proposal you confirmed and a proposal you turned down are
+   both part of the conversation, and blanking either makes the log a lie. */
+function setupSpend(){
+  SETUP_SAID=SETUP_SAID.map(h=>h.replace(/class="setup-prop"/g,'class="setup-prop spent"'));
+  $('setupChat').innerHTML=SETUP_SAID.join('');
+}
+
+function setupReject(){
+  SETUP_PROP=null; setupSpend();
+  setupSay(esc(STR.setup.chat.dropped),'robot');
+}
+
+/* ---------------- hang on a sec ----------------
+   An ask the six edits can't do is not a failure and not a no. It is a
+   thing to decide, and the worst place to leave it is a chat window that
+   closes. So it goes in the folder under `## Open` and travels with the
+   push. */
+function setupPark(d, ask){
+  const line=(d.ask||ask||'').trim();
+  SETUP_SAID.push(RAIL.robot(esc(d.say||STR.setup.chat.beyond)+
+    `<div class="setup-propgo park">`+
+      `<button class="setup-yes" onclick="setupParkGo(${attr(line)})">${esc(STR.setup.chat.park)}</button>`+
+      `<button class="setup-no" onclick="setupReject()">${esc(STR.setup.chat.leave)}</button>`+
+    `</div>`, true));
+  const box=$('setupChat'); box.innerHTML=SETUP_SAID.join(''); box.scrollTop=box.scrollHeight;
+}
+
+function setupParkGo(line){
+  if(SETUP_BUSY) return;
+  setupThinking(true);
+  fetch('/api/setup/park',{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({id:SETUP_ID, line})})
+    .then(r=>r.json().then(d=>({ok:r.ok,d})))
+    .then(({ok,d})=>{
+      setupThinking(false);
+      if(!ok){ setupSay(esc(STR.setup.edit[d.error]||STR.setup.edit.failed),'robot'); return; }
+      setupLanded(d); setupSay(esc(STR.setup.chat.parked),'robot');
+    })
+    .catch(()=>{ setupThinking(false); setupSay(esc(STR.setup.edit.failed),'robot'); });
+}
+
+/* ---------------- undo ----------------
+   Per edit, per sitting, in memory — the same deal as the locks, and it
+   puts the changelog line and the version bump back with the change,
+   because an undo that left those behind would be a lie in the folder. */
+function setupUndo(){
+  if(!SETUP_UNDO || SETUP_BUSY) return;
+  setupThinking(true);
+  fetch('/api/setup/undo',{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({id:SETUP_ID})})
+    .then(r=>r.json().then(d=>({ok:r.ok,d})))
+    .then(({ok,d})=>{
+      setupThinking(false);
+      if(!ok){ setupSay(esc(STR.setup.edit[d.error]||STR.setup.edit.failed),'robot'); return; }
+      setupLanded(d); setupSay(esc(STR.setup.chat.undone),'robot');
+    })
+    .catch(()=>{ setupThinking(false); setupSay(esc(STR.setup.edit.failed),'robot'); });
+}
+
+/* every write is followed by a read, and the artefact is redrawn from the
+   parse — not from what the page thought it just did. A change that didn't
+   land the way it read has to show that here rather than at the push. */
+function setupLanded(d){
+  Object.assign(SETUP_DATA, d);
+  CONT=SETUP_DATA;
+  SETUP_UNDO=d.undo||0;
+  $('setupUndo').hidden = !SETUP_UNDO;
+  setupState(d.state);
+  setupContainerDraw(SETUP_DATA);
+  setupPaint();
 }
 
 /* ---------------- the stops ---------------- */
