@@ -33,12 +33,12 @@ let SETUP_NAMING='';
 /* the stops each kind walks */
 const SETUP_RAILS = {
   brands: [
-    {key:'look',   name:'Look',    loz:'The look',   tag:'Right faces, right files?',
-     hint:'brandlook.md and assets/. The files in the folder and the lines that name them — when those two disagree, that gap is the bug.'},
-    {key:'prompt', name:'Prompt',  loz:'The prompt', tag:'Sound like them?',
-     hint:'brandvoice.md, eaten whole by WRITER and FIXER. Tap a section to read or rewrite it.'},
-    {key:'legals', name:'Legals',  loz:'The clauses', tag:'Right words?',
-     hint:'brandlegals.md — the client’s own words, pulled into containers with @brand.'},
+    /* no hints on the brand rails: the shelves say where you stand, and a
+       line explaining the lesson underneath a card that demonstrates it is
+       the narration this room was cluttered with. */
+    {key:'look',   name:'Look',    loz:'The look',    tag:'Right faces, right files?', hint:''},
+    {key:'prompt', name:'Prompt',  loz:'The prompt',  tag:'Sound like them?',          hint:''},
+    {key:'legals', name:'Legals',  loz:'The clauses', tag:'Right words?',              hint:''},
   ],
   containers: [
     {key:'mock',   name:'Mock up', loz:'The bones',  tag:'Does this look right?',
@@ -60,7 +60,8 @@ menuAdd('SET UP', ()=>{ menuToggle(); enterSetup(); }, {hunch:true, otherwise:()
 
 /* ---------------- the room ---------------- */
 
-function setupInit(){ $('setup').classList.add('on'); setupHome(); }
+function setupInit(){ $('setup').classList.add('on');
+  $('setupHomeTag').textContent=STR.setup.tagline; setupHome(); }
 
 function setupHome(){
   SETUP_KIND=''; SETUP_ID=''; SETUP_DATA=null; SETUP_SAID=[];
@@ -144,9 +145,13 @@ function setupShow(kind, id, d){
 
   const b=d.brandRead||{};
   $('setupHed').textContent = kind==='brands' ? 'THE BRAND' : 'THE CONTAINER';
+  /* the tile says what the thing is called. A brand's id is the folder
+     name and says nothing a human needs; a container's second half is its
+     BRAND, which is worth knowing at a glance. */
   $('setupTile').innerHTML = kind==='brands'
-    ? esc(b.name||id) + ' <span>· '+esc(id)+'</span>'
+    ? esc(b.name||id)
     : esc((d.tile||{}).name||id) + ' <span>· '+esc(b.name||d.brandWanted||'')+'</span>';
+  $('setupTag').textContent = STR.setup.tagline;
   setupState(d.state);
 
   const rail=SETUP_RAILS[kind];
@@ -228,7 +233,12 @@ function setupShelfPill(sh){
 function setupShelvesDraw(){
   const box=$('setupShelves'); if(!box) return;
   const all=((SETUP_DATA||{}).brandRead||{}).shelves;
-  if(!all || SETUP_KIND!=='brands'){ box.hidden=true; box.innerHTML=''; return; }
+  const brand = SETUP_KIND==='brands' && !!all;
+  /* one column, one occupant. A brand is all fields, so the chat has
+     nothing to do in it; a container is a picture, and gets the chat back. */
+  $('setupChatCard').hidden = brand;
+  $('setupRailLoz').hidden  = brand;
+  if(!brand){ box.hidden=true; box.innerHTML=''; return; }
   box.hidden=false;
   const pick = f => all.filter(f);
   /* the row classes are prefixed because the app already owns .waiting —
@@ -236,15 +246,14 @@ function setupShelvesDraw(){
      inherited it silently. Name a class after a state and something else
      will already be called that. */
   const rows=[
-    ['sh-have', STR.setup.shelves.have,    pick(s=>s.state==='have'||s.state==='na'), STR.setup.shelves.nohave],
-    ['sh-gaps', STR.setup.shelves.gaps,    pick(s=>s.state==='gap'),                  STR.setup.shelves.nogaps],
-    ['sh-wait', STR.setup.shelves.waiting, pick(s=>s.state==='waiting'),              STR.setup.shelves.nowaiting],
+    ['sh-have', STR.setup.shelves.have,    pick(s=>s.state==='have'||s.state==='na')],
+    ['sh-gaps', STR.setup.shelves.gaps,    pick(s=>s.state==='gap')],
+    ['sh-wait', STR.setup.shelves.waiting, pick(s=>s.state==='waiting')],
   ];
-  box.innerHTML = rows.map(([k,label,list,empty])=>
-    `<div class="setup-shelf ${k}">`+
+  box.innerHTML = rows.map(([k,label,list])=>
+    `<div class="setup-shelf ${k}${list.length?'':' none'}">`+
       `<div class="setup-shlab">${esc(label)}<i>${list.length}</i></div>`+
-      (list.length ? `<div class="setup-pills">${list.map(setupShelfPill).join('')}</div>`
-                   : `<div class="setup-shnone">${esc(empty)}</div>`)+
+      (list.length ? `<div class="setup-pills">${list.map(setupShelfPill).join('')}</div>` : '')+
     `</div>`).join('');
 }
 
@@ -281,6 +290,7 @@ function setupLook(b){
     h+=setupRowEl(key, setupEdit('look','line',{key}, f.text) +
       (f.names.length ? `<div class="setup-files">${f.names.map(n=>setupNamed(L,n)).join('')}</div>`
                       : `<div class="setup-sub">${esc(STR.setup.stacknotface)}</div>`), !f.text);
+
   });
   h+=setupRowEl('Logo', setupEdit('look','line',{key:'Logo'}, L.logo), !L.logo);
   if(L.mark) h+=setupRowEl('Mark', setupEdit('look','line',{key:'Mark'}, L.mark));
@@ -290,8 +300,8 @@ function setupLook(b){
         `<span class="setup-swname">${esc(c.key)}</span>`+
         `<input class="setup-hex" value="${esc(c.hex)}" maxlength="7" spellcheck="false"`+
         ` onchange="setupSave('look','hex',{key:${attr(c.key)}},this.value,this)"></label>`).join('')+
-      `</div><div class="setup-sub">${esc(STR.setup.hexonly)}</div>`
-    : 'No colour lines found.', !L.colours.length);
+      `</div>`+setupAddColour()
+    : setupAddColour(), !L.colours.length);
   h+=setupRowEl('In assets/', L.files.length
     ? '<div class="setup-files">'+L.files.map(setupPill).join('')+'</div>'
     : 'assets/ is empty.', !L.files.length);
@@ -299,13 +309,34 @@ function setupLook(b){
     '<div class="setup-files">'+L.missing.map(f=>`<span class="setup-file gone">${esc(f)}</span>`).join('')+'</div>'+
     `<div class="setup-sub">${esc(STR.setup.missingfiles)}</div>`, true);
   if(L.spare.length) h+=setupRowEl('Never named',
-    '<div class="setup-files">'+L.spare.map(f=>`<span class="setup-file">${esc(f)}</span>`).join('')+'</div>'+
-    `<div class="setup-sub">${esc(STR.setup.sparefiles)}</div>`);
+    '<div class="setup-files">'+L.spare.map(f=>`<span class="setup-file">${esc(f)}</span>`).join('')+'</div>');
   if(SETUP_NAMING) h+=setupRowEl('Name it', setupNameRow(L, SETUP_NAMING), true);
   h+=setupRowEl('Add', `<label class="setup-morebtn">ADD A FILE`+
-    `<input type="file" hidden onchange="setupAdd(this)"></label>`+
-    `<div class="setup-sub">${esc(STR.setup.addfile)}</div>`);
+    `<input type="file" hidden onchange="setupAdd(this)"></label>`);
   return h;
+}
+
+/* A NEW COLOUR. The palette is bold lines carrying a hex, so adding one
+   needs both halves — the name is the token a container reaches for, the
+   hex is what it gets. Editing an existing one is the swatch; this only
+   ever creates, and the server refuses a name that's already a line. */
+function setupAddColour(){
+  return `<div class="setup-newcol">`+
+    `<input class="setup-colname" id="setupColName" maxlength="24" spellcheck="false"`+
+    ` placeholder="${esc(STR.setup.colour.name)}">`+
+    `<input class="setup-colhex" id="setupColHex" maxlength="7" spellcheck="false"`+
+    ` placeholder="${esc(STR.setup.colour.hex)}">`+
+    `<button class="setup-colgo" onclick="setupNewColour()">${esc(STR.setup.colour.add)}</button>`+
+  `</div>`;
+}
+
+function setupNewColour(){
+  const n=$('setupColName'), x=$('setupColHex');
+  const key=(n.value||'').trim(), hex=(x.value||'').trim();
+  n.classList.remove('bad'); x.classList.remove('bad');
+  if(!key){ n.classList.add('bad'); return; }
+  if(!/^#[0-9A-Fa-f]{6}$/.test(hex)){ x.classList.add('bad'); return; }
+  setupSave('look','colour',{key}, hex, null);
 }
 
 /* PROMPT — brandvoice.md by section. WRITER still eats the whole file; the
@@ -458,6 +489,14 @@ function setupPeek(name, url, isFont){
 /* ---------------- the chat ----------------
    Every word here is the validator's, in the robot's mouth. No model. */
 function setupChat(line, d){
+  /* A brand's problems are the red pills; saying them again in a log is
+     the same sentence twice. So the brand room keeps one line — what just
+     happened — and the transcript stays with the container. */
+  if(SETUP_KIND==='brands'){
+    const note=$('setupNote');
+    note.innerHTML = line ? RAIL.robot(esc(line)) : '';
+    return;
+  }
   const box=$('setupChat');
   if(d){
     SETUP_SAID=[];
@@ -480,7 +519,7 @@ function setupGo(key){
   document.querySelectorAll('#setupRail .step').forEach(b=>b.classList.toggle('on', b.dataset.s===key));
   document.querySelectorAll('#setupStage .setup-pane').forEach(p=>
     p.classList.toggle('on', p.dataset.p===SETUP_PANE[key]));
-  $('setupLoz').textContent=s.loz; $('setupTag').textContent=s.tag; $('setupHint').textContent=s.hint;
+  $('setupLoz').textContent=s.loz; $('setupHint').textContent=s.hint;
   if(SETUP_KIND==='brands') setupBrandDraw();
   setupPaint();
 }
@@ -490,12 +529,27 @@ function setupGo(key){
    called checked, so the lock refuses and the gaps flash. Reopening is
    always free; only shutting is a claim. */
 function setupPadTap(){
-  if(!SETUP_SHUT[SETUP_STOP]){
-    const gaps=setupGapsHere();
-    if(gaps.length){ setupFlash(gaps); setupChat(STR.setup.shelves.refuse(gaps.length)); return; }
-  }
-  SETUP_SHUT[SETUP_STOP]=!SETUP_SHUT[SETUP_STOP];
+  if(SETUP_SHUT[SETUP_STOP]){ SETUP_SHUT[SETUP_STOP]=false; setupPaint(); return; }
+  const gaps=setupGapsHere();
+  if(gaps.length){ setupFlash(gaps); setupChat(STR.setup.shelves.refuse(gaps.length)); return; }
+  SETUP_SHUT[SETUP_STOP]=true;
   setupPaint();
+  setupNext();
+}
+
+/* locking IS the navigation: shut one and it walks you to the next one
+   still open. Going back is the rail, which never locks you out. */
+function setupNext(){
+  const nxt=(SETUP_RAILS[SETUP_KIND]||[]).find(s=>!SETUP_SHUT[s.key]);
+  if(nxt) setupGo(nxt.key);
+}
+
+/* the wrap button is two buttons wearing one coat, exactly as FIX IT's is:
+   while the section you're in is open it locks that section by name, and
+   once every section is shut it becomes the push. */
+function setupWrapTap(){
+  if(!SETUP_SHUT[SETUP_STOP]) return setupPadTap();
+  setupPush();
 }
 
 function setupPaint(){
@@ -512,7 +566,13 @@ function setupPaint(){
   const probs=((SETUP_DATA||{}).problems||[]).length;
   const draft=(SETUP_DATA||{}).state==='draft';
   const ready = draft && !left && !probs;
-  $('setupPushLbl').textContent = !draft ? 'NOTHING TO PUSH'
+  const here=rail.find(x=>x.key===SETUP_STOP);
+  /* naming the section it will lock comes first, and it comes first even on
+     a folder with nothing to push — checking a live brand is free, and a
+     dead button on the one thing you CAN do here reads as broken. */
+  $('setupPushLbl').textContent =
+      !SETUP_SHUT[SETUP_STOP] && here ? 'LOCK THE '+here.name.toUpperCase()
+    : !draft ? 'NOTHING TO PUSH'
     : probs ? (probs===1 ? '1 PROBLEM' : probs+' PROBLEMS')
     : left ? (left+' BIT'+(left>1?'S':'')+' TO CHECK') : 'PUSH';
   $('setupPushIco').innerHTML = PADLOCK.icon[ready?'shut':'open'];

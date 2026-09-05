@@ -384,7 +384,7 @@
   <!-- HOME -->
   <div class="home" id="setupHome">
     <h2 class="feed-hed beb">SET UP</h2>
-    <div class="setup-tagline">Check the specs or fix stuff up</div>
+    <div class="setup-tagline" id="setupHomeTag"></div>
 
     <div class="home-pad" id="setupPad" onclick="document.getElementById('setupZip').click()">
       <input type="file" id="setupZip" accept=".zip" hidden onchange="setupTake(this.files)">
@@ -408,17 +408,19 @@
 
   <!-- THE FOLDER — asset left, robot right -->
   <div class="setup-stage" id="setupStage" hidden>
+    <!-- going back comes before you arrive, so it reads first and stops
+         competing with the state pill -->
+    <div class="setup-crumb">
+      <button class="setup-back" id="setupBack" onclick="setupHome()">
+        <span class="setup-backarrow">&#8592;</span>All set ups</button>
+    </div>
     <div class="rail" id="setupRail"></div>
     <h2 class="feed-hed beb" id="setupHed">SET UP</h2>
     <div class="setup-tagline" id="setupTag"></div>
     <div class="setup-meta">
       <div class="setup-tile" id="setupTile"></div>
       <div class="setup-status" id="setupStatus"></div>
-      <button class="setup-back" id="setupBack" onclick="setupHome()">All set ups</button>
     </div>
-
-    <!-- THE SHELVES — what we have, what's missing, what we're waiting on -->
-    <div class="setup-shelves" id="setupShelves" hidden></div>
 
     <div class="fix-grid setup-grid">
       <div>
@@ -442,14 +444,19 @@
       </div>
 
       <div class="fix-rail">
-        <div class="fix-lozrow"><span class="fix-loz empty">Anything off?</span></div>
-        <div class="fix-card">
+        <!-- BRANDS get the shelves here; CONTAINERS get the chat. A brand is
+             all fields, so there's nothing to say to it; a container is a
+             picture, and a picture needs words. -->
+        <div class="fix-lozrow" id="setupRailLoz"><span class="fix-loz empty">Anything off?</span></div>
+        <div class="setup-shelves" id="setupShelves" hidden></div>
+        <div class="fix-card" id="setupChatCard">
           <div class="chat narrow" id="setupChat"></div>
           <div class="fix-compose">
             <textarea rows="2" disabled placeholder="Edit it on the left — I can't do it for you yet."></textarea>
           </div>
         </div>
-        <button class="fix-wrap" id="setupPush" onclick="setupPush()">
+        <div class="setup-note" id="setupNote"></div>
+        <button class="fix-wrap" id="setupPush" onclick="setupWrapTap()">
           <span class="fix-wrapico" id="setupPushIco"></span><span id="setupPushLbl">PUSH</span>
         </button>
         <button class="setup-discard" id="setupDiscard" onclick="setupDiscard()">Discard this draft</button>

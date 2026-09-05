@@ -130,6 +130,32 @@ def name_file(path, key, filename):
     return fixed
 
 
+def add_colour(path, key, hexcode):
+    """A new colour line. The palette is bold lines carrying a hex, so a new
+    one goes in among them — after the last line that has a hex, not at the
+    end of the file where nothing else lives. Editing an existing colour is
+    set_hex's job; this only ever creates."""
+    key = " ".join(key.split()).strip(" :*")
+    hexcode = hexcode.strip()
+    if not key or not re.fullmatch(r"#[0-9A-Fa-f]{6}", hexcode):
+        raise EditError("empty")
+    text = _read(path)
+    try:
+        _bold_line(text, key)
+        raise EditError("taken")                   # that name is already a line
+    except EditError as e:
+        if str(e) == "taken":
+            raise
+    lines = list(re.finditer(r"^\*\*([^*]+?):\*\*[ \t]*(.*)$", text, re.M))
+    if not lines:
+        raise EditError("noline")
+    coloured = [h for h in lines if re.search(r"#[0-9A-Fa-f]{6}", h.group(2))]
+    anchor = coloured[-1] if coloured else lines[-1]
+    fixed = f"**{key}:** {hexcode}"
+    _write(path, text[:anchor.end()] + "\n" + fixed + text[anchor.end():])
+    return fixed
+
+
 def set_section(path, heading, body):
     """The body under one `## Heading`, up to the next one. The heading line
     itself never moves — the reader keys off it, and a renamed heading is a

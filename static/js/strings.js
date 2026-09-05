@@ -56,6 +56,10 @@ const STR = {
      what landed. The read lines answer the drop door's codes; the edit
      lines answer the writer's. */
   setup: {
+    /* ONE LINE, both pages. It used to be the rail step's question, which
+       changed under you every time you moved — a subtitle that moves isn't
+       a subtitle, it's a caption. */
+    tagline: "Check the specs or fix stuff up",
     read: {
       nozip:     "Nothing landed. Try that again?",
       broken:    "That's not a zip I can open. Zip the folder and drop it in.",
@@ -66,6 +70,7 @@ const STR = {
     },
     edit: {
       failed:     "That didn't save. Nothing's changed.",
+      taken:      "There's already a line with that name.",
       noline:     "Can't find that line any more — the file's moved on under me.",
       nosection:  "Can't find that heading any more.",
       norow:      "Can't find that clause any more.",
@@ -104,6 +109,8 @@ const STR = {
     },
     /* NAMING AN UPLOAD. A file in assets/ that no line names is invisible
        to the engine, so the upload asks where it goes and writes it. */
+    /* a new colour line. Name and hex, because the line is both. */
+    colour: { name:"Name", hex:"#000000", add:"ADD" },
     naming: {
       ask:   f => "Where does "+f+" go?",
       leave: "Leave it unnamed",
@@ -118,9 +125,6 @@ const STR = {
        the thing you are checking. */
     shelves: {
       have:'LOCKED AND LOADED', gaps:'GAPS TO FILL', waiting:'WAITING ROOM',
-      nohave:    "Nothing read yet.",
-      nogaps:    "Nothing missing. Every shelf that has to be filled is filled.",
-      nowaiting: "Nothing on order.",
       na:        "Not needed — brand.md says so.",
       refuse: n => n===1 ? "Can't lock it — there's a gap to fill on this one."
                          : "Can't lock it — there are "+n+" gaps to fill on this one.",
@@ -133,11 +137,8 @@ const STR = {
     discardsure:   "Throw this draft away? What's already live stays exactly as it is.",
     nobrandhere:   "Nothing brand-shaped in this one.",
     nodig:         "Nothing to dig for in here — this is a look, not a run.",
-    stacknotface:  "Names no file — a stack, not a face.",
-    hexonly:       "Type a hex and tab out. Everything else on the line stays as written.",
+    stacknotface:  "Names. But no files.",
     missingfiles:  "This bounces. Add the file below, or take it out of the line.",
-    sparefiles:    "The engine will never touch these. Keep them for humans, or prune them.",
-    addfile:       "Goes into assets/. Same name replaces.",
     specimen:      "If that isn't the face you meant, the file is wrong.",
   },
 

@@ -1191,7 +1191,8 @@ a.search-src:hover{color:var(--red)}
   padding:6px 12px;background:#fff;color:var(--mid)}
 .setup-status.live{background:var(--ink);color:#fff}
 .setup-status.draft{background:#fff;color:var(--red)}
-.setup-meta .setup-back{margin:0 0 0 auto}
+.setup-crumb{margin:0 0 12px}
+.setup-backarrow{margin-right:7px;display:inline-block}
 .setup-back{background:none;border:none;color:rgba(255,255,255,.8);font-family:inherit;
   font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0}
 .setup-back:hover{color:#fff}
@@ -1247,18 +1248,21 @@ a.search-src:hover{color:var(--red)}
    rule as LOCK THE DEETS, where the TBC carries it. The waiting room sits
    in outline: it isn't wrong, it just isn't here yet. N/A goes faint but
    stays visible, because "not needed" is a thing you checked. */
-.setup-shelves{background:#fff;border-radius:var(--r-lg);padding:6px 22px;
-  margin:0 0 26px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
-.setup-shelf{display:grid;grid-template-columns:190px minmax(0,1fr);gap:16px;
-  align-items:start;padding:15px 0;border-top:1px solid var(--border)}
+.setup-shelves{background:#fff;border-radius:var(--r-lg);padding:4px 20px;
+  margin:0 0 14px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
+/* in the rail column the label sits over its pills, not beside them —
+   380px has no room for a gutter, and the count carries the row when the
+   row is empty */
+.setup-shelf{padding:14px 0;border-top:1px solid var(--border)}
 .setup-shelf:first-child{border-top:none}
+.setup-shelf.none{padding:11px 0}
 .setup-shlab{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;
-  color:var(--mid);padding-top:5px;display:flex;align-items:center;gap:7px}
+  color:var(--mid);margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.setup-shelf.none .setup-shlab{margin-bottom:0;opacity:.55}
 .setup-shlab i{font-style:normal;font-weight:600;font-size:10px;color:var(--mid);
   border:1px solid var(--border);border-radius:var(--pill);padding:1px 7px}
 .setup-shelf.sh-gaps .setup-shlab{color:var(--red)}
 .setup-shelf.sh-gaps .setup-shlab i{color:var(--red);border-color:var(--red)}
-.setup-shnone{font-size:12.5px;color:var(--mid);padding-top:5px;line-height:1.5}
 .setup-pills{display:flex;flex-wrap:wrap;gap:6px}
 .setup-pill{display:inline-flex;align-items:center;border:1px solid var(--border);
   border-radius:var(--pill);background:none;font-family:inherit;font-size:12px;
@@ -1270,7 +1274,24 @@ a.search-src:hover{color:var(--red)}
 .setup-pill.gap:hover{border-color:var(--red);color:var(--red)}
 .setup-pill.na{opacity:.42}
 /* an Open line is prose, so it leans italic and never sets the row's width */
-.setup-pill.long{font-style:italic;max-width:340px}
+.setup-pill.long{font-style:italic;max-width:100%}
+
+/* one line of robot voice under the shelves, where a transcript used to be */
+.setup-note{margin:0 0 14px;min-height:0}
+.setup-note .line{margin:0;text-align:left;font-size:13px}
+
+/* a new colour: name, hex, go */
+.setup-newcol{display:flex;gap:6px;align-items:center;margin-top:10px}
+.setup-colname,.setup-colhex{border:1px solid var(--border);border-radius:var(--pill);
+  font-family:inherit;font-size:12px;padding:5px 11px;color:var(--ink);background:#fff}
+.setup-colname{width:120px}
+.setup-colhex{width:92px}
+.setup-colname:focus,.setup-colhex:focus{outline:none;border-color:var(--red)}
+.setup-colname.bad,.setup-colhex.bad{border-color:var(--red);color:var(--red)}
+.setup-colgo{font-family:inherit;font-size:11px;font-weight:600;letter-spacing:1px;
+  border:1px solid var(--ink);border-radius:var(--pill);background:none;color:var(--ink);
+  padding:5px 13px;cursor:pointer}
+.setup-colgo:hover{background:var(--ink);color:#fff}
 /* the refusal borrows LOCK THE DEETS' flash: the hole says so */
 .setup-pill.flash{animation:deets-flash .85s ease 2}
 @media(max-width:880px){.setup-shelf{grid-template-columns:1fr;gap:8px}

@@ -568,6 +568,9 @@ def setup_edit_route():
         elif op == "section":
             setup_edit.set_section(path, d.get("heading", ""), val)
             what = f"{d.get('heading','')} rewritten."
+        elif op == "colour":
+            setup_edit.add_colour(path, d.get("key", ""), val)
+            what = f"{d.get('key','')} added to the palette."
         elif op == "name":
             setup_edit.name_file(path, d.get("key", ""), val)
             what = f"{val} named on the {d.get('key','')} line."
