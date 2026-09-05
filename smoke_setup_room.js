@@ -47,7 +47,10 @@ const BASE='http://127.0.0.1:5055';
 
   const chat=d.getElementById('setupChat').textContent;
   ok('it opens with the verdict', /clean|problem/i.test(chat), true);
-  ok('and names what it wears that the brand does not declare', /Bebas Neue/.test(chat), true);
+  ok('it notices the font and says so in a sentence', /fonts are funny/i.test(chat), true);
+  ok('naming what it has', /Bebas Neue/.test(chat), true);
+  ok('and what the brand says instead', /Euclid Circular A/.test(chat), true);
+  ok('asked, not tabulated', /Is that right\?/.test(chat), true);
 
   /* the deets card, filled */
   w.setupGo('deets'); await sleep(400);
