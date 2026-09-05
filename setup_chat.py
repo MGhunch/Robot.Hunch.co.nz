@@ -39,7 +39,6 @@ Every write goes through setup_edit's surgical lane. Nothing here asks a
 model for a file.
 """
 
-import json
 import os
 import re
 
@@ -145,7 +144,7 @@ def route(ask, said):
         hist = "\n\nWHAT HAS ALREADY BEEN SAID IN THIS SITTING:\n" + \
                "\n".join(f"- {s}" for s in said[-6:])
     user = f"THE THREE FILES:\n{lines}{hist}\n\nTHE ASK:\n{ask}"
-    out = _json_from(_call("setup_router", prompt("setup_router"), user, max_tokens=400)) or {}
+    out = _json_from(_call("setup_router", prompt("setup_router"), user, max_tokens=600)) or {}
     f = out.get("file", "")
     return {"file": f if f in FILES else "", "ask": out.get("ask", ask).strip() or ask,
             "why": (out.get("why") or "").strip()}
@@ -166,7 +165,13 @@ def propose(file, ask, folder, brand):
         extra = ("\n\nTHE FACES THE BRAND DECLARES, and the only ones this container "
                  "may wear:\n" + ("\n".join(f"- {f}" for f in faces) or "- none declared"))
     user = f"THE FILE — {file}:\n\n{text}{extra}\n\nTHE ASK:\n{ask}"
-    return _json_from(_call(WORKER[file], prompt(WORKER[file]), user, max_tokens=1600)) or \
+    # THE CEILING, and v048's lesson applied here before it bites. A section
+    # rewrite of config.md's FEED IT is thousands of characters; at a low
+    # ceiling the API returns SUCCESS with the JSON stopped mid-word, the
+    # parse returns None, and this function says "I couldn't work out a
+    # change small enough to be safe" — which would be a lie about a
+    # truncation. A ceiling is a seatbelt, not a budget.
+    return _json_from(_call(WORKER[file], prompt(WORKER[file]), user, max_tokens=6000)) or \
         {"op": "park", "say": "I couldn't work out a change small enough to be safe."}
 
 

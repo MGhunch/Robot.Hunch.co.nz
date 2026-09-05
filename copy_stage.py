@@ -177,6 +177,12 @@ def _call(worker, system, user, max_tokens=1200):
         model=robots.robot(worker), max_tokens=max_tokens, system=system,
         messages=[{"role": "user", "content": user}],
     )
+    # A response that hits the ceiling is not an error — the API returns
+    # success and the answer just stops mid-word. That broke the WRITER's
+    # JSON three times on 5 Sep and the log called it "unparseable". Never
+    # let a cut-off wear that costume again: say it by name.
+    if getattr(resp, "stop_reason", "") == "max_tokens":
+        print(f"[robot/{worker}] CUT OFF at the {max_tokens}-token ceiling — the answer is truncated", flush=True)
     # Join the text blocks, same as _search_call and _call_blocks: a
     # response is a list of blocks, not one lump of text, and content[0]
     # is not promised to be the text. This line silently killed the
@@ -342,13 +348,14 @@ def generate():
             + json.dumps(shape, ensure_ascii=False)
             + "\n\nMODULE BY MODULE:\n" + "\n".join(f"- {n}" for n in notes))
     try:
-        result = _json_from(_call("writer", _system(c, "writer"), user, 2000))
+        text = _call("writer", _system(c, "writer"), user, 10000)
+        result = _json_from(text)
     except Exception as e:
         print(f"[robot/copy] generate failed ({robots.robot('writer')}): {e}", flush=True)
         return jsonify({"error": "fell"}), 500
     top, _ = writer_modules(c)
     if not result or not any(m["module"] in result for m in top):
-        print(f"[robot/copy] generate returned nothing usable ({robots.robot('writer')})", flush=True)
+        print(f"[robot/copy] generate returned nothing usable ({robots.robot('writer')}) — tail: {text[-200:]!r}", flush=True)
         return jsonify({"error": "unreadable"}), 500
     return jsonify({"success": True, "copy": result, "facts": facts,
                     "context": copy_context(c, facts), "flags": _flags(c, result, facts)})
@@ -443,12 +450,13 @@ def tweak():
     if data.get("history"):
         user += "\n\nEARLIER IN THIS EXCHANGE:\n" + "\n".join(data["history"])[:2000]
     try:
-        result = _json_from(_call("fixer", _system(c, "fixer"), user, 700))
+        text = _call("fixer", _system(c, "fixer"), user, 2000)
+        result = _json_from(text)
     except Exception as e:
         print(f"[robot/tweak] failed ({robots.robot('fixer')}): {e}", flush=True)
         return jsonify({"error": "fell"}), 500
     if not result:
-        print(f"[robot/tweak] returned nothing usable ({robots.robot('fixer')})", flush=True)
+        print(f"[robot/tweak] returned nothing usable ({robots.robot('fixer')}) — tail: {text[-200:]!r}", flush=True)
         return jsonify({"error": "unreadable"}), 500
 
     say = result.get("say") or ""
@@ -553,16 +561,17 @@ def feeder():
             + "\n\nTHE CHECKLIST'S FIELDS, for `found`:\n" + "\n".join(f"- {n}" for n in notes)
             + "\n\n`found` TAKES THIS SHAPE — leave out anything the material doesn't answer:\n"
             + json.dumps(shape, ensure_ascii=False)
-            + "\n\nTHE DUMP:\n" + (dump[:6000] or "(empty — nothing dropped in)")
+            + "\n\nTHE DUMP:\n" + (dump[:60000] or "(empty — nothing dropped in)")
             + "\n\nTHE CONVERSATION SO FAR:\n"
             + (convo or "(nothing yet — this is your first turn)"))
     try:
-        result = _json_from(_call("feeder", prompt("feeder"), user, 1400))
+        text = _call("feeder", prompt("feeder"), user, 10000)
+        result = _json_from(text)
     except Exception as e:
         print(f"[robot/feeder] fell back to plain: {e}")
         return jsonify(fallback())
     if not result:
-        print("[robot/feeder] fell back to plain: answer empty or unparseable")
+        print(f"[robot/feeder] fell back to plain: answer empty or unparseable — tail: {text[-200:]!r}")
         return jsonify(fallback())
 
     done = bool(result.get("done"))
@@ -605,13 +614,15 @@ def feeder():
 # The extraction lives in readers.py; only the picture needs a model.
 # ---------------------------------------------------------------------------
 
-def _call_blocks(worker, system, blocks, max_tokens=1500):
+def _call_blocks(worker, system, blocks, max_tokens=4000):
     """Same lane scheme as _call, for a message that isn't only text."""
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     resp = client.messages.create(
         model=robots.robot(worker), max_tokens=max_tokens, system=system,
         messages=[{"role": "user", "content": blocks}],
     )
+    if getattr(resp, "stop_reason", "") == "max_tokens":
+        print(f"[robot/{worker}] CUT OFF at the {max_tokens}-token ceiling — the answer is truncated", flush=True)
     return "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
 
 

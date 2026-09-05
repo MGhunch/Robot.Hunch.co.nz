@@ -9,7 +9,6 @@ routes with a hand-written proposal standing in for the robot's.
 Run it: python3 test_setup_chat.py
 """
 
-import json
 import os
 import shutil
 import sys

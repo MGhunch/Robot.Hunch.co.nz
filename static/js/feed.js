@@ -395,7 +395,11 @@ $('feedFile').addEventListener('change', async e=>{ await feedTake(e.target.file
   const t=$('feedDump');
   if(t) t.addEventListener('input', ()=>{ feedDumpDraw(); feedStages(); });
 }
-/* the dump is everything on the pad: pasted words plus every readable doc */
+/* the dump is everything on the pad: pasted words plus every readable doc.
+   DUMP_MAX is the room to play — the server reads the same amount, so
+   under the limit nothing is ever trimmed. Over it, DONE refuses with the
+   War and Peace line and the human prunes. Refuse loud beats trim quiet. */
+const DUMP_MAX = 60000;
 function feedDumpText(){
   const parts=FEED_DOCS.filter(d=>d.text).map(d=>`--- ${d.name} ---\n${d.text}`);
   /* found facts carry their source into the dump. The FEEDER and the WRITER
@@ -411,6 +415,7 @@ function feedDumpText(){
 async function feedDumpNext(){
   const dump=feedDumpText();
   if(!dump.trim()){ feedSay(0, FEED_SHORT[0][1]); return; }
+  if(dump.length>DUMP_MAX){ feedSay(0, STR.feed.dump_big, true); return; }
   $('blurb').value=dump; dirty();
   $('feedDumpGo').disabled=true;
   accReach(1);

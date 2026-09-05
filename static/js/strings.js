@@ -26,6 +26,7 @@ const STR = {
   feed: {
     feeder:     "Doh, the robot fell over. Please try again.",
     plan_empty: "Not much to go on. Throw me a bone.",
+    dump_big:   "Wowsers, what are we writing, War and Peace? Try again with less of a dump.",
     dig_empty:  "Hang on, we need something to write with.",
     search_died:"The internet is closed. Can you cut and paste?",
     /* the dead-doc row — one line per reason the server can send */
