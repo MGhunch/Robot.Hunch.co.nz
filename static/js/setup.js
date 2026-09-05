@@ -158,6 +158,9 @@ function setupShow(kind, id, d){
 }
 
 function setupState(state){
+  /* one place owns the state, so the pill and the data can't drift apart —
+     which is how PUSH stayed dead through an edit that had already worked. */
+  if(SETUP_DATA) SETUP_DATA.state=state;
   const st=$('setupStatus');
   st.textContent=(state||'').toUpperCase();
   st.className='setup-status '+(state||'');
