@@ -1200,7 +1200,21 @@ a.search-src:hover{color:var(--red)}
   font-size:12px;text-decoration:underline;cursor:pointer;padding:0;align-self:center}
 .setup-discard:hover{color:#fff}
 
-.setup-grid{grid-template-columns:600px 380px;gap:80px;max-width:1060px}
+/* THE TWO COLUMNS LINE UP, and both halves of that are arithmetic.
+
+   ACROSS: the mock is drawn small and zoomed, so its width has to be the
+   column divided by the zoom or it can't fill it. One number, used twice,
+   named once — at 250px and zoom 2.2 it came out 550 wide in a 600 column
+   and `margin:auto` centred the remainder, which is why the artefact sat
+   25px right of its own lozenge while the other two stops sat flush.
+
+   DOWN: the rail is a flex column with a gap, and the lozenge row carries a
+   bottom margin as well — so the right-hand card started 13px lower than
+   the left-hand one. The margin goes, the gap matches the left column's,
+   and the two tops agree. */
+.setup-grid{grid-template-columns:600px 380px;gap:80px;max-width:1060px;--mockzoom:2.2}
+.setup-grid .fix-rail{gap:14px}
+.setup-grid .fix-rail .fix-lozrow{margin-bottom:0}
 .setup-grid .fix-artwrap{width:600px}
 .setup-grid .fix-gutter{right:-64px}
 .setup-pane{display:none}
@@ -1208,7 +1222,7 @@ a.search-src:hover{color:var(--red)}
 .setup-hint{color:rgba(255,255,255,.75);font-size:11.5px;margin-top:14px;max-width:600px}
 .setup-hint:empty{margin:0}
 .setup-lock{top:14px}
-.setup-hold{width:250px;margin:0 auto;zoom:2.2}
+.setup-hold{width:calc(600px / var(--mockzoom));margin:0;zoom:var(--mockzoom)}
 .setup-card{background:#fff;border-radius:var(--r-lg);padding:22px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
 .setup-art{width:100%;height:880px;border:0;border-radius:var(--r-sm);display:block;background:#e9e6e0}
 
@@ -1394,6 +1408,10 @@ a.search-src:hover{color:var(--red)}
   .setup-grid{grid-template-columns:1fr;gap:34px}
   .setup-grid .fix-artwrap{width:auto}
   .setup-grid .fix-gutter{display:none}
+  /* the column stops being 600px here, so the mock's width can't be derived
+     from it any more — back to a small centred drawing, which is what it
+     was doing on a narrow screen all along */
+  .setup-grid .setup-hold{width:250px;margin:0 auto}
   .home-cols{grid-template-columns:1fr;gap:26px}
 }
 
