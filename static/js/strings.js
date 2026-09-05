@@ -118,7 +118,13 @@ const STR = {
     /* THE WAITING ROOM and THE STRAYS — two lines the container room says
        when it opens, and neither refuses anything. */
     open:   n => n===1 ? "One thing parked in Open." : n+" things parked in Open.",
-    strays: "Wearing a face the brand doesn't declare:",
+    /* THE ROBOT NOTICES, AND SAYS SO. Michael's line, and it does three
+       things a heading with bullets under it never did: it says what is
+       wrong, what it should be, and then asks him — which is the whole
+       shape of this room in one sentence. */
+    fonts: (worn, face) => "The fonts are funny — it's got "+worn+
+      (face ? ", and the brand says "+face+"." : ", and the brand doesn't declare it.")+
+      " Is that right?",
     /* THE CHAT. Its words are short on purpose — this is a room where you
        are looking at a picture, and a paragraph in the margin is something
        else to read instead of the thing. */
@@ -136,6 +142,7 @@ const STR = {
       dropped: "Put back.",
       superseded: "Put the last one back — you carried on.",
       already:    "Nothing waiting on a yes.",
+      briefed:    "Brief written. Everything parked, plus what the check found.",
       parked:  "Parked in Open. It'll travel with the push.",
       undone:  "Put back.",
       beyond:  "That's beyond what I can change in here.",

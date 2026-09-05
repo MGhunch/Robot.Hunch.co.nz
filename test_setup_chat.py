@@ -141,6 +141,20 @@ ok("still reads clean", d["problems"], [])
 cl.post("/api/setup/park", json={"id": "prize_draw", "line": line})
 ok("and never twice", len(cl.get("/api/setup/open/containers/prize_draw").get_json()["open"]), 1)
 
+print("\nTHE BRIEF")
+r = cl.get("/api/setup/brief/prize_draw")
+ok("it comes out as a file", r.status_code, 200)
+ok("named for the folder", 'SET-UP-prize_draw.md' in r.headers.get("Content-Disposition", ""), True)
+brief = r.get_data(as_text=True)
+ok("his note is in it, verbatim", line in brief, True)
+ok("and his half comes first",
+   brief.index("What I want changed") < brief.index("What the checker found"), True)
+ok("the strays are named", "Bebas Neue" in brief, True)
+ok("with what the brand actually declares", "Euclid Circular A" in brief, True)
+ok("and the folder's numbers", "data-module" in brief, True)
+ok("it never says what it thinks should happen",
+   any(w in brief.lower() for w in ("you should", "i recommend", "consider ")), False)
+
 print("\nTHE SURGICAL RULE")
 before = open(os.path.join("containers", "prize_draw", "container.html")).read()
 after = open(os.path.join(draft, "container.html")).read()

@@ -115,6 +115,28 @@ def font_lines(brand):
     return out
 
 
+def brand_face(brand):
+    """The brand's face, as a NAME, when the line yields one confidently.
+
+    `declares()` asks the font lines a question and is right every time,
+    because it never has to parse them. Naming the face is the other job:
+    a sentence that says "the brand says Euclid Circular A" needs the words.
+
+    A font line is prose, so this only answers when it is sure — the family
+    is what stands before the first full stop or backtick, and before any
+    comma inside that. Hunch's body line begins "the web-safe stack, no
+    file." and yields "the web-safe stack", which is not a face; a candidate
+    that doesn't start with a capital is refused rather than guessed at, and
+    the sentence goes without a name."""
+    for line in font_lines(brand):
+        text = line.split(":", 1)[-1]
+        head = re.split(r"[.`(]", text, 1)[0]
+        head = head.split(",")[0].strip()
+        if head and head[0].isupper() and len(head) < 40:
+            return head
+    return ""
+
+
 def declares(brand):
     return "\n".join(font_lines(brand)).lower()
 

@@ -37,6 +37,7 @@ import robots
 import setup_room
 import setup_edit
 import setup_push
+import setup_brief
 import setup_chat
 import setup_dummy
 import shutil
@@ -523,6 +524,9 @@ def _setup_extras(c, bd):
         "open": c.get("open", []),
         "strays": setup_chat.strays_in_html(c.get("artefact", {}).get("html", ""),
                                             bd or {}) if bd else [],
+        # the brand's face BY NAME, so the room can say what it should be
+        # rather than only what it isn't. Empty when the line won't yield one.
+        "face": setup_chat.brand_face(bd) if bd else "",
     }
 
 
@@ -705,6 +709,33 @@ def setup_park_route():
         return jsonify({"error": str(e)}), 400
     setup_edit.log(folder, "config.md", f"Parked in Open: {line}")
     return _after_write("containers", fid, what="parked")
+
+
+@app.route("/api/setup/brief/<fid>")
+@require_auth
+def setup_brief_route(fid):
+    """THE BRIEF, out of the folder and into a file you can hand somebody.
+
+    This room checks; the project builds. What it can't fix, it writes down —
+    the notes you parked in `## Open`, then what the checker found — and the
+    folder comes back rebuilt rather than being nudged one declaration at a
+    time in a chat window.
+
+    Read off the same parse the screen was drawn from, so the brief and the
+    room can never disagree about what is wrong."""
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    c = CT.container(fid, drafts=True)
+    if not c:
+        return jsonify({"error": "gone"}), 404
+    bd = CT.brands(drafts=True).get(c.get("brand", "")) or {}
+    text = setup_brief.write(c, bd, c.get("problems", []),
+                             setup_chat.strays_in_html(c.get("artefact", {}).get("html", ""), bd)
+                             if bd else [],
+                             c.get("open", []))
+    return app.response_class(
+        text, mimetype="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="SET-UP-{fid}.md"'})
 
 
 @app.route("/api/setup/asset/<path:name>")

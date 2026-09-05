@@ -149,6 +149,7 @@ function setupShow(kind, id, d){
   SETUP_KIND=kind; SETUP_ID=id; SETUP_DATA=d; SETUP_SAID=[]; SETUP_SHUT={};
   SETUP_PROP=null; SETUP_UNDO=0; SETUP_BUSY=false; SETUP_WAS=null; SETUP_PARK=null;
   $('setupUndo').hidden=true; $('setupNote2').value='';
+  $('setupBrief').hidden = kind!=='containers';
   /* a container goes on the table exactly as a live one would, so every
      renderer below reads what it always reads. CID stays empty: a peek
      during a check is not a peek by a client. */
@@ -597,18 +598,26 @@ function setupChat(line, d){
     const open=d.open||[];
     if(open.length) SETUP_SAID.push(RAIL.robot(esc(STR.setup.open(open.length))+
       '<ul class="setup-probs open">'+open.map(o=>`<li>${esc(o)}</li>`).join('')+'</ul>'));
-    /* WHAT IT WEARS THAT THE BRAND NEVER DECLARED. Not a problem and it
-       refuses nothing — the MUST list belongs to the validator and this
-       room does not get a second opinion. A line, because sometimes it is
-       a mistake and sometimes it is deliberate, and only you know which. */
-    const stray=d.strays||[];
-    if(stray.length) SETUP_SAID.push(RAIL.robot(esc(STR.setup.strays)+
-      '<ul class="setup-probs open">'+stray.map(x=>
-        `<li>${esc(x.strays.join(', '))} — <b>${esc(x.selector)}</b> ${esc(x.prop)}</li>`).join('')+'</ul>'));
+    /* WHAT IT WEARS THAT THE BRAND NEVER DECLARED — said, not tabulated.
+       It was a heading with bullets under it, which is a report. This is the
+       robot noticing something and asking you about it, which is what the
+       room is: it says what's wrong, what it should be, and hands it back.
+       Still refuses nothing — the MUST list belongs to the validator. */
+    const worn=[];
+    (d.strays||[]).forEach(x=>x.strays.forEach(f=>{ if(worn.indexOf(f)<0) worn.push(f); }));
+    if(worn.length) SETUP_SAID.push(RAIL.robot(esc(
+      STR.setup.fonts(setupAnd(worn), d.face||''))));
   }
   if(line) SETUP_SAID.push(RAIL.robot(esc(line)));
   box.innerHTML=SETUP_SAID.join('');
   box.scrollTop = line ? box.scrollHeight : 0;
+}
+
+/* "Bebas Neue and Arial Narrow", not "Bebas Neue, Arial Narrow" — the robot
+   is talking, and a list read aloud has an and in it */
+function setupAnd(list){
+  if(list.length<2) return list[0]||'';
+  return list.slice(0,-1).join(', ')+' and '+list[list.length-1];
 }
 
 /* one turn of the conversation, kept so a redraw doesn't wipe the thread */
@@ -808,6 +817,19 @@ function setupParkGo(line){
       setupLanded(d); setupSay(esc(STR.setup.chat.parked),'robot');
     })
     .catch(()=>{ setupThinking(false); setupSay(esc(STR.setup.edit.failed),'robot'); });
+}
+
+/* ---------------- the brief ----------------
+   This room checks; the project builds. Everything it can't fix goes on one
+   page — the notes you parked, then what the checker found — and the folder
+   comes back rebuilt rather than nudged a declaration at a time.
+
+   A file rather than a panel, because the next thing that happens to it is
+   that you hand it to somebody. */
+function setupBriefGet(){
+  if(!SETUP_ID || SETUP_KIND!=='containers') return;
+  window.location = '/api/setup/brief/'+encodeURIComponent(SETUP_ID);
+  setupSay(esc(STR.setup.chat.briefed),'robot');
 }
 
 /* ---------------- undo ----------------
