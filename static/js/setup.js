@@ -231,10 +231,14 @@ function setupShelvesDraw(){
   if(!all || SETUP_KIND!=='brands'){ box.hidden=true; box.innerHTML=''; return; }
   box.hidden=false;
   const pick = f => all.filter(f);
+  /* the row classes are prefixed because the app already owns .waiting —
+     FIX IT's queue chip, dashed and uppercase — and an unprefixed one
+     inherited it silently. Name a class after a state and something else
+     will already be called that. */
   const rows=[
-    ['have',    STR.setup.shelves.have,    pick(s=>s.state==='have'||s.state==='na'), STR.setup.shelves.nohave],
-    ['gaps',    STR.setup.shelves.gaps,    pick(s=>s.state==='gap'),                  STR.setup.shelves.nogaps],
-    ['waiting', STR.setup.shelves.waiting, pick(s=>s.state==='waiting'),              STR.setup.shelves.nowaiting],
+    ['sh-have', STR.setup.shelves.have,    pick(s=>s.state==='have'||s.state==='na'), STR.setup.shelves.nohave],
+    ['sh-gaps', STR.setup.shelves.gaps,    pick(s=>s.state==='gap'),                  STR.setup.shelves.nogaps],
+    ['sh-wait', STR.setup.shelves.waiting, pick(s=>s.state==='waiting'),              STR.setup.shelves.nowaiting],
   ];
   box.innerHTML = rows.map(([k,label,list,empty])=>
     `<div class="setup-shelf ${k}">`+

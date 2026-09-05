@@ -262,7 +262,7 @@ def _brand_shelves(b, look, colours, missing):
           "Named" if skin.get("mark") else "No **Mark:** line.")
     shelf("colours", "Colours", "look", True, bool(colours),
           f"{len(colours)} tokens" if colours else "No hex lines.")
-    shelf("assets", "assets/", "look", True, os.path.isdir(os.path.join(folder, "assets")),
+    shelf("assets", "Assets", "look", True, os.path.isdir(os.path.join(folder, "assets")),
           f"{len(have)} files" if have else "Empty.")
     shelf("named", "Named files", "look", True, not gone,
           "All there" if not gone else ", ".join(gone) + " named, not there")
