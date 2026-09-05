@@ -118,12 +118,18 @@ const STR = {
        are looking at a picture, and a paragraph in the margin is something
        else to read instead of the thing. */
     chat: {
+      /* when you can SEE the change, the buttons are about keeping it —
+         you've already looked. When you can't (a length, a folder that
+         wouldn't render), they're about whether it's right. */
+      keep:    "KEEP IT",
+      back:    "PUT IT BACK",
       yes:     "THAT'S IT",
       no:      "NOT THAT",
       park:    "PARK IT",
       leave:   "LEAVE IT",
-      done:    "Done. Have a look.",
-      dropped: "Left it alone.",
+      done:    "Kept.",
+      dropped: "Put back.",
+      superseded: "Put the last one back — you carried on.",
       parked:  "Parked in Open. It'll travel with the push.",
       undone:  "Put back.",
       beyond:  "That's beyond what I can change in here.",

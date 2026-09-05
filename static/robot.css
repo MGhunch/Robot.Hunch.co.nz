@@ -1353,6 +1353,12 @@ a.search-src:hover{color:var(--red)}
 /* THE PROPOSAL. Before and after, both read off the disk. Nothing is
    written until the yes, so this card is the whole of the confirm step. */
 .setup-prop{border:1px solid var(--border);border-radius:var(--r-md);margin:2px 0 4px;overflow:hidden}
+/* a proposal you are already looking at. The red edge says the artefact on
+   the left is showing this and nothing is on disk yet. */
+.setup-prop.live{border-color:var(--red)}
+.setup-prop.live .setup-propfile{color:var(--red);border-bottom-color:var(--red)}
+.setup-prop.live.spent{border-color:var(--border)}
+.setup-prop.live.spent .setup-propfile{color:var(--mid);border-bottom-color:var(--border)}
 .setup-prop.spent{opacity:.4}
 .setup-prop.spent .setup-propgo{display:none}
 .setup-propfile{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;font-weight:600;

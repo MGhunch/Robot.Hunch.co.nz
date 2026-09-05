@@ -39,6 +39,8 @@ import setup_edit
 import setup_push
 import setup_chat
 import setup_dummy
+import shutil
+import tempfile
 from engine import (build_facts, assemble_terms, render_terms, render_copy,
                     clause_menu, type_options, TermsError)
 
@@ -552,6 +554,51 @@ def _snap(folder, fid, file, what):
     del stack[:-UNDO_DEEP]
 
 
+# The preview keys: everything the room draws a container FROM. One list, so
+# showing a preview and putting it back can't disagree about what changed.
+PREVIEW_KEYS = ("html", "ghost", "checklist", "modules", "standIn", "standInDeets", "strays")
+
+
+def _preview(fid, prop, folder):
+    """What the artefact would look like if you kept it.
+
+    Michael's sentence, which this whole room is built from: *"I should be
+    able to say 'Not that font in the headline, this one' AND IT CHANGES and
+    I confirm."* The change comes first. Confirming is you keeping it, not
+    you authorising it — so you are looking at the thing rather than reading
+    a diff and imagining it.
+
+    The edit is made on a COPY of the folder, through the same lane that
+    would make it for real. Not a second implementation of the edit that can
+    drift from the first, and not a guess rendered in the browser: it is the
+    change. Nothing is written to the draft and no changelog line is added,
+    because a preview is not a change and a folder that says it was edited
+    when it wasn't is worse than no preview at all."""
+    tmp = tempfile.mkdtemp()
+    try:
+        dst = os.path.join(tmp, fid)
+        shutil.copytree(folder, dst)
+        for f in os.listdir(dst):
+            if f.endswith(".compiled.json"):
+                os.remove(os.path.join(dst, f))
+        setup_chat.apply(prop, dst)
+        brands_dir = CT.BRANDS_DIR
+        with CT.folders_at(brands_dir, tmp):
+            c = CT.container(fid)
+        if not c:
+            return None
+        out = _container_payload(c, assets="/api/setup/asset/")
+        out.update(_setup_extras(c, CT.brands(drafts=True).get(c.get("brand", ""))))
+        return {k: out[k] for k in PREVIEW_KEYS if k in out}
+    except Exception as e:
+        # an edit that won't render is not a crash — it is a proposal you
+        # look at as a diff instead, and the confirm is still yours
+        app.logger.warning("setup preview: %s", e)
+        return None
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 @app.route("/api/setup/chat", methods=["POST"])
 @require_auth
 def setup_chat_route():
@@ -581,6 +628,8 @@ def setup_chat_route():
         return jsonify({"error": "robot"}), 502
     out["ask"] = r["ask"]
     out.setdefault("file", r["file"])
+    if not out.get("park"):
+        out["preview"] = _preview(fid, out, folder)
     return jsonify(out)
 
 

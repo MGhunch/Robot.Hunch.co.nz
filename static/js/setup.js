@@ -30,6 +30,9 @@ let SETUP_KIND='', SETUP_ID='', SETUP_STOP='', SETUP_SHUT={}, SETUP_SAID=[], SET
 /* the chat's own two: the proposal waiting on a yes, and how many edits
    deep the undo stack is. Both per sitting, like the locks. */
 let SETUP_PROP=null, SETUP_UNDO=0, SETUP_BUSY=false;
+/* what the container looked like before the preview, so PUT IT BACK is a
+   restore and not another round trip */
+let SETUP_WAS=null;
 /* a file that has landed and hasn't been told what it is yet */
 let SETUP_NAMING='';
 
@@ -44,12 +47,12 @@ const SETUP_RAILS = {
     {key:'legals', name:'Legals', loz:'The clauses', hint:''},
   ],
   containers: [
-    {key:'mock',   name:'Mock up', loz:'The bones',
-     hint:'The ghost, off the html’s tags — the same drawing FEED IT shows.'},
-    {key:'deets',  name:'Deets',   loz:'The deets, empty',
-     hint:'The checklist as the client first meets it. Nothing filled: the shape is the check.'},
-    {key:'output', name:'Output',  loz:'The artefact',
-     hint:'container.html, as it leaves the building.'},
+    /* no hints here either, for the same reason they went from the brand
+       rails: a line explaining the picture is something to read INSTEAD of
+       looking at the picture, which is the one thing this room is for. */
+    {key:'mock',   name:'Mock up', loz:'The bones',        hint:''},
+    {key:'deets',  name:'Deets',   loz:'The deets',        hint:''},
+    {key:'output', name:'Output',  loz:'The artefact',     hint:''},
   ],
 };
 const SETUP_PANE = {look:'brand', prompt:'brand', legals:'brand',
@@ -140,7 +143,7 @@ function setupOpen(kind, id){
 
 function setupShow(kind, id, d){
   SETUP_KIND=kind; SETUP_ID=id; SETUP_DATA=d; SETUP_SAID=[]; SETUP_SHUT={};
-  SETUP_PROP=null; SETUP_UNDO=0; SETUP_BUSY=false;
+  SETUP_PROP=null; SETUP_UNDO=0; SETUP_BUSY=false; SETUP_WAS=null;
   $('setupUndo').hidden=true; $('setupNote2').value='';
   /* a container goes on the table exactly as a live one would, so every
      renderer below reads what it always reads. CID stays empty: a peek
@@ -602,7 +605,12 @@ function setupThinking(on){
 function setupAsk(){
   const box=$('setupNote2'), ask=(box.value||'').trim();
   if(!ask || SETUP_BUSY) return;
-  box.value=''; SETUP_PROP=null;
+  box.value='';
+  /* carrying on the conversation used to bin an unanswered proposal in
+     silence — you could talk all day and land nothing, which is exactly
+     what it did. Now it puts itself back and says so. */
+  if(SETUP_PROP){ SETUP_PROP=null; setupPreviewOff(); setupSpend();
+                  setupSay(esc(STR.setup.chat.superseded),'robot'); }
   setupSay(esc(ask),'me');
   setupThinking(true);
   fetch('/api/setup/chat',{method:'POST',headers:{'content-type':'application/json'},
@@ -624,20 +632,55 @@ function setupHeard(){
     .filter(Boolean).map(t=>t.length>180 ? t.slice(0,179)+'\u2026' : t);
 }
 
-/* ---------------- the proposal ----------------
-   Before and after, off the disk. The 'before' is read from the file by the
-   server, never taken from the robot — a model has no way of knowing what
-   is actually there and every incentive to sound sure. */
+/* ---------------- the proposal, which you are already looking at ----------
+   Michael's sentence, and the reason this room exists:
+
+     "I should be able to say 'Not that font in the headline, this one'
+      AND IT CHANGES and I confirm and then commit to send it live."
+
+   The change comes FIRST. The artefact on the left IS the proposal — made
+   on a copy of the folder, server-side, through the same lane that would
+   make it for real, so what you are looking at is the change rather than an
+   impression of it. Nothing is on disk yet.
+
+   Which makes KEEP IT mean what it says: you looked at it, you're keeping
+   it. The diff underneath is evidence, not the decision. The 'before' in it
+   is still read off the file by the server and never taken from the robot,
+   which has no way of knowing what is actually there and every incentive to
+   sound sure. */
+const PREVIEW_KEYS=['html','ghost','checklist','modules','standIn','standInDeets','strays'];
+
+function setupPreviewOn(prev){
+  if(!prev) return false;
+  SETUP_WAS={}; PREVIEW_KEYS.forEach(k=>{ if(k in SETUP_DATA) SETUP_WAS[k]=SETUP_DATA[k]; });
+  PREVIEW_KEYS.forEach(k=>{ if(k in prev) SETUP_DATA[k]=prev[k]; });
+  CONT=SETUP_DATA; setupContainerDraw(SETUP_DATA);
+  return true;
+}
+
+/* putting it back is a restore, not another round trip — what you were
+   looking at a second ago never left the page */
+function setupPreviewOff(){
+  if(!SETUP_WAS) return;
+  Object.assign(SETUP_DATA, SETUP_WAS); SETUP_WAS=null;
+  CONT=SETUP_DATA; setupContainerDraw(SETUP_DATA);
+}
+
 function setupProposal(d){
   SETUP_PROP=d;
+  const live=setupPreviewOn(d.preview);
+  /* a change you can see gets "keep it?". One that renders to nothing — a
+     length in spec.md, a folder that wouldn't parse — is still a real
+     proposal, and gets the diff and an honest label instead. */
   const say=d.say ? RAIL.robot(esc(d.say), true) : '';
-  SETUP_SAID.push(say+setupDiff(d));
+  SETUP_SAID.push(say+setupDiff(d, live));
   const box=$('setupChat'); box.innerHTML=SETUP_SAID.join(''); box.scrollTop=box.scrollHeight;
+  if(live) setupGo('output');
 }
 
 /* line by line, marked where it differs. A one-line change reads as one
    line; a rewritten section reads as the lines that moved. */
-function setupDiff(d){
+function setupDiff(d, live){
   const a=String(d.before||'').split('\n'), b=String(d.after||'').split('\n');
   const row=(t,cls)=>`<div class="setup-dl ${cls}">${esc(t)||'&nbsp;'}</div>`;
   let out='';
@@ -648,24 +691,27 @@ function setupDiff(d){
     if(x!==null) out+=row(x,'out');
     if(y!==null) out+=row(y,'in');
   }
-  return `<div class="setup-prop">`+
+  const C=STR.setup.chat;
+  return `<div class="setup-prop${live?' live':''}">`+
     `<div class="setup-propfile">${esc(d.file||'')} <span>${esc(d.label||'')}</span></div>`+
     `<div class="setup-diff">${out}</div>`+
     `<div class="setup-propgo">`+
-      `<button class="setup-yes" onclick="setupConfirm()">${esc(STR.setup.chat.yes)}</button>`+
-      `<button class="setup-no" onclick="setupReject()">${esc(STR.setup.chat.no)}</button>`+
+      `<button class="setup-yes" onclick="setupConfirm()">${esc(live?C.keep:C.yes)}</button>`+
+      `<button class="setup-no" onclick="setupReject()">${esc(live?C.back:C.no)}</button>`+
     `</div></div>`;
 }
 
 function setupConfirm(){
   const prop=SETUP_PROP; if(!prop || SETUP_BUSY) return;
-  SETUP_PROP=null; setupThinking(true);
+  /* keeping it: the preview stays on screen while the write goes in behind
+     it, so the picture never flickers back to the old one on the way. */
+  SETUP_PROP=null; SETUP_WAS=null; setupThinking(true);
   fetch('/api/setup/apply',{method:'POST',headers:{'content-type':'application/json'},
     body:JSON.stringify({id:SETUP_ID, proposal:prop})})
     .then(r=>r.json().then(d=>({ok:r.ok,d})))
     .then(({ok,d})=>{
       setupThinking(false);
-      if(!ok){ setupSay(esc(STR.setup.edit[d.error]||STR.setup.edit.failed),'robot'); return; }
+      if(!ok){ setupPreviewOff(); setupSay(esc(STR.setup.edit[d.error]||STR.setup.edit.failed),'robot'); return; }
       setupSpend(); setupLanded(d); setupSay(esc(STR.setup.chat.done),'robot');
     })
     .catch(()=>{ setupThinking(false); setupSay(esc(STR.setup.edit.failed),'robot'); });
@@ -680,7 +726,7 @@ function setupSpend(){
 }
 
 function setupReject(){
-  SETUP_PROP=null; setupSpend();
+  SETUP_PROP=null; setupPreviewOff(); setupSpend();
   setupSay(esc(STR.setup.chat.dropped),'robot');
 }
 

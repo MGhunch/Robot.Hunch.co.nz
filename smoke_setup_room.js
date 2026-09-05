@@ -30,6 +30,11 @@ const BASE='http://127.0.0.1:5055';
   await sleep(500);
   d.getElementById('doorWord').value='taniwha'; await w.sayWord(); await sleep(900);
 
+  /* a draft left behind by an earlier run would make every check below
+     about the wrong folder — start from what has landed, every time */
+  await w.fetch('/api/setup/discard',{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({kind:'containers', id:'prize_draw'})}).catch(()=>{});
+
   w.enterSetup(); await sleep(600);
   ok('the room is open', !d.getElementById('setupHome').hidden, true);
   ok('containers listed', d.querySelectorAll('#homeContainers .home-row').length>0, true);
@@ -75,6 +80,40 @@ const BASE='http://127.0.0.1:5055';
   ok('and it is latin', /lorem|ipsum|dolor|labore|veniam|irure|praesent|officia|occaecat|nisi|aute|minim/i.test(h2.textContent), true);
   const subj = doc.querySelector('[data-module="subject"]');
   ok('cut to the length the spec allows', subj.textContent.length<=45, true);
+
+  /* ---- THE PREVIEW LOOP (v049) ----
+     "say the thing -> IT CHANGES -> I confirm." The proposal is applied to
+     the artefact before you answer, so KEEP IT means you looked at it. This
+     is the check that was missing: v047 proved the FILE changed and never
+     once proved the PICTURE did. */
+  const face = () => (w.eval('SETUP_DATA.html').match(/--display:[^;]*/)||[''])[0];
+  const wore = face();
+  ok('starts on the undeclared face', /Bebas/.test(wore), true);
+
+  const prop = {park:false, op:'css', file:'container.html',
+    args:{selector:':root', prop:'--display', value:"'Euclid Circular A',Arial,sans-serif"},
+    before:"'Bebas Neue','Arial Narrow',sans-serif", after:"'Euclid Circular A',Arial,sans-serif",
+    label:':root · --display', say:'Swapped it.'};
+  /* the preview the server would have computed, fetched the same way */
+  const pv = await (await w.fetch('/api/setup/open/containers/prize_draw')).json();
+  prop.preview = {html: pv.html.replace(/--display:[^;]*/, "--display:'Euclid Circular A',Arial,sans-serif")};
+
+  w.setupProposal(prop); await sleep(300);
+  ok('the artefact changed before you answered', /Euclid/.test(face()), true);
+  ok('and the card knows you can see it', !!d.querySelector('#setupChat .setup-prop.live'), true);
+  ok('so the button says keep', (d.querySelector('#setupChat .setup-yes')||{}).textContent, 'KEEP IT');
+  ok('nothing is on disk yet', w.eval('SETUP_DATA.state'), 'live');
+
+  w.setupReject(); await sleep(300);
+  ok('putting it back restores the artefact', face(), wore);
+
+  /* and the silent bin, which is what actually bit him */
+  w.setupProposal(prop); await sleep(300);
+  ok('previewing again', /Euclid/.test(face()), true);
+  d.getElementById('setupNote2').value='something else entirely';
+  w.setupAsk(); await sleep(400);
+  ok('carrying on puts it back rather than binning it', face(), wore);
+  ok('and says so', /carried on/.test(d.getElementById('setupChat').textContent), true);
 
   /* AND THE BRAND ROOM UNTOUCHED. v046's split is the thing this build was
      most able to break: brands are fields and shelves, containers are a
