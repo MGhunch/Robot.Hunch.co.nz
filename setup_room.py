@@ -1,14 +1,24 @@
 """
 ROBOT — THE SET UP ROOM
 =======================
-The upload door. SET UP builds a container somewhere else and hands back
-two folders; this takes the zip of them, lays them out in a scratch dir,
-and lets the reader answer its usual question about them.
+The drafts folder. SET UP builds a brand or a container somewhere else and
+hands it back as a zip; this unpacks it, lays it out the way the reader
+expects, and keeps it while it's being worked on.
 
-Nothing here writes to brands/ or containers/. The live folders are the
-ones that have landed; a dropped folder is a thing being looked at, and it
-lives in scratch until it is dropped again or cleared. That is the whole
-safety story: the worst a bad zip can do is fail to render.
+WHERE THINGS LIVE, and it is the whole model in two lines:
+
+  the volume   a DRAFT. Saves are instant, no deploy, and it is only ever
+               shown to a Hunch login. Survives restarts and redeploys.
+  git          what has LANDED. History, revert, and the folders ship in
+               the same commit as the engine that reads them.
+
+Clients only ever see git. Hunch sees the volume laid over the top. PUSH
+moves a folder from the volume into git and clears the draft, and that —
+nothing else — is what makes it live.
+
+Drafts used to live in /tmp, which Railway wipes on every restart: twenty
+minutes of editing could vanish with no warning. A volume is exactly what
+work in progress is for, which is not the same as being the source.
 
 Codes, not sentences. The words live in static/js/strings.js under
 STR.setup, the same way the reader's dead-doc lines do.
@@ -31,10 +41,13 @@ import re
 import shutil
 import zipfile
 
-# Scratch lives outside the repo on purpose: nothing dropped here can be
-# mistaken for something that landed. Railway gives us /tmp; the volume is
-# for things that are meant to survive, and a folder being checked isn't.
-SCRATCH = os.environ.get("ROBOT_SETUP_SCRATCH", "/tmp/robot-setup")
+REPO = os.path.dirname(os.path.abspath(__file__))
+
+# The drafts live outside the repo on purpose: nothing here can be mistaken
+# for something that landed. On Railway this is the volume (/data/drafts);
+# locally it falls back to /tmp, where losing it costs nothing.
+DRAFTS = os.environ.get("ROBOT_DRAFTS") or (
+    "/data/drafts" if os.path.isdir("/data") else "/tmp/robot-drafts")
 
 MAX_FILES = 400
 MAX_ONE = 8 * 1024 * 1024          # one file, uncompressed
@@ -85,32 +98,64 @@ def _dirs_holding(root, *names):
     return sorted(found)
 
 
-def _root(sid):
-    return os.path.join(SCRATCH, re.sub(r"[^A-Za-z0-9_-]", "", sid) or "anon")
+def root():
+    """One drafts folder for the studio, not one per browser tab. A draft is
+    a thing Hunch is working on; it should still be there tomorrow, and on
+    the other laptop."""
+    os.makedirs(os.path.join(DRAFTS, "brands"), exist_ok=True)
+    os.makedirs(os.path.join(DRAFTS, "containers"), exist_ok=True)
+    return DRAFTS
 
 
-def held(sid):
-    """What this session has been given so far."""
-    root = _root(sid)
-    return (root,
-            [os.path.basename(p) for p in sorted(glob.glob(os.path.join(root, "containers", "*")))
+def held():
+    """Which folders are drafts right now — (containers, brands)."""
+    r = root()
+    return ([os.path.basename(p) for p in sorted(glob.glob(os.path.join(r, "containers", "*")))
              if os.path.isdir(p)],
-            [os.path.basename(p) for p in sorted(glob.glob(os.path.join(root, "brands", "*")))
+            [os.path.basename(p) for p in sorted(glob.glob(os.path.join(r, "brands", "*")))
              if os.path.isdir(p)])
 
 
-def take(stream, sid):
-    """Unpack a dropped zip into this session's scratch and lay it out the
-    way the reader expects: <scratch>/brands/<id> and
-    <scratch>/containers/<id>. Adds to what's already there — a brand can
-    arrive on Monday and its container on Tuesday, and dropping a folder
-    again replaces that one and nothing else. Returns (root, container ids,
-    brand ids) for everything held, not just this drop. Raises DropError
-    with a code."""
+def draft_dir(kind, fid, make=False):
+    """A draft's folder. `make` copies it out of the repo first if it isn't
+    a draft yet — copy on write, so opening something live just to look at
+    it doesn't turn it into a draft. Only the first edit does that."""
+    if kind not in ("brands", "containers") or not SAFE_NAME.match(fid or ""):
+        return ""
+    here = os.path.join(root(), kind, fid)
+    if os.path.isdir(here):
+        return here
+    if not make:
+        return ""
+    landed = os.path.join(REPO, kind, fid)
+    if not os.path.isdir(landed):
+        return ""
+    shutil.copytree(landed, here)
+    for junk in glob.glob(os.path.join(here, "*.compiled.json")):
+        os.remove(junk)                       # the engine's litter, not the folder's
+    return here
+
+
+def discard(kind, fid):
+    """Throw the draft away. What landed is untouched — that is the whole
+    point of the copy. The only way a draft leaves without being pushed."""
+    d = draft_dir(kind, fid)
+    if not d:
+        raise DropError("gone")
+    shutil.rmtree(d, ignore_errors=True)
+    return fid
+
+
+def take(stream):
+    """Unpack a dropped zip and lay it out the way the reader expects:
+    drafts/brands/<id> and drafts/containers/<id>. A drop is always a draft
+    — it hasn't landed, by definition. Dropping the same folder id again
+    replaces that one and nothing else. Returns the ids this drop carried,
+    so the page can put the new cards at the top. Raises DropError."""
     if stream is None:
         raise DropError("nozip")
-    root = _root(sid)
-    raw = os.path.join(root, "_raw")
+    r = root()
+    raw = os.path.join(r, "_raw")
     shutil.rmtree(raw, ignore_errors=True)                  # this drop's unpacking only
     os.makedirs(raw, exist_ok=True)
     try:
@@ -127,8 +172,8 @@ def take(stream, sid):
     if not cdirs and not bdirs:
         raise DropError("nofolders")
 
-    bases = os.path.join(root, "brands")
-    cases = os.path.join(root, "containers")
+    bases = os.path.join(r, "brands")
+    cases = os.path.join(r, "containers")
     os.makedirs(bases, exist_ok=True)
     os.makedirs(cases, exist_ok=True)
     cids, bids = [], []
@@ -147,7 +192,7 @@ def take(stream, sid):
     if not cids and not bids:
         raise DropError("nofolders")
     shutil.rmtree(raw, ignore_errors=True)                  # the unpacking was scaffolding
-    return held(sid)
+    return cids, bids
 
 
 FONT_EXT = (".woff2", ".woff", ".otf", ".ttf", ".eot")
@@ -155,21 +200,12 @@ ASSET_OK = FONT_EXT + (".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp",
                        ".pdf", ".txt", ".md")
 
 
-def brand_dir(sid, bid):
-    """A held brand's folder, or nothing. Everything that writes goes
-    through here, so a folder id from the wire can't point anywhere else."""
-    if not SAFE_NAME.match(bid or ""):
-        return ""
-    d = os.path.join(_root(sid), "brands", bid)
-    return d if os.path.isdir(d) else ""
-
-
-def add_asset(sid, bid, filename, stream):
+def add_asset(bid, filename, stream):
     """Put a file in a held brand's assets/. This is how a gap gets filled:
     the check names a file brandlook.md wants and hasn't got, and you hand
     it over. Same name replaces; the folder is scratch, so nothing that
     landed can be hurt by it."""
-    d = brand_dir(sid, bid)
+    d = draft_dir("brands", bid, make=True)
     if not d:
         raise DropError("gone")
     name = os.path.basename(filename or "")
@@ -184,11 +220,11 @@ def add_asset(sid, bid, filename, stream):
     return name
 
 
-def drop_asset(sid, bid, name):
+def drop_asset(bid, name):
     """Prune. Only from scratch, only a plain filename, and the folder is
     re-read straight after — so a file something still names comes back as
     a problem rather than as silence."""
-    d = brand_dir(sid, bid)
+    d = draft_dir("brands", bid, make=True)
     name = os.path.basename(name or "")
     if not d or not SAFE_NAME.match(name):
         raise DropError("gone")
@@ -199,21 +235,22 @@ def drop_asset(sid, bid, name):
     return name
 
 
-def zip_out(sid, ids=None):
+def zip_out(ids=None):
     """The way out. Everything held, in the shape the reader accepts —
     brands/<id>/ and containers/<id>/ — minus the compiled caches, which are
     the engine's litter and never anybody's source. Returns a path in the
     scratch; the route hands it over and it dies with the session."""
-    root, cids, bids = held(sid)
+    cids, bids = held()
     keep = set(ids or (cids + bids))
-    out = os.path.join(root, "_download.zip")
+    r = root()
+    out = os.path.join(r, "_download.zip")
     n = 0
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for kind, folders in (("brands", bids), ("containers", cids)):
             for fid in folders:
                 if fid not in keep:
                     continue
-                base = os.path.join(root, kind, fid)
+                base = os.path.join(r, kind, fid)
                 for here, dirs, files in os.walk(base):
                     dirs[:] = [x for x in dirs if not x.startswith((".", "_"))]
                     for f in sorted(files):
@@ -227,6 +264,6 @@ def zip_out(sid, ids=None):
     return out
 
 
-def clear(sid):
-    """Start again. The only way anything leaves the scratch."""
-    shutil.rmtree(_root(sid), ignore_errors=True)
+def clear():
+    """Throw away every draft. Blunt, and only ever asked for by name."""
+    shutil.rmtree(DRAFTS, ignore_errors=True)

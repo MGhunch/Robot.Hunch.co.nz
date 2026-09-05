@@ -36,6 +36,7 @@ import containers as CT
 import robots
 import setup_room
 import setup_edit
+import setup_push
 from engine import (build_facts, assemble_terms, render_terms, render_copy,
                     clause_menu, type_options, TermsError)
 
@@ -168,41 +169,23 @@ def container_get(cid):
 
 
 # ---------------------------------------------------------------------------
-# SET UP CHECK — the upload door. Hunch only.
-#
-# A container is built somewhere else and arrives as a zip of two folders.
-# Before it lands you want to look at it: the bones, the deets and the
-# artefact, drawn by the same code the client will meet. So the drop goes
-# to scratch, the reader reads it there, and the answer comes back in the
-# same shape /api/container/<cid> returns. Nothing under brands/ or
-# containers/ moves. Checking is looking, not landing.
-# ---------------------------------------------------------------------------
-
-def _sid():
-    """A scratch key per browser session, so two people checking at once
-    don't stand in each other's folder."""
-    if not session.get("sid"):
-        session["sid"] = os.urandom(8).hex()
-    return session["sid"]
-
-
 def _named_files(*texts):
     return re.findall(r"assets/([\w.\-]+\.\w+)", " ".join(texts))
 
 
 def _brand_payload(b):
-    """What the reader got out of a brand folder, in the five sections you'd
-    edit it in: FONTS, ASSETS, COLOURS, LEGALS, PROMPT.
+    """What the reader got out of a brand folder, in the three sections you
+    would edit it in — LOOK, PROMPT, LEGALS — because that is what the three
+    files are. A section spanning two files makes "which file did that
+    change?" a question you re-answer every time.
 
-    Not a verdict — the parse itself, so a blank that validated clean is
+    Not a verdict: the parse itself, so a blank that validated clean is
     visible instead of implied. Hunch's own folder read clean and shipped an
-    empty font for two days; a screen that only said "0 problems" would have
-    kept that hidden.
+    empty font for two days.
 
-    Each section carries both halves of the truth: the files that are in the
-    folder, and the lines the reader actually reads. When those two disagree
-    — a font sitting there that nothing names, a file named that isn't there
-    — that gap is the bug, and it only shows if you show both."""
+    LOOK carries both halves of the truth — the files in assets/, and the
+    lines that name them. A font sitting there that no line names is
+    invisible to the engine, and that gap only shows if you show both."""
     skin = b.get("skin", {})
     folder = b.get("folder", "")
     look = ""
@@ -212,127 +195,234 @@ def _brand_payload(b):
     except OSError:
         pass
     have = b.get("assets", [])
-    fontlines = skin.get("fonts", [])
-    named_by_fonts = set(_named_files(*(f["text"] for f in fontlines)))
-    named_anywhere = set(_named_files(look))
+    named = set(_named_files(look))
+    bid = b.get("id", "")
 
     def afile(f):
-        return {"file": f, "named": f in named_anywhere,
+        return {"file": f, "named": f in named,
                 "font": f.lower().endswith(setup_room.FONT_EXT),
-                "url": "/api/setup/asset/" + b.get("id", "") + "/assets/" + f}
+                "url": "/api/setup/asset/" + bid + "/assets/" + f}
 
     files = [afile(f) for f in have]
-    # the colour lines, in the order brandlook declares them, each keyed by
-    # the bold word the reader turned into a token
     colours = []
     for m in re.finditer(r"^\*\*([^*]+?):\*\*[ \t]*(.*)$", look, re.M):
         hexes = re.findall(r"#[0-9A-Fa-f]{6}", m.group(2))
         if hexes:
-            colours.append({"key": m.group(1).strip(), "hex": hexes[0], "line": m.group(2).strip()})
+            colours.append({"key": m.group(1).strip(), "hex": hexes[0]})
 
     voice = b.get("voice", "")
-    sections = [{"title": t, "body": body} for t, body in CT.sections_of(voice)]
-
     return {
-        "id": b.get("id", ""), "name": b.get("name", ""), "version": b.get("version", ""),
-        "fonts": {"lines": [dict(f, names=_named_files(f["text"])) for f in fontlines],
-                  "files": [f for f in files if f["font"]]},
-        "assets": {"files": [f for f in files if not f["font"]],
-                   "missing": sorted(named_anywhere - set(have)),
-                   "spare": sorted(f["file"] for f in files if not f["named"])},
-        "logo": skin.get("logo", ""), "mark": skin.get("mark", ""),
-        "colours": colours,
+        "id": bid, "name": b.get("name", ""), "version": b.get("version", ""),
+        "look": {
+            "fonts": [dict(f, names=_named_files(f["text"])) for f in skin.get("fonts", [])],
+            "logo": skin.get("logo", ""), "mark": skin.get("mark", ""),
+            "colours": colours,
+            "files": files,
+            "missing": sorted(named - set(have)),
+            "spare": sorted(f["file"] for f in files if not f["named"]),
+        },
+        "prompt": {"sections": [{"title": t, "body": body} for t, body in CT.sections_of(voice)],
+                   "chars": len(voice)},
         "legals": [{"id": c["id"], "label": c.get("label", ""), "fixed": c.get("fixed", False),
                     "text": c.get("text", "")} for c in (b.get("legals") or [])],
-        "prompt": {"sections": sections, "chars": len(voice)},
         "problems": b.get("problems", []),
     }
 
 
-@app.route("/api/setup/check", methods=["POST"])
+# ---------------------------------------------------------------------------
+# SET UP — Hunch only. Two places, and the difference is the whole model.
+#
+#   the volume   a DRAFT. Instant saves, no deploy, Hunch's eyes only.
+#   git          what has LANDED. History, revert, and the folders ship in
+#                the same commit as the engine that reads them.
+#
+# Clients only ever see git; Hunch sees the volume laid over the top. PUSH
+# moves a folder from the volume into git, and that is what makes it live.
+# ---------------------------------------------------------------------------
+
+def _state(thing):
+    """What a row says. DRAFT beats everything, because an unpushed change
+    is the thing you need to act on. A brand has no status line in the
+    schema — it either landed or it hasn't — so anything in git is live."""
+    if thing.get("draft"):
+        return "draft"
+    status = thing.get("status")
+    if not status:
+        return "live"
+    return "live" if status == "live" else "testing"
+
+
+def _setup_list():
+    bs = CT.brands(drafts=True)
+    cs = CT.containers(drafts=True)
+    using = {}
+    for c in cs.values():
+        using[c.get("brand", "")] = using.get(c.get("brand", ""), 0) + 1
+    def sub(n):
+        return "no containers yet" if not n else ("1 container" if n == 1 else f"{n} containers")
+    return {
+        "brands": [{"id": b["id"], "name": b.get("name", b["id"]),
+                    "sub": sub(using.get(b["id"], 0)), "state": _state(b),
+                    "problems": len(b.get("problems", []))}
+                   for b in sorted(bs.values(), key=lambda x: x.get("name", "").lower())],
+        "containers": [{"id": c["id"], "name": c.get("name", c["id"]),
+                        "sub": (bs.get(c.get("brand", ""), {}) or {}).get("name", c.get("brand", "")),
+                        "state": _state(c), "problems": len(c.get("problems", []))}
+                       for c in sorted(cs.values(), key=lambda x: x.get("name", "").lower())],
+    }
+
+
+@app.route("/api/setup/list")
 @require_auth
-def setup_check():
-    """A drop lands, and the room says what it now holds. A brand on its own
-    is a fine thing to check — SET UP builds one per client and containers
-    per format, so they arrive apart. What it can't do without a container is
-    draw the three stops, and it says so rather than refusing the drop."""
+def setup_list():
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    return jsonify(_setup_list())
+
+
+@app.route("/api/setup/drop", methods=["POST"])
+@require_auth
+def setup_drop():
+    """A zip lands. It is a draft by definition — it hasn't been pushed.
+    The zip says whether it's a brand or a container; asking first would be
+    asking a question we can answer ourselves."""
     if not is_hunch():
         return jsonify({"error": "hunch"}), 403
     try:
-        root, cids, bids = setup_room.take(request.files.get("zip"), _sid())
+        cids, bids = setup_room.take(request.files.get("zip"))
     except setup_room.DropError as e:
         return jsonify({"error": str(e)}), 400
-
-    with CT.folders_at(os.path.join(root, "brands"), os.path.join(root, "containers")):
-        bs = CT.brands()
-        cs = CT.containers() if cids else {}
-        cid = request.form.get("container") or (cids[0] if cids else "")
-        c = cs.get(cid) or (cs.get(cids[0]) if cids else None)
-        out = _container_payload(c, assets="/api/setup/asset/") if c else {}
-        # the brand on show is the container's, or the only one held
-        bid = (c or {}).get("brand", "") or (bids[0] if bids else "")
-        out["brandRead"] = _brand_payload(bs[bid]) if bid in bs else None
-        # the container asked for a brand that isn't here: name both, so the
-        # brand stop says what's wrong instead of standing empty
-        out["brandWanted"] = (c or {}).get("brand", "")
-
-    out["held"] = {"containers": sorted(cids), "brands": sorted(bids)}
-    out["showing"] = c["id"] if c else ""
-    out["status"] = (c or {}).get("status", "")
-    # what it's waiting for, in the room's words rather than an error
-    out["waiting"] = "" if c else ("container" if bids else "both")
-    if not c:
-        out["problems"] = (out.get("brandRead") or {}).get("problems", [])
+    out = _setup_list()
+    out["landed"] = {"containers": cids, "brands": bids}
     return jsonify(out)
 
 
-@app.route("/api/setup/held")
+@app.route("/api/setup/open/<kind>/<fid>")
 @require_auth
-def setup_held():
-    """What the room is holding. The drop pad asks, because the container
-    job needs a brand and this is where you find out you haven't dropped
-    one yet."""
+def setup_open(kind, fid):
+    """Everything the editor needs. Opening does not make a draft — the
+    first edit does. So you can look at something live without changing
+    what it is."""
     if not is_hunch():
         return jsonify({"error": "hunch"}), 403
-    _root, cids, bids = setup_room.held(_sid())
-    return jsonify({"held": {"containers": sorted(cids), "brands": sorted(bids)}})
+    if kind == "brands":
+        b = CT.brands(drafts=True).get(fid)
+        if not b:
+            return jsonify({"error": "gone"}), 404
+        return jsonify({"kind": "brands", "id": fid, "state": _state(b),
+                        "brandRead": _brand_payload(b), "problems": b.get("problems", [])})
+    if kind == "containers":
+        c = CT.container(fid, drafts=True)
+        if not c:
+            return jsonify({"error": "gone"}), 404
+        out = _container_payload(c, assets="/api/setup/asset/")
+        out.update({"kind": "containers", "id": fid, "state": _state(c),
+                    "brandRead": _brand_payload(CT.brands(drafts=True)[c["brand"]])
+                    if c.get("brand") in CT.brands(drafts=True) else None,
+                    "brandWanted": c.get("brand", "")})
+        return jsonify(out)
+    return jsonify({"error": "gone"}), 404
 
 
-@app.route("/api/setup/clear", methods=["POST"])
+@app.route("/api/setup/discard", methods=["POST"])
 @require_auth
-def setup_clear():
-    """Start again. The only way anything leaves the scratch."""
+def setup_discard():
+    """Throw the draft away. What landed is untouched."""
     if not is_hunch():
         return jsonify({"error": "hunch"}), 403
-    setup_room.clear(_sid())
-    return jsonify({"success": True})
+    d = request.get_json(silent=True) or {}
+    try:
+        setup_room.discard(d.get("kind", ""), d.get("id", ""))
+    except setup_room.DropError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify(_setup_list())
+
+
+@app.route("/api/setup/push", methods=["POST"])
+@require_auth
+def setup_push_route():
+    """A draft goes into git as one ordinary commit, and that is what makes
+    it live. Two gates before it can: it has to be a draft, and it has to
+    read clean. Nothing unclean has ever been worth landing."""
+    if not is_hunch():
+        return jsonify({"error": "hunch"}), 403
+    if not setup_push.ready():
+        return jsonify({"error": "nopush"}), 501
+    d = request.get_json(silent=True) or {}
+    kind, fid = d.get("kind", ""), d.get("id", "")
+    folder = setup_room.draft_dir(kind, fid)
+    if not folder:
+        return jsonify({"error": "notdraft"}), 400
+
+    # a container's brand has to be in git already, or what lands is a
+    # container pointing at a folder no client can see. The validator would
+    # bounce it anyway — this says the useful thing instead.
+    if kind == "containers":
+        c = CT.container(fid, drafts=True) or {}
+        b = c.get("brand", "")
+        if b and b not in CT.brands():
+            return jsonify({"error": "brandfirst", "brand": b}), 400
+
+    probs = CT.validate(folder, kind="brand" if kind == "brands" else "container")
+    if probs:
+        return jsonify({"error": "unclean", "problems": probs}), 400
+
+    what = "brand" if kind == "brands" else "container"
+    message = f"{fid}: the {what} folder, from SET UP"
+    try:
+        out = setup_push.push(kind, fid, folder, message)
+    except setup_push.PushError as e:
+        return jsonify({"error": str(e)}), 502
+
+    # it landed, so it isn't a draft any more. Two versions of one folder
+    # never coexist — that was the whole point of the copy.
+    setup_room.discard(kind, fid)
+    out["list"] = _setup_list()
+    return jsonify(out)
 
 
 @app.route("/api/setup/asset/<path:name>")
 @require_auth
 def setup_asset(name):
-    """A file out of a held brand folder — so the artefact wears the client's
-    face while you look at it, and so an asset pill can show the thing rather
-    than its filename."""
+    """A file out of a draft's assets/, so an asset pill can show the thing
+    rather than its filename, and the artefact can wear the client's face."""
     if not is_hunch():
         return jsonify({"error": "hunch"}), 403
-    base = os.path.join(setup_room.SCRATCH, re.sub(r"[^A-Za-z0-9_-]", "", session.get("sid", "")), "brands")
+    base = os.path.join(setup_room.DRAFTS, "brands")
     full = os.path.normpath(os.path.join(base, name))
     if not full.startswith(os.path.normpath(base) + os.sep) or not os.path.isfile(full):
+        # not a draft: fall back to what landed, so a live folder's logo shows
+        landed = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "brands", name))
+        if os.path.isfile(landed):
+            return send_from_directory(os.path.dirname(landed), os.path.basename(landed))
         return jsonify({"error": "gone"}), 404
     return send_from_directory(os.path.dirname(full), os.path.basename(full))
 
 
 # ---------------------------------------------------------------------------
-# EDITING WHAT'S HELD — surgical, scratch only, changelogged.
+# EDITING A DRAFT — surgical, volume only, changelogged.
 #
-# The check page can change a dropped folder. Four edits, because a brand
-# has four shapes of thing in it: a hex inside a line, a whole line, a
-# section of a document, a cell in a table. Nothing here regenerates a file
-# from parsed structure — see setup_edit.py for why that rule exists.
+# Four edits, because a brand has four shapes of thing in it: a hex inside a
+# line, a whole line, a section of a document, a cell in a table. Nothing
+# here regenerates a file from parsed structure — see setup_edit.py for why.
+# The first edit of something landed copies it to the volume; opening it
+# didn't, so looking is free.
 # ---------------------------------------------------------------------------
 
 EDIT_FILES = {"look": "brandlook.md", "voice": "brandvoice.md", "legals": "brandlegals.md"}
+
+
+def _after_write(kind, fid):
+    """After every write: parse it again and answer with the parse. The page
+    never keeps its own idea of what the folder says."""
+    if kind == "brands":
+        b = CT.brands(drafts=True).get(fid) or {}
+        return jsonify({"brandRead": _brand_payload(b) if b else None,
+                        "problems": b.get("problems", []), "state": _state(b),
+                        "list": _setup_list()})
+    c = CT.container(fid, drafts=True) or {}
+    return jsonify({"problems": c.get("problems", []), "state": _state(c),
+                    "list": _setup_list()})
 
 
 @app.route("/api/setup/edit", methods=["POST"])
@@ -341,7 +431,8 @@ def setup_edit_route():
     if not is_hunch():
         return jsonify({"error": "hunch"}), 403
     d = request.get_json(silent=True) or {}
-    folder = setup_room.brand_dir(_sid(), d.get("brand", ""))
+    fid = d.get("id", "")
+    folder = setup_room.draft_dir("brands", fid, make=True)
     if not folder:
         return jsonify({"error": "gone"}), 404
     which = EDIT_FILES.get(d.get("file", ""))
@@ -369,7 +460,7 @@ def setup_edit_route():
     except setup_edit.EditError as e:
         return jsonify({"error": str(e)}), 400
     setup_edit.log(folder, "brand.md", what)
-    return jsonify(_reread(d.get("brand", "")))
+    return _after_write("brands", fid)
 
 
 @app.route("/api/setup/asset/add", methods=["POST"])
@@ -379,58 +470,44 @@ def setup_asset_add():
     got; this is where you hand it over."""
     if not is_hunch():
         return jsonify({"error": "hunch"}), 403
-    bid = request.form.get("brand", "")
+    fid = request.form.get("id", "")
     f = request.files.get("file")
     if not f:
         return jsonify({"error": "nofile"}), 400
     try:
-        name = setup_room.add_asset(_sid(), bid, f.filename, f)
+        name = setup_room.add_asset(fid, f.filename, f)
     except setup_room.DropError as e:
         return jsonify({"error": str(e)}), 400
-    folder = setup_room.brand_dir(_sid(), bid)
-    setup_edit.log(folder, "brand.md", f"{name} added to assets/.")
-    return jsonify(_reread(bid))
+    setup_edit.log(setup_room.draft_dir("brands", fid), "brand.md", f"{name} added to assets/.")
+    return _after_write("brands", fid)
 
 
 @app.route("/api/setup/asset/drop", methods=["POST"])
 @require_auth
 def setup_asset_drop():
-    """Pruning. Scratch only, and the folder is re-read straight after — so
-    deleting something a line still names comes back as a problem, loudly,
-    rather than as silence."""
+    """Pruning. The folder is re-read straight after, so deleting something
+    a line still names comes back as a problem rather than as silence."""
     if not is_hunch():
         return jsonify({"error": "hunch"}), 403
     d = request.get_json(silent=True) or {}
-    bid = d.get("brand", "")
+    fid = d.get("id", "")
     try:
-        name = setup_room.drop_asset(_sid(), bid, d.get("file", ""))
+        name = setup_room.drop_asset(fid, d.get("file", ""))
     except setup_room.DropError as e:
         return jsonify({"error": str(e)}), 400
-    setup_edit.log(setup_room.brand_dir(_sid(), bid), "brand.md", f"{name} removed from assets/.")
-    return jsonify(_reread(bid))
-
-
-def _reread(bid):
-    """After every write: parse it again and answer with the parse. The page
-    never keeps its own idea of what the folder says."""
-    root, cids, bids = setup_room.held(_sid())
-    with CT.folders_at(os.path.join(root, "brands"), os.path.join(root, "containers")):
-        bs = CT.brands()
-        b = bs.get(bid)
-        out = {"brandRead": _brand_payload(b) if b else None,
-               "problems": (b or {}).get("problems", [])}
-    out["held"] = {"containers": sorted(cids), "brands": sorted(bids)}
-    return out
+    setup_edit.log(setup_room.draft_dir("brands", fid), "brand.md", f"{name} removed from assets/.")
+    return _after_write("brands", fid)
 
 
 @app.route("/api/setup/download")
 @require_auth
 def setup_download():
-    """The way out. Everything held, in the shape the reader accepts."""
+    """Every draft, in the shape the reader accepts. Still here because it
+    is the safe path, and because PUSH doesn't exist yet."""
     if not is_hunch():
         return jsonify({"error": "hunch"}), 403
     try:
-        path = setup_room.zip_out(_sid())
+        path = setup_room.zip_out()
     except setup_room.DropError as e:
         return jsonify({"error": str(e)}), 400
     return send_from_directory(os.path.dirname(path), os.path.basename(path),

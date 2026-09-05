@@ -13,8 +13,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="robot.css?v=043">
-<script src="js/strings.js?v=043"></script>
+<link rel="stylesheet" href="robot.css?v=045">
+<script src="js/strings.js?v=045"></script>
 <script src="js/chrome.js?v=041"></script>
 
 </head>
@@ -366,54 +366,47 @@
 </div>
 
 <!-- ===================== SET UP =====================
-     The fifth room, off the burger, Hunch only. Two doors, because they
-     are two jobs: a brand is set up once per client, a container once per
-     format, and you can't have a container without a brand. Trying to do
-     both on one screen is what made the last version confusing.
+     The fifth room, off the burger, Hunch only.
 
-     BRAND    — check it and fix it. Five sections, editable, then download.
-     CONTAINER— check it against a brand. Three stops, read only for now.
+     WHERE THINGS LIVE, and it's the whole model in two lines:
+       the volume  a DRAFT. Instant saves, no deploy, Hunch's eyes only.
+       git         what LANDED. History, revert, and the folders ship in
+                   the same commit as the engine that reads them.
+     Clients only ever see git; Hunch sees the volume laid over the top.
 
-     Everything here is drawn by the code the client will meet — the
-     chrome's ghost, deets.js's card, the container's own html. Nothing
-     writes outside the session's scratch. -->
+     THE HOME PAGE lists everything and takes you to it. It doesn't push —
+     push has to refuse a folder that doesn't read clean and a list can't
+     know, and because the doorway picks a container, it doesn't write the
+     copy. The list navigates; the room acts. -->
 <section id="setup">
 <div class="wrap setup-wrap">
 
-  <!-- THE TWO DOORS -->
-  <div class="setup-doors" id="setupDoors">
+  <!-- HOME -->
+  <div class="home" id="setupHome">
     <h2 class="feed-hed beb">SET UP</h2>
-    <div class="setup-tagline">Which job?</div>
-    <div class="setup-doorrow">
-      <button class="setup-door" onclick="setupJob('brand')">
-        <span class="setup-doorname beb">BRAND</span>
-        <span class="setup-doorsub">Fonts, assets, colours, legals, prompt.<br>Once per client.</span>
-      </button>
-      <button class="setup-door" onclick="setupJob('container')">
-        <span class="setup-doorname beb">CONTAINER</span>
-        <span class="setup-doorsub">The mock, the deets, the output.<br>Once per format — needs a brand.</span>
-      </button>
-    </div>
-    <button class="setup-back" onclick="setupLeave()">Back to the doorway</button>
-  </div>
+    <div class="setup-tagline">Check the specs or fix stuff up</div>
 
-  <!-- THE DROP PAD — same pad, different job -->
-  <div class="setup-drop" id="setupDrop" hidden>
-    <h2 class="feed-hed beb" id="setupDropHed">SET UP BRAND</h2>
-    <div class="setup-tagline" id="setupDropTag">Drop the folder. Have a look before it lands.</div>
-    <div class="setup-pad">
-      <label class="setup-browse">
-        <input type="file" id="setupZip" accept=".zip" hidden onchange="setupTake(this.files)">
-        <span class="feed-go" id="setupDropBtn" onclick="document.getElementById('setupZip').click()">DROP THE ZIP</span>
-      </label>
-      <div class="setup-padline" id="setupPadline"></div>
-      <div class="setup-holding" id="setupHolding"></div>
+    <div class="home-pad" id="setupPad" onclick="document.getElementById('setupZip').click()">
+      <input type="file" id="setupZip" accept=".zip" hidden onchange="setupTake(this.files)">
+      <svg class="home-padicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5"/><path d="M8 9l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+      <div class="home-padname">GET SET UP</div>
+      <div class="home-padsub">Drop a ZIP or <b>Browse</b>.</div>
     </div>
     <div id="setupSay"></div>
-    <button class="setup-back" onclick="setupDoors()">Back</button>
+
+    <div class="home-cols">
+      <div>
+        <div class="home-h">BRANDS</div>
+        <div class="home-list" id="homeBrands"></div>
+      </div>
+      <div>
+        <div class="home-h">CONTAINERS</div>
+        <div class="home-list" id="homeContainers"></div>
+      </div>
+    </div>
   </div>
 
-  <!-- THE STAGE — asset left, robot right, whichever job it is -->
+  <!-- THE FOLDER — asset left, robot right -->
   <div class="setup-stage" id="setupStage" hidden>
     <div class="rail" id="setupRail"></div>
     <h2 class="feed-hed beb" id="setupHed">SET UP</h2>
@@ -421,22 +414,14 @@
     <div class="setup-meta">
       <div class="setup-tile" id="setupTile"></div>
       <div class="setup-status" id="setupStatus"></div>
-      <label class="setup-more">
-        <input type="file" id="setupZip2" accept=".zip" hidden onchange="setupTake(this.files)">
-        <span class="setup-morebtn" onclick="document.getElementById('setupZip2').click()">DROP ANOTHER FOLDER</span>
-      </label>
-      <button class="setup-back" onclick="setupClear()">Start again</button>
+      <button class="setup-back" id="setupBack" onclick="setupHome()">All set ups</button>
     </div>
 
     <div class="fix-grid setup-grid">
       <div>
         <div class="fix-lozrow"><span class="fix-loz" id="setupLoz"></span></div>
         <div class="fix-artwrap">
-
-          <!-- the brand's five sections; one pane, one section at a time -->
           <div class="setup-pane" data-p="brand"><div class="setup-card" id="setupBrand"></div></div>
-
-          <!-- the container's three -->
           <div class="setup-pane" data-p="mock">
             <div class="ghost-hold setup-hold"><div class="ghost-art" id="setupGhost"></div></div>
           </div>
@@ -446,9 +431,8 @@
           <div class="setup-pane" data-p="output">
             <iframe class="setup-art" id="setupArt" title="The artefact"></iframe>
           </div>
-
           <div class="fix-gutter">
-            <button class="fix-pad setup-lock" id="setupPad" onclick="setupPadTap()"></button>
+            <button class="fix-pad setup-lock" id="setupLock" onclick="setupPadTap()"></button>
           </div>
         </div>
         <div class="setup-hint" id="setupHint"></div>
@@ -462,14 +446,10 @@
             <textarea rows="2" disabled placeholder="Edit it on the left — I can't do it for you yet."></textarea>
           </div>
         </div>
-        <button class="fix-wrap" id="setupFlip" onclick="setupFlip()">
-          <span class="fix-wrapico" id="setupFlipIco"></span><span id="setupFlipLbl"></span>
+        <button class="fix-wrap" id="setupPush" onclick="setupPush()">
+          <span class="fix-wrapico" id="setupPushIco"></span><span id="setupPushLbl">PUSH</span>
         </button>
-        <div class="setup-note" id="setupNote">
-          All checked. Flipping stays a human act: in <b>config.md</b>,
-          <code>status: testing</code> &rarr; <code>status: live</code>.
-          Change it in the folder, land it, done.
-        </div>
+        <button class="setup-discard" id="setupDiscard" onclick="setupDiscard()">Discard this draft</button>
       </div>
     </div>
   </div>
@@ -496,6 +476,6 @@
 <script src="js/feed.js?v=040"></script>
 <script src="js/fix.js?v=038"></script>
 <script src="js/file.js?v=038"></script>
-<script src="js/setup.js?v=043"></script>
+<script src="js/setup.js?v=045"></script>
 </body>
 </html>

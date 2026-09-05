@@ -52,12 +52,16 @@ const STR = {
      codes; the rest is the robot reporting what the validator found. */
   /* SET UP — Hunch only. Two jobs, one set of words. The read lines
      answer the upload door's codes; the edit lines answer the writer's. */
+  /* SET UP — Hunch only. Two places: the volume holds drafts, git holds
+     what landed. The read lines answer the drop door's codes; the edit
+     lines answer the writer's. */
   setup: {
     read: {
       nozip:     "Nothing landed. Try that again?",
       broken:    "That's not a zip I can open. Zip the folder and drop it in.",
       fat:       "Wowsers. That's a big one. Under 40MB, and no single file over 8.",
       nofolders: "Nothing in there looks like a brand or a container. I need a folder with brand.md, or one with config.md and spec.md.",
+      gone:      "That folder isn't here any more. Drop it again?",
       hunch:     "That door's ours, not yours.",
     },
     edit: {
@@ -67,22 +71,51 @@ const STR = {
       norow:      "Can't find that clause any more.",
       nothex:     "A hex, six digits, with the hash. Nothing else goes in there.",
       nohexthere: "There's no colour on that line to change.",
-      empty:      "Can't save it empty. Delete it in the folder if it should go.",
+      empty:      "Can't save it empty. Take it out of the folder if it should go.",
       badfile:    "Not a file I'll put in assets/. Fonts, images, a PDF or a text file.",
-      gone:       "That folder isn't in the room any more. Drop it again?",
+      gone:       "That folder isn't here any more. Drop it again?",
+      nopush:     "Nowhere to push to yet — that's the next one. Take the download for now.",
     },
-    clean:      "Reads clean — no problems. Have a look at the three of them.",
-    cleanBrand: "Reads clean. Have a proper look at what I got out of it — clean isn't the same as right.",
+    nobrands:     "No brands yet. Drop one in.",
+    nocontainers: "No containers yet. You'll need a brand first.",
+    landed: ids => ids.length===1 ? ids[0]+" is in. It's a draft until you push it."
+                                  : ids.join(' and ')+" are in. Drafts until you push them.",
+    clean:      "Reads clean — no problems. Have a proper look: clean isn't the same as right.",
     bounced: n => n===1 ? "One problem with this folder. It's below, and it'll still draw."
                         : n+" problems with this folder. They're below, and it'll still draw.",
     rereadOk:  "Saved. Re-read clean — no problems.",
     rereadBad: n => "Saved — but the folder now has "+n+(n===1?" problem.":" problems."),
     added:  f => f+" is in assets/ now.",
     pruned: f => f+" is gone. If a line still names it, that's a problem above.",
-    needbrand:      "No brand in the room yet. A container is drawn against its brand, so drop that first.",
-    nobrandyet:     "No brand in that zip. This door wants the brand folder — brand.md and the rest.",
-    nocontaineryet: "No container in that zip. This door wants config.md, spec.md and container.html.",
     notyet: what => "Have a proper look at "+what+" first, then shut its padlock.",
+    fixfirst: n => n===1 ? "One problem to sort before this can go anywhere."
+                         : n+" problems to sort before this can go anywhere.",
+    /* what the push lane can say back. Codes, like everywhere else. */
+    push: {
+      nopush:   "No GitHub token set, so there's nowhere to push to. Take the download instead.",
+      badtoken: "GitHub won't take that token. It may have expired.",
+      noperm:   "The token can't write to that repo. It wants Contents: read and write.",
+      norepo:   "Can't find the repo. Check GITHUB_REPO.",
+      protected:"The branch is protected, so I can't write to it directly.",
+      notdraft: "Nothing to push — this one's already what's in git.",
+      empty:    "There's nothing in that folder to push.",
+      outside:  "Something in there wanted to write outside its own folder. Not happening.",
+      github:   "GitHub said no and didn't say why. Nothing's changed.",
+    },
+    nothingtopush: "Nothing to push — this one's already what's in git.",
+    brandfirst: b => "Push the "+b+" brand first — a container can't go live pointing at a brand no client can see.",
+    pushed: d => "Pushed. "+d.wrote+(d.wrote===1?" file":" files")+
+      (d.removed?" in, "+d.removed+" removed":" in")+", commit "+d.sha+
+      ". Railway's redeploying now — give it a minute and it's live.",
+    discardsure:   "Throw this draft away? What's already live stays exactly as it is.",
+    nobrandhere:   "Nothing brand-shaped in this one.",
+    nodig:         "Nothing to dig for in here — this is a look, not a run.",
+    stacknotface:  "Names no file — a stack, not a face.",
+    hexonly:       "Type a hex and tab out. Everything else on the line stays as written.",
+    missingfiles:  "This bounces. Add the file below, or take it out of the line.",
+    sparefiles:    "The engine will never touch these. Keep them for humans, or prune them.",
+    addfile:       "Goes into assets/. Same name replaces.",
+    specimen:      "If that isn't the face you meant, the file is wrong.",
   },
 
   /* FIX IT */

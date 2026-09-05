@@ -33,6 +33,13 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 BRANDS_DIR = os.environ.get("ROBOT_BRANDS", os.path.join(ROOT, "brands"))
 CONTAINERS_DIR = os.environ.get("ROBOT_CONTAINERS", os.path.join(ROOT, "containers"))
 
+# DRAFTS — folders being worked on, on the volume. They are laid over the
+# landed ones and only ever for a Hunch login: a client sees what's in git
+# and nothing else. A draft of a folder that has also landed shadows it,
+# so there is never a moment where two versions of one id are both in play.
+DRAFTS_DIR = os.environ.get("ROBOT_DRAFTS") or (
+    "/data/drafts" if os.path.isdir("/data") else "/tmp/robot-drafts")
+
 # derived placeholders the engine supplies itself; clauses may use them
 # without a NEEDS row (see SCHEMA-v3 "The validator bounces on")
 DERIVED_SUFFIXES = ("_day", "_date", "_time", "_long", "_short", "_word", "_cap")
@@ -638,18 +645,31 @@ def d_hidden(p):
     return os.path.basename(p).startswith((".", "_"))
 
 
-def brands():
-    return {os.path.basename(f): _compile(f, "brand") for f in _folders(BRANDS_DIR)}
+def _drafts(kind):
+    """The volume's folders of this kind, if there are any."""
+    return _folders(os.path.join(DRAFTS_DIR, kind))
 
 
-def containers():
+def brands(drafts=False):
+    out = {os.path.basename(f): dict(_compile(f, "brand"), draft=False)
+           for f in _folders(BRANDS_DIR)}
+    if drafts:
+        for f in _drafts("brands"):
+            out[os.path.basename(f)] = dict(_compile(f, "brand"), draft=True)
+    return out
+
+
+def containers(drafts=False):
     """Every container, compiled, with its brand resolved. A container whose
     brand is missing gets the problem noted and an empty brand, so the
     doorway can still show it as testing."""
-    bs = brands()
+    bs = brands(drafts)
     out = {}
-    for f in _folders(CONTAINERS_DIR):
-        c = _compile(f, "container")
+    folders = [(f, False) for f in _folders(CONTAINERS_DIR)]
+    if drafts:
+        folders += [(f, True) for f in _drafts("containers")]
+    for f, is_draft in folders:
+        c = dict(_compile(f, "container"), draft=is_draft)
         b = bs.get(c.get("brand", ""))
         if b is None:
             c["problems"] = c.get("problems", []) + [
@@ -682,8 +702,8 @@ def _resolve_brand_clauses(c):
                 cl["fixed"] = src["fixed"] or cl.get("fixed", False)
 
 
-def container(cid):
-    return containers().get(cid)
+def container(cid, drafts=False):
+    return containers(drafts).get(cid)
 
 
 @contextlib.contextmanager
@@ -752,7 +772,7 @@ def tile(c):
     return {"id": c["id"], "name": c.get("name", c["id"]), "client": c.get("client", ""),
             "brand": c.get("brand", ""), "format": c.get("format", ""),
             "status": c.get("status", "testing"), "purpose": c.get("purpose", ""),
-            "problems": c.get("problems", [])}
+            "draft": bool(c.get("draft")), "problems": c.get("problems", [])}
 
 
 if __name__ == "__main__":
